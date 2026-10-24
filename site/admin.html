@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CRION 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root { --ink: #14161b; --ink2: #3c414b; --muted: #6b7280; --line: #e6e8ec; --bg: #f5f6f8; --accent: #5b5bd6; --weak: #eeeefc; --ok: #16a34a; --bad: #dc2626; --warn: #d97706; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+  header { display: flex; align-items: center; gap: 10px; padding: 20px 0; font-weight: 800; letter-spacing: .04em; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 900; }
+  header .who { margin-left: auto; font-weight: 500; font-size: 13px; color: var(--muted); letter-spacing: 0; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  h2 { margin: 0 0 4px; font-size: 18px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; line-height: 1.6; }
+  .btn { height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: #f8f9fb; }
+  .btn.main { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .btn.main:hover { background: #2a2e37; }
+  .btn.big { height: 48px; padding: 0 22px; font-size: 15px; border-radius: 12px; }
+  .btn.sm { height: 30px; padding: 0 10px; font-size: 12px; border-radius: 8px; }
+  .btn.danger { color: var(--bad); }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  input[type=text], input[type=password], textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fafbfc; outline: none; font-size: 14px; }
+  input:focus, textarea:focus { border-color: #c9cbf5; background: #fff; box-shadow: 0 0 0 3px var(--weak); }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 5px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 200px; }
+  .work { display: grid; grid-template-columns: 84px 1fr auto; gap: 14px; padding: 14px 0; border-top: 1px solid #eef0f3; align-items: start; }
+  .work:first-child { border-top: 0; }
+  .thumb { width: 84px; aspect-ratio: 3/4; border-radius: 10px; background: #e9ebf0 center/cover no-repeat; position: relative; overflow: hidden; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 26px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fields .full { grid-column: 1 / -1; }
+  .side { display: flex; flex-direction: column; gap: 6px; }
+  .pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+  .pill.hid { background: #fde8e8; color: var(--bad); }
+  .bar { position: sticky; bottom: 0; background: rgba(245,246,248,.92); backdrop-filter: blur(8px); padding: 14px 0; display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--line); }
+  .bar .msg { flex: 1; font-size: 13px; color: var(--muted); }
+  .dirty { color: var(--warn) !important; font-weight: 700; }
+  .runs { font-size: 13px; }
+  .runs div { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid #eef0f3; align-items: center; }
+  .runs div:first-child { border-top: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.run { background: var(--warn); animation: p 1s infinite; }
+  @keyframes p { 50% { opacity: .3; } }
+  .runs time { margin-left: auto; color: var(--muted); }
+  .steps { margin: 0; padding-left: 20px; line-height: 1.9; font-size: 14px; }
+  .note { background: var(--weak); color: #3f3fb0; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.7; }
+  .hidden { display: none !important; }
+  #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; opacity: 0; transition: .2s; pointer-events: none; }
+  #toast.on { opacity: 1; }
+  @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } .work { grid-template-columns: 64px 1fr; } .work .side { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; } .thumb { width: 64px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="logo">C</span>CRION 관리<span class="who" id="who"></span></header>
+
+  <!-- 연결 -->
+  <section class="card" id="login">
+    <h2>처음 한 번: GitHub 열쇠 연결</h2>
+    <p class="sub">이 페이지는 CRION 저장소의 작품 목록과 공지를 고쳐서 바로 배포해요. 고칠 권한을 확인하려고 GitHub '열쇠(토큰)'가 한 번 필요해요. 열쇠는 이 컴퓨터의 브라우저에만 저장돼요.</p>
+    <ol class="steps">
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub 열쇠 만들기 페이지</a>를 열어요 (GitHub 로그인 상태).</li>
+      <li><b>Token name</b>: <code>crion-admin</code> · <b>Expiration</b>: 1 year</li>
+      <li><b>Repository access</b>: Only select repositories → <code>CRION</code> 선택</li>
+      <li><b>Permissions → Repository permissions</b>: <b>Contents</b> = Read and write, <b>Actions</b> = Read-only</li>
+      <li>맨 아래 <b>Generate token</b> → 나온 <code>github_pat_…</code> 글자를 복사해서 아래에 붙여넣어요.</li>
+    </ol>
+    <div class="row" style="margin-top:14px">
+      <input class="grow" type="password" id="tok" placeholder="github_pat_로 시작하는 열쇠" autocomplete="off">
+      <button class="btn main" id="connect">연결</button>
+    </div>
+    <p class="sub" id="loginErr" style="color:var(--bad);margin:10px 0 0"></p>
+  </section>
+
+  <div id="main" class="hidden">
+    <!-- 작품 -->
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소.</p></div>
+        <button class="btn" id="add">+ 작품 추가</button>
+      </div>
+      <div id="works"></div>
+    </section>
+
+    <!-- 공지 -->
+    <section class="card">
+      <h2>공지</h2>
+      <p class="sub">앱 홈 맨 위에 띄울 한 줄 공지예요. 비우면 안 보여요. 플레이어가 닫으면 그 공지는 다시 안 떠요(내용을 바꾸면 다시 떠요).</p>
+      <div class="fields">
+        <div class="full"><label>내용</label><input type="text" id="noticeText" maxlength="140" placeholder="예) 신작 「소환수 아카데미」가 열렸어요!"></div>
+        <div class="full"><label>자세히 링크 (선택, https)</label><input type="text" id="noticeLink" placeholder="https://..."></div>
+      </div>
+    </section>
+
+    <!-- 설치 파일 -->
+    <section class="card">
+      <h2>앱 새 설치 파일</h2>
+      <p class="sub">작품·공지·화면 수정은 위 <b>배포하기</b>만으로 이미 설치된 앱에 들어가요. 여기는 Claude가 "설치 파일을 새로 만들어야 해요"라고 할 때만 눌러요. 약 10분 뒤 다운로드 링크가 새 버전으로 바뀌어요.</p>
+      <div class="row"><span>현재 버전 <b id="ver">-</b></span><button class="btn" id="bump">새 설치 파일 만들기</button></div>
+    </section>
+
+    <!-- 기록 -->
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><h2>배포 기록</h2><button class="btn sm" id="reloadRuns">새로고침</button></div>
+      <p class="sub">초록 점이면 서버 반영 끝. 앱은 켜져 있으면 30분 안에, 아니면 다음에 켤 때 받아요. 홈의 <b>목록 새로고침</b>을 누르면 바로 받아요.</p>
+      <div class="runs" id="runs"></div>
+    </section>
+
+    <div class="bar"><span class="msg" id="state">바뀐 내용 없음</span>
+      <button class="btn" id="revert">되돌리기</button>
+      <button class="btn main big" id="deploy">배포하기</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+<input type="file" id="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+
+<script>
+(() => {
+  'use strict';
+  const OWNER = 'hirion2312-art', REPO = 'CRION', BRANCH = 'main';
+  const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+  const RAW = (p) => `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}`;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let token = '';
+  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {};
+  const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2600); };
+  const dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
+  const enc = (str) => { const bytes = new TextEncoder().encode(str); let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
+
+  async function gh(path, opts) {
+    const res = await fetch(API + path, Object.assign({}, opts, {
+      headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, (opts && opts.headers) || {})
+    }));
+    if (!res.ok) {
+      let msg = res.status + '';
+      try { msg += ' ' + (await res.json()).message; } catch (e) { /* 무시 */ }
+      throw new Error(msg);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+  async function getFile(p) { const r = await gh('/contents/' + encodeURI(p) + '?ref=' + BRANCH); return { text: dec(r.content), sha: r.sha }; }
+  async function putFile(p, contentB64, message, fileSha) {
+    const body = { message, content: contentB64, branch: BRANCH };
+    if (fileSha) body.sha = fileSha;
+    return gh('/contents/' + encodeURI(p), { method: 'PUT', body: JSON.stringify(body) });
+  }
+
+  // ---------- 연결 ----------
+  async function connect(t) {
+    token = t.trim();
+    $('#loginErr').textContent = '';
+    try {
+      const repo = await gh('');
+      if (!repo.permissions || !repo.permissions.push) throw new Error('이 열쇠에는 고치기 권한(Contents: Read and write)이 없어요');
+      try { localStorage.setItem('crion.admin.token', token); } catch (e) { /* 저장 안 됨 */ }
+      $('#login').classList.add('hidden');
+      $('#main').classList.remove('hidden');
+      $('#who').innerHTML = `${esc(repo.full_name)} · <a href="#" id="logout">열쇠 지우기</a>`;
+      $('#logout').onclick = (e) => { e.preventDefault(); try { localStorage.removeItem('crion.admin.token'); } catch (er) { /* 무시 */ } location.reload(); };
+      await load();
+      loadRuns();
+    } catch (e) {
+      $('#loginErr').textContent = '연결 실패: ' + (/401|Bad credentials/.test(e.message) ? '열쇠가 틀렸거나 만료됐어요' : /404/.test(e.message) ? '이 열쇠로 CRION 저장소를 볼 수 없어요 (Repository access에서 CRION 선택)' : e.message);
+      $('#login').classList.remove('hidden');
+    }
+  }
+  $('#connect').onclick = () => connect($('#tok').value);
+  $('#tok').onkeydown = (e) => { if (e.key === 'Enter') connect(e.target.value); };
+
+  // ---------- 불러오기 ----------
+  async function load() {
+    const f = await getFile('config/works.json');
+    sha = f.sha;
+    base = f.text;
+    data = JSON.parse(f.text);
+    data.works = data.works || [];
+    data.hidden = data.hidden || [];
+    uploads = {};
+    const p = await getFile('package.json');
+    pkg = JSON.parse(p.text); pkgSha = p.sha;
+    $('#ver').textContent = 'v' + pkg.version;
+    const n = data.notice || {};
+    $('#noticeText').value = n.text || '';
+    $('#noticeLink').value = n.link || '';
+    base = collect();               // 비교 기준은 이 페이지가 쓰는 모양으로 맞춘다
+    renderWorks();
+    markDirty();
+  }
+
+  const thumbSrc = (w) => uploads[w.id] ? uploads[w.id].preview : !w.thumb ? '' : /^https?:/.test(w.thumb) ? w.thumb : RAW('config/thumbs/' + w.thumb);
+  const isHidden = (w) => w.url && data.hidden.includes(w.url);
+
+  function renderWorks() {
+    $('#works').innerHTML = data.works.map((w, i) => {
+      const src = thumbSrc(w);
+      return `<div class="work" data-i="${i}">
+        <div class="thumb" style="${src ? `background-image:url('${esc(src)}')` : 'background-color:#3a3f52'}">${src ? '' : esc((w.name || '?').slice(0, 1))}</div>
+        <div class="fields">
+          <div><label>제목</label><input type="text" data-f="name" value="${esc(w.name)}"></div>
+          <div><label>장르 · 한 줄 소개</label><input type="text" data-f="genre" value="${esc(w.genre || '')}"></div>
+          <div class="full"><label>크랙 작품 주소</label><input type="text" data-f="url" value="${esc(w.url || '')}" placeholder="https://crack.wrtn.ai/..."></div>
+          <div class="full"><label>썸네일 (이미지 주소 또는 올린 파일 이름)</label><input type="text" data-f="thumb" value="${esc(uploads[w.id] ? uploads[w.id].name : (w.thumb || ''))}" placeholder="비우면 앱이 프로필에서 찾은 썸네일을 써요"></div>
+        </div>
+        <div class="side">
+          <button class="btn sm" data-a="upload">이미지 올리기</button>
+          <button class="btn sm" data-a="up" ${i === 0 ? 'disabled' : ''}>▲ 위로</button>
+          <button class="btn sm" data-a="down" ${i === data.works.length - 1 ? 'disabled' : ''}>▼ 아래로</button>
+          <button class="btn sm" data-a="hide">${isHidden(w) ? '다시 보이기' : '숨기기'}</button>
+          <button class="btn sm danger" data-a="del">삭제</button>
+          ${isHidden(w) ? '<span class="pill hid">숨김</span>' : ''}
+        </div>
+      </div>`;
+    }).join('') || '<p class="sub">작품이 없어요. + 작품 추가를 눌러 주세요.</p>';
+  }
+
+  // ---------- 편집 ----------
+  function collect() {
+    const out = JSON.parse(JSON.stringify(data));
+    const text = $('#noticeText').value.trim();
+    const link = $('#noticeLink').value.trim();
+    if (text) out.notice = { text, link: /^https:\/\//.test(link) ? link : '', id: String(Date.parse(new Date().toDateString())) + '-' + text.length };
+    else delete out.notice;
+    // 공지 내용이 그대로면 id도 그대로 (플레이어가 닫은 공지가 다시 뜨지 않게)
+    if (out.notice && data.notice && data.notice.text === out.notice.text && data.notice.link === out.notice.link) out.notice.id = data.notice.id;
+    return JSON.stringify(out, null, 2) + '\n';
+  }
+  function markDirty() {
+    const dirty = collect() !== base || Object.keys(uploads).length > 0;
+    $('#state').textContent = dirty ? '바뀐 내용이 있어요 · 배포하기를 눌러야 앱에 반영돼요' : '바뀐 내용 없음';
+    $('#state').classList.toggle('dirty', dirty);
+    $('#deploy').disabled = !dirty;
+    $('#revert').disabled = !dirty;
+    return dirty;
+  }
+  $('#works').addEventListener('input', (e) => {
+    const row = e.target.closest('.work');
+    const f = e.target.dataset.f;
+    if (!row || !f) return;
+    const w = data.works[Number(row.dataset.i)];
+    const before = w.url;
+    w[f] = e.target.value.trim();
+    if (f === 'thumb') delete uploads[w.id];
+    if (f === 'url' && before && data.hidden.includes(before)) data.hidden = data.hidden.map(u => u === before ? w.url : u);
+    markDirty();
+  });
+  $('#works').addEventListener('change', (e) => { if (e.target.dataset.f === 'thumb') renderWorks(); });
+  ['#noticeText', '#noticeLink'].forEach(s => $(s).addEventListener('input', markDirty));
+
+  let uploadFor = null;
+  $('#works').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-a]');
+    if (!b) return;
+    const i = Number(b.closest('.work').dataset.i);
+    const w = data.works[i];
+    const a = b.dataset.a;
+    if (a === 'up' && i > 0) [data.works[i - 1], data.works[i]] = [data.works[i], data.works[i - 1]];
+    if (a === 'down' && i < data.works.length - 1) [data.works[i + 1], data.works[i]] = [data.works[i], data.works[i + 1]];
+    if (a === 'hide') {
+      if (!w.url) { toast('주소가 있는 작품만 숨길 수 있어요'); return; }
+      data.hidden = isHidden(w) ? data.hidden.filter(u => u !== w.url) : data.hidden.concat(w.url);
+    }
+    if (a === 'del') {
+      if (!confirm(`「${w.name}」을(를) 목록에서 지울까요?\n(프로필에 있는 작품이면 앱이 다시 찾아 넣어요. 완전히 안 보이게 하려면 '숨기기')`)) return;
+      data.works.splice(i, 1);
+      delete uploads[w.id];
+    }
+    if (a === 'upload') { uploadFor = w; $('#file').value = ''; $('#file').click(); return; }
+    renderWorks();
+    markDirty();
+  });
+  $('#file').addEventListener('change', async () => {
+    const f = $('#file').files[0];
+    if (!f || !uploadFor) return;
+    // 큰 그림은 600px 폭 webp로 줄여서 올린다
+    const img = await createImageBitmap(f);
+    const scale = Math.min(1, 600 / img.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL('image/webp', 0.86);
+    const name = (uploadFor.id || 'work') + '.webp';
+    uploads[uploadFor.id] = { name, b64: url.split(',')[1], preview: url };
+    uploadFor.thumb = name;
+    renderWorks();
+    markDirty();
+    toast('이미지를 넣었어요. 배포하기를 눌러야 올라가요');
+  });
+  $('#add').onclick = () => {
+    const id = 'w' + Date.now().toString(36);
+    data.works.unshift({ id, name: '새 작품', genre: '', url: '', thumb: '' });
+    renderWorks();
+    markDirty();
+    const first = document.querySelector('.work input[data-f=name]');
+    if (first) { first.focus(); first.select(); }
+  };
+  $('#revert').onclick = () => { if (confirm('바꾼 내용을 모두 되돌릴까요?')) load(); };
+
+  // ---------- 배포 ----------
+  $('#deploy').onclick = async () => {
+    const bad = data.works.find(w => w.url && !/^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(w.url));
+    if (bad) { toast(`「${bad.name}」 주소가 크랙 주소가 아니에요`); return; }
+    const btn = $('#deploy');
+    btn.disabled = true; btn.textContent = '올리는 중…';
+    try {
+      for (const id of Object.keys(uploads)) {
+        const u = uploads[id];
+        let old = null;
+        try { old = (await gh('/contents/config/thumbs/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
+        await putFile('config/thumbs/' + u.name, u.b64, `썸네일: ${u.name}`, old);
+      }
+      const r = await putFile('config/works.json', enc(collect()), '관리 페이지: 작품 목록·공지 수정', sha);
+      sha = r.content.sha;
+      toast('올렸어요. 1~2분 뒤 서버에 반영돼요');
+      await load();
+      setTimeout(loadRuns, 4000);
+    } catch (e) {
+      toast('실패: ' + (/409|does not match/.test(e.message) ? '다른 곳에서 먼저 고쳤어요. 새로고침 후 다시 해 주세요' : e.message));
+    } finally {
+      btn.textContent = '배포하기';
+      markDirty();
+    }
+  };
+
+  $('#bump').onclick = async () => {
+    const [a, b, c] = pkg.version.split('.').map(Number);
+    const next = `${a}.${b}.${c + 1}`;
+    if (!confirm(`설치 파일을 v${next}로 새로 만들까요?\n약 10분 걸리고, 다운로드 링크가 새 버전으로 바뀌어요.`)) return;
+    try {
+      const p = await getFile('package.json');
+      const obj = JSON.parse(p.text);
+      obj.version = next;
+      await putFile('package.json', enc(JSON.stringify(obj, null, 2) + '\n'), `설치 파일 v${next}`, p.sha);
+      toast(`v${next} 만들기 시작했어요`);
+      await load();
+      setTimeout(loadRuns, 4000);
+    } catch (e) { toast('실패: ' + e.message); }
+  };
+
+  // ---------- 기록 ----------
+  const RUN_NAME = (n) => /설치/.test(n) ? '설치 파일 만들기' : /배포/.test(n) ? '앱에 반영(서버 배포)' : n;
+  async function loadRuns() {
+    try {
+      const r = await gh('/actions/runs?per_page=8');
+      const rows = (r.workflow_runs || []).map(x => {
+        const cls = x.status !== 'completed' ? 'run' : x.conclusion === 'success' ? 'ok' : x.conclusion === 'skipped' ? 'ok' : 'bad';
+        const st = x.status !== 'completed' ? '진행 중' : x.conclusion === 'success' ? '완료' : x.conclusion === 'skipped' ? '건너뜀' : '실패';
+        return `<div><span class="dot ${cls}"></span><b>${esc(RUN_NAME(x.name))}</b><span>${st}</span><span style="color:var(--muted)">${esc((x.display_title || '').slice(0, 40))}</span>
+          <time>${new Date(x.created_at).toLocaleString('ko-KR')}</time><a href="${esc(x.html_url)}" target="_blank" rel="noopener">보기</a></div>`;
+      });
+      $('#runs').innerHTML = rows.join('') || '<p class="sub">기록이 없어요.</p>';
+      if ((r.workflow_runs || []).some(x => x.status !== 'completed')) setTimeout(loadRuns, 8000);
+    } catch (e) {
+      $('#runs').innerHTML = `<p class="sub">기록을 못 읽었어요 (열쇠에 Actions: Read-only 권한이 필요해요)</p>`;
+    }
+  }
+  $('#reloadRuns').onclick = loadRuns;
+  window.addEventListener('beforeunload', (e) => { if (data && markDirty()) { e.preventDefault(); e.returnValue = ''; } });
+
+  let saved = '';
+  try { saved = localStorage.getItem('crion.admin.token') || ''; } catch (e) { /* 무시 */ }
+  if (saved) connect(saved);
+})();
+</script>
+</body>
+</html>

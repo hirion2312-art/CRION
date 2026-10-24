@@ -184,3 +184,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .banner .btn { margin-left: auto; }
 
 #dlg:focus, #dlg:focus-visible { outline: none; }
+.notice { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; margin-bottom: 20px; border-radius: 12px; background: var(--accent-weak); color: var(--accent-ink); font-size: 14px; }
+.notice b { flex: none; font-weight: 800; }
+.notice span { flex: 1; color: var(--ink2); line-height: 1.5; }
+.notice .icon-btn { width: 28px; height: 28px; color: var(--accent-ink); }

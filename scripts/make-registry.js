@@ -82,7 +82,13 @@ if (fs.existsSync(thumbDir)) {
     fs.mkdirSync(path.join(OUT, 'thumbs'), { recursive: true });
     fs.copyFileSync(path.join(thumbDir, f), path.join(OUT, 'thumbs', f));
   }
-  for (const w of works.works || []) if (w.thumb && !/^https?:/.test(w.thumb)) w.thumb = base + 'thumbs/' + w.thumb.replace(/^.*\//, '');
+  for (const w of works.works || []) {
+    if (!w.thumb || /^https?:/.test(w.thumb)) continue;
+    const name = w.thumb.replace(/^.*\//, '');
+    const file = path.join(thumbDir, name);
+    const v = fs.existsSync(file) ? U.sha256(fs.readFileSync(file)).slice(0, 8) : '0';
+    w.thumb = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + v;   // 같은 이름으로 바꿔 올려도 새 그림이 보이게
+  }
 }
 fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(Object.assign({ updated: new Date().toISOString() }, works), null, 2));
 console.log(`작품 목록 ${(works.works || []).length}개 → catalog.json`);

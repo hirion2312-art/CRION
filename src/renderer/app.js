@@ -50,6 +50,28 @@
   const thumbHtml = (w, cls) => `<div class="${cls}">${thumbInner(w)}</div>`;
   const workById = (id) => S.works.find(w => w.id === id);
 
+  // 공지: 업데이트 서버의 catalog.json 에 notice 가 있으면 홈 위에 띄운다
+  async function loadNotice() {
+    const u = S.info && S.info.registryUrl;
+    if (!u) return;
+    try {
+      const res = await fetch(u.replace(/[^/]*$/, '') + 'catalog.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const c = await res.json();
+      const n = c && c.notice;
+      S.notice = n && n.on !== false && n.text ? n : null;
+    } catch (e) { /* 오프라인 */ }
+  }
+  const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
+  function noticeHtml() {
+    const n = S.notice;
+    if (!n) return '';
+    try { if (localStorage.getItem(noticeId(n))) return ''; } catch (e) { /* 저장 안 됨 */ }
+    return `<div class="notice"><b>공지</b><span>${esc(n.text)}</span>
+      ${n.link && /^https:\/\//.test(n.link) ? `<button class="btn sm" data-act="open-link" data-url="${esc(n.link)}">자세히</button>` : ''}
+      <button class="icon-btn" data-act="close-notice" title="닫기">${I.x}</button></div>`;
+  }
+
   async function loadWorks() {
     const r = await api.getWorks();
     S.works = r.works || [];
@@ -92,6 +114,7 @@
       </button>`).join('');
     const needSync = !S.works.some(w => w.url);
     return `<main class="home"><div class="home-in">
+      ${noticeHtml()}
       <div class="hello"><div><h1>히리온 작품</h1><p>작품을 누르면 바로 게임 화면으로 플레이해요.</p></div>
         <div style="display:flex;gap:8px"><button class="btn" data-act="sync" ${S.syncing ? 'disabled' : ''}>${I.sync}목록 새로고침</button></div></div>
       ${needSync && !S.syncing ? `<div class="note">작품 주소를 아직 못 불러왔어요. 크랙에 로그인이 안 되어 있으면 목록을 못 읽을 수 있어요.
@@ -498,7 +521,7 @@
     if (S.syncing) return;
     S.syncing = true;
     renderHome();
-    const r = await api.syncWorks();
+    const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
     S.syncing = false;
     await loadWorks();
     renderHome();
@@ -551,6 +574,8 @@
         else sendText(c);
         break;
       }
+      case 'close-notice': try { localStorage.setItem(noticeId(S.notice), '1'); } catch (e2) { /* 무시 */ } renderHome(); break;
+      case 'open-link': api.openExternal(el.dataset.url); break;
       case 'copy-status': if (S.room && S.room.status) copy(S.room.status.text); break;
       default: break;
     }
@@ -570,7 +595,7 @@
 
   // ---------- 시작 ----------
   api.onUpdate((ev) => {
-    if (ev.type === 'catalog') loadWorks().then(renderHome);
+    if (ev.type === 'catalog') Promise.all([loadWorks(), loadNotice()]).then(renderHome);
     else if (ev.type === 'engine-ready') toast('새 화면이 준비됐어요. 앱을 다시 시작하면 적용돼요', 5000);
     else if (ev.type === 'shell-old') toast('새 버전 설치 파일이 필요해요. 설정 > 업데이트를 확인해 주세요', 6000);
   });
@@ -583,6 +608,8 @@
     render();
     api.engineReady();
     if (!S.syncedAt) doSync(false);
+    else loadNotice().then(renderHome);
+    setInterval(() => loadNotice().then(renderHome), 30 * 60 * 1000);
   })();
 
   // 시험용
