@@ -3,10 +3,40 @@
   "creatorUrl": "https://share.crack.wrtn.ai/le3go2",
   "hidden": [],
   "works": [
-    { "id": "safehouse", "name": "아포칼립스 안전지대의 관리자", "genre": "좀비 생존 운영", "url": "", "thumb": "" },
-    { "id": "magical", "name": "마법소녀의 최종보스", "genre": "샌드박스", "url": "", "thumb": "" },
-    { "id": "guild", "name": "이종족 길드의 유일한 남자", "genre": "판타지 모험", "url": "", "thumb": "" },
-    { "id": "univ", "name": "크랙대학교", "genre": "캠퍼스 로맨스 코미디", "url": "", "thumb": "" },
-    { "id": "pyeonggahye", "name": "평가혜", "genre": "캐릭터챗", "url": "", "thumb": "" }
+    {
+      "id": "safehouse",
+      "name": "아포칼립스 안전지대의 관리자",
+      "genre": "좀비 생존 운영",
+      "url": "",
+      "thumb": ""
+    },
+    {
+      "id": "magical",
+      "name": "마법소녀의 최종보스",
+      "genre": "샌드박스",
+      "url": "",
+      "thumb": ""
+    },
+    {
+      "id": "guild",
+      "name": "이종족 길드의 유일한 남자",
+      "genre": "판타지 모험",
+      "url": "",
+      "thumb": ""
+    },
+    {
+      "id": "univ",
+      "name": "크랙대학교",
+      "genre": "캠퍼스 로맨스 코미디",
+      "url": "",
+      "thumb": ""
+    },
+    {
+      "id": "pyeonggahye",
+      "name": "돌아온 프로필 평가하는 평가혜",
+      "genre": "캐릭터챗",
+      "url": "https://share.crack.wrtn.ai/okelh4",
+      "thumb": "pyeonggahye.webp"
+    }
   ]
 }
