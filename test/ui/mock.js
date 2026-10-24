@@ -1,19 +1,24 @@
-// 브라우저 점검용 가짜 window.crion (Electron 없이 화면만 확인)
-(function(){
-  let settings={onboarded:false,volume:60,intensity:'mid',packEnabled:{},packOptions:{},workUrls:{},registryUrl:''};
-  let installed=[]; const listeners=[];
-  window.crion={
-    info:async()=>({version:'0.1.0',crackPreload:'file:///x/preload-crack.js',crackOrigin:'https://crack.wrtn.ai',platform:'win32'}),
-    getSettings:async()=>JSON.parse(JSON.stringify(settings)),
-    setSettings:async(p)=>{Object.assign(settings,p);return JSON.parse(JSON.stringify(settings));},
-    getWorks:async()=>window.__WORKS,
-    listPacks:async()=>({installed:installed.slice(),available:[{id:'hirion.safehouse',name:'x',version:'1.0.0',source:'bundled'}]}),
-    installPack:async(id)=>{for(let i=0;i<=8;i++){listeners.forEach(f=>f({id,done:i,total:8,file:i<8?'bgm/scene'+i+'.ogg':''}));await new Promise(r=>setTimeout(r,60));} installed=[window.__MAN]; return {ok:true,manifest:window.__MAN};},
-    uninstallPack:async()=>{installed=[];return {ok:true};},
-    openExternal:async()=>{},
-    onPackProgress:(fn)=>{listeners.push(fn);return()=>{const i=listeners.indexOf(fn);if(i>=0)listeners.splice(i,1);};}
+// 브라우저에서 화면만 점검하기 위한 가짜 window.crion (Electron 없이)
+(function () {
+  const settings = { onboarded: true, volume: 60, textSpeed: 'fast', choiceSend: true, autoUpdate: true, workUrls: {}, recent: ['w1'], registryUrl: '' };
+  const works = [
+    { id: 'w1', name: '아포칼립스 안전지대의 관리자', genre: '좀비 생존 운영', url: 'https://crack.wrtn.ai/detail/a', thumb: 'img/t1.png' },
+    { id: 'w2', name: '마법소녀의 최종보스', genre: '샌드박스', url: 'https://crack.wrtn.ai/detail/b', thumb: 'img/t2.png' },
+    { id: 'w3', name: '이종족 길드의 유일한 남자', genre: '판타지 모험', url: 'https://crack.wrtn.ai/detail/c', thumb: 'img/t3.png' },
+    { id: 'w4', name: '크랙대학교', genre: '캠퍼스 로맨스 코미디', url: '', thumb: '' },
+    { id: 'w5', name: '평가혜', genre: '캐릭터챗', url: 'https://crack.wrtn.ai/detail/e', thumb: '', auto: true }
+  ];
+  window.crion = {
+    info: async () => ({ version: '0.3.0', engineVersion: '0.3.0', engineSource: 'bundled', crackOrigin: 'https://crack.wrtn.ai', platform: 'darwin', updatesEnabled: true, links: {} }),
+    engineReady: async () => true,
+    getSettings: async () => JSON.parse(JSON.stringify(settings)),
+    setSettings: async (p) => { Object.assign(settings, p); return JSON.parse(JSON.stringify(settings)); },
+    getWorks: async () => ({ works, creatorUrl: 'https://share.crack.wrtn.ai/le3go2', syncedAt: '2026-10-24T10:00:00Z' }),
+    syncWorks: async () => ({ ok: true, count: 5, sample: [] }),
+    checkUpdates: async () => ({}), relaunch: async () => {}, openFolder: async () => {},
+    copy: async (t) => { window.__copied = t; }, openExternal: async () => {},
+    onUpdate: () => () => {}
   };
-  // webview 흉내: send 기록
-  window.__sent=[];
-  HTMLElement.prototype.send=function(ch,d){window.__sent.push([ch,d]);};
+  window.__sent = [];
+  HTMLElement.prototype.send = function (ch, d) { window.__sent.push([ch, d]); }; // webview 흉내
 })();

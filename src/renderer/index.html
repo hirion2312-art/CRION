@@ -2,22 +2,18 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: crionpack: https:; media-src crionpack:; connect-src 'self' crionpack:; frame-src https:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self'; frame-src https:">
 <title>CRION</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700;800&family=Noto+Serif+KR:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="app.css">
-<link rel="stylesheet" href="game.css">
 </head>
 <body>
 <div id="app"></div>
-<div id="banner"></div>
 <div id="layer"></div>
-<script src="parser.js"></script>
-<script src="play.js"></script>
+<div id="toast"></div>
+<script src="crack-rules.js"></script>
+<script src="reply.js"></script>
 <script src="audio.js"></script>
-<script src="game.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

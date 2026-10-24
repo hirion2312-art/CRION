@@ -69,6 +69,20 @@ for (const id of fs.readdirSync(SRC)) {
   console.log(`팩 ${m.name} v${m.version} (파일 ${d.files.length}개, ${(d.bytes / 1048576).toFixed(1)}MB, rev ${d.rev})`);
 }
 
+// 작품 목록 (앱 업데이트 없이 목록·썸네일을 고칠 수 있게)
+const works = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'works.json'), 'utf8'));
+delete works._설명;
+const thumbDir = path.join(ROOT, 'config', 'thumbs');
+if (fs.existsSync(thumbDir)) {
+  for (const f of fs.readdirSync(thumbDir)) {
+    fs.mkdirSync(path.join(OUT, 'thumbs'), { recursive: true });
+    fs.copyFileSync(path.join(thumbDir, f), path.join(OUT, 'thumbs', f));
+  }
+  for (const w of works.works || []) if (w.thumb && !/^https?:/.test(w.thumb)) w.thumb = base + 'thumbs/' + w.thumb.replace(/^.*\//, '');
+}
+fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(Object.assign({ updated: new Date().toISOString() }, works), null, 2));
+console.log(`작품 목록 ${(works.works || []).length}개 → catalog.json`);
+
 const bytes = Buffer.from(JSON.stringify({ updated: new Date().toISOString(), app: pkg.version, engine, packs }, null, 2));
 fs.writeFileSync(path.join(OUT, 'index.json'), bytes);
 if (process.env.CRION_SIGN_KEY) {
