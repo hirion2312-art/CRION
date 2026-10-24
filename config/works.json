@@ -1,0 +1,85 @@
+{
+  "_설명": "홈에 보이는 히리온 작품 목록. url에 크랙 작품 주소를 넣으면 '플레이'가 그 작품을 바로 연다. 비워 두면 앱 안에서 '이 페이지를 작품 주소로 저장'으로 넣을 수 있다.",
+  "works": [
+    {
+      "id": "academy",
+      "name": "소환수 아카데미",
+      "short": "소",
+      "genre": "소환수 수집 · 아카데미",
+      "tint": "#fdf5df",
+      "tintText": "#8a5a00",
+      "pack": "hirion.summoner-academy",
+      "packFeatures": [
+        [
+          "게임 화면",
+          "배경·입화·대사창으로 장면을 보여줘요"
+        ],
+        [
+          "학생증·파트너 카드",
+          "상태창을 카드로, 위기엔 화면이 붉게"
+        ],
+        [
+          "상황별 BGM",
+          "장소·전투·위기마다 다른 곡"
+        ]
+      ],
+      "url": "",
+      "isNew": true
+    },
+    {
+      "id": "safehouse",
+      "name": "아포칼립스 안전지대의 관리자",
+      "short": "안",
+      "genre": "좀비 생존 운영",
+      "tint": "#fdebdc",
+      "tintText": "#b04a0c",
+      "pack": "hirion.safehouse",
+      "packFeatures": [
+        [
+          "빌라 대시보드",
+          "식량·자재·방어력 변화를 숫자로"
+        ],
+        [
+          "상황별 BGM",
+          "아침·저녁·큰 밤마다 다른 곡"
+        ],
+        [
+          "큰 밤 경보",
+          "다음 큰 밤 카운트다운과 경고 띠"
+        ]
+      ],
+      "url": "",
+      "isNew": true
+    },
+    {
+      "id": "magical",
+      "name": "마법소녀의 최종보스",
+      "short": "마",
+      "genre": "샌드박스",
+      "tint": "#ffeaf3",
+      "tintText": "#b0245e",
+      "pack": null,
+      "url": ""
+    },
+    {
+      "id": "guild",
+      "name": "이종족 길드의 유일한 남자",
+      "short": "이",
+      "genre": "판타지 모험",
+      "tint": "#e5f6ef",
+      "tintText": "#0b7a5b",
+      "pack": null,
+      "url": ""
+    },
+    {
+      "id": "univ",
+      "name": "크랙대학교",
+      "short": "크",
+      "genre": "캠퍼스 로맨스 코미디",
+      "tint": "#eaedff",
+      "tintText": "#3d4fd6",
+      "pack": null,
+      "url": ""
+    }
+  ]
+}

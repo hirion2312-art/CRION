@@ -1,0 +1,47 @@
+name: 업데이트 배포 (팩·화면 엔진)
+
+# packs/ 나 src/renderer/ 가 바뀌어 main 에 올라오면 자동으로 서명해서 GitHub Pages 에 올린다.
+# 앱을 쓰는 사람들은 앱을 켜 두기만 하면 새 팩·화면을 받는다. (앱 본체는 그대로)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'packs/**'
+      - 'src/renderer/**'
+      - 'scripts/make-registry.js'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - name: 목록 만들기 (서명 포함)
+        env:
+          CRION_SIGN_KEY: ${{ secrets.CRION_SIGN_KEY }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          node scripts/make-registry.js "https://${OWNER}.github.io/${REPO}/"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: registry
+      - id: deployment
+        uses: actions/deploy-pages@v4

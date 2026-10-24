@@ -1,0 +1,77 @@
+{
+  "id": "hirion.safehouse",
+  "name": "아포칼립스 안전지대의 관리자",
+  "short": "안",
+  "version": "1.0.0",
+  "author": "히리온",
+  "genre": "좀비 생존 운영",
+  "accent": "#e8590c",
+  "tint": "#fdebdc",
+  "tintText": "#b04a0c",
+  "features": ["빌라 대시보드", "상황별 BGM", "큰 밤 경보"],
+  "match": {
+    "urlIncludes": []
+  },
+  "status": {
+    "detect": "식량\\s*-?\\d+[\\s\\S]{0,120}방어력\\s*-?\\d+",
+    "anchor": "식량",
+    "dayPattern": "D\\s?(\\d+)",
+    "phasePattern": "D\\s?\\d+\\s*(새벽|아침|낮|저녁|밤)",
+    "locPattern": "📍\\s*([^·|\\n]+?)\\s*·",
+    "fields": [
+      { "key": "food", "label": "식량", "type": "number", "pattern": "식량\\s*(-?\\d+)", "group": "tile" },
+      { "key": "med", "label": "의료품", "type": "number", "pattern": "의료품\\s*(-?\\d+)", "group": "tile" },
+      { "key": "mat", "label": "자재", "type": "number", "pattern": "자재\\s*(-?\\d+)", "group": "tile" },
+      { "key": "def", "label": "방어력", "type": "number", "pattern": "방어력\\s*(-?\\d+)", "group": "tile" },
+      { "key": "mor", "label": "사기", "type": "number", "pattern": "사기\\s*(-?\\d+)", "group": "gauge", "max": 100 },
+      { "key": "pop", "label": "주민", "type": "ratio", "pattern": "주민\\s*(\\d+)\\s*/\\s*(\\d+)", "group": "row" },
+      { "key": "job", "label": "오늘 일과", "type": "text", "pattern": "일과\\s*[:：]\\s*([^\\n]+)", "group": "row" },
+      { "key": "away", "label": "파견", "type": "text", "pattern": "파견\\s*[:：]\\s*([^|\\n]+)", "group": "row" },
+      { "key": "wait", "label": "대기", "type": "text", "pattern": "대기\\s*[:：]\\s*([^\\n]+)", "group": "row" },
+      { "key": "expand", "label": "확장", "type": "number", "pattern": "확장\\s*(\\d+)\\s*단계", "group": "row", "suffix": "단계" },
+      { "key": "fuel", "label": "연료", "type": "number", "pattern": "연료\\s*(\\d+)", "group": "mini" },
+      { "key": "rare", "label": "희귀", "type": "number", "pattern": "희귀\\s*(\\d+)", "group": "mini" },
+      { "key": "lab", "label": "연구재료", "type": "number", "pattern": "연구재료\\s*(\\d+)", "group": "mini" },
+      { "key": "research", "label": "연구 Lv", "type": "number", "pattern": "연구\\s*Lv\\s*(\\d+)", "group": "mini" }
+    ]
+  },
+  "cycle": {
+    "name": "큰 밤",
+    "phase": "밤",
+    "defaultMode": "normal",
+    "modes": {
+      "normal": { "label": "노말", "start": 11, "every": 10 },
+      "hard": { "label": "하드", "start": 11, "every": 5 }
+    },
+    "labels": {
+      "now": "지금 진행 중",
+      "today": "오늘 밤",
+      "tomorrow": "내일 밤 (D{day})",
+      "later": "D-{left} (D{day})"
+    }
+  },
+  "options": [
+    { "key": "mode", "label": "난이도", "choices": [ { "value": "normal", "label": "노말" }, { "value": "hard", "label": "하드" } ] }
+  ],
+  "sceneRules": [
+    { "scene": "bignight", "when": { "phase": "밤", "cycleDay": true } },
+    { "scene": "bignight", "when": { "keywords": ["큰 밤이 시작", "떼가 계단", "계단이 울기"] } },
+    { "scene": "relief", "when": { "phase": ["새벽", "아침"], "prevScene": "bignight" } },
+    { "scene": "night", "when": { "phase": "밤" } },
+    { "scene": "tense", "when": { "phase": ["새벽", "아침", "낮"], "cycleDay": true } },
+    { "scene": "morning", "when": { "phase": ["새벽", "아침"] } },
+    { "scene": "day", "when": { "phase": "낮" } },
+    { "scene": "evening", "when": { "phase": "저녁" } }
+  ],
+  "defaultScene": "day",
+  "scenes": {
+    "morning": { "label": "아침", "color": "#12a37a", "tint": "#e7f7f1", "text": "#0b7a5b", "bgm": "bgm/morning.ogg", "title": "계단 위의 아침" },
+    "day": { "label": "낮", "color": "#12a37a", "tint": "#e7f7f1", "text": "#0b7a5b", "bgm": "bgm/day.ogg", "title": "빌라의 하루" },
+    "evening": { "label": "저녁", "color": "#e3a008", "tint": "#fdf5df", "text": "#8a5a00", "bgm": "bgm/evening.ogg", "title": "식당에 남은 온기" },
+    "night": { "label": "밤", "color": "#5b6cff", "tint": "#eef0ff", "text": "#3d4fd6", "bgm": "bgm/night.ogg", "title": "보초의 밤" },
+    "tense": { "label": "긴장", "color": "#7c5cfa", "tint": "#f1edff", "text": "#5b3fd6", "bgm": "bgm/tense.ogg", "title": "계단 아래의 발소리" },
+    "bignight": { "label": "큰 밤", "color": "#e8590c", "tint": "#fff1ea", "text": "#a8320f", "bgm": "bgm/bignight.ogg", "title": "백마흔 개의 계단", "alert": "큰 밤 경보 · 떼가 계단을 오르고 있어요" },
+    "relief": { "label": "안도", "color": "#e3a008", "tint": "#fdf5df", "text": "#8a5a00", "bgm": "bgm/relief.ogg", "title": "비 갠 아침" }
+  },
+  "hideStatusInChat": true
+}

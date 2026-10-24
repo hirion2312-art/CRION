@@ -1,0 +1,87 @@
+{
+  "name": "crion",
+  "productName": "CRION",
+  "version": "0.2.0",
+  "description": "히리온 작품 전용 크랙 클라이언트",
+  "author": "히리온",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/parser.test.js && node test/play.test.js && node test/updater.test.js",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist": "electron-builder",
+    "setup": "node scripts/setup-electron.js",
+    "check": "node scripts/check-pack.js",
+    "keygen": "node scripts/keygen.js",
+    "registry": "node scripts/make-registry.js"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.hirion.crion",
+    "productName": "CRION",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "packs/**/*",
+      "!packs/*/assets/**",
+      "config/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "CRION-Setup-${version}.${ext}",
+      "shortcutName": "CRION"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.entertainment",
+      "icon": "build/icon.png",
+      "identity": null
+    },
+    "dmg": {
+      "artifactName": "CRION-${version}-${arch}.${ext}"
+    }
+  }
+}

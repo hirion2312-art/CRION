@@ -1,0 +1,6 @@
+{
+  "_설명": "registryUrl = 업데이트 목록 주소(GitHub Pages). pubkey = 서명 공개 열쇠(npm run keygen 이 채움). downloadUrl = 앱 본체가 낡았을 때 안내할 내려받기 주소.",
+  "registryUrl": "https://hirion2312-art.github.io/crion/index.json",
+  "pubkey": "",
+  "downloadUrl": "https://github.com/hirion2312-art/crion/releases/latest"
+}
