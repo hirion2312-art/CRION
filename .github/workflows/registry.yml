@@ -12,6 +12,7 @@ on:
       - 'scripts/make-registry.js'
       - 'config/works.json'
       - 'config/thumbs/**'
+      - 'site/**'
 
 permissions:
   contents: read

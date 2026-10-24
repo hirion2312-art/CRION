@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRION — 히리온 작품을 게임처럼</title>
+<meta name="description" content="히리온의 크랙 작품을 채팅창 대신 게임 화면으로 플레이하는 PC 앱">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root { --ink: #14161b; --muted: #6b7280; --line: #e6e8ec; --bg: #f5f6f8; --accent: #5b5bd6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  header { display: flex; align-items: center; gap: 10px; padding: 22px 0; font-weight: 800; letter-spacing: .06em; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 900; letter-spacing: 0; }
+  .hero { padding: 56px 0 40px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -.03em; margin: 0 0 14px; }
+  .lead { font-size: 17px; color: var(--muted); line-height: 1.7; margin: 0 0 30px; }
+  .dl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 24px; border-radius: 14px; font-weight: 800; font-size: 16px; text-decoration: none; }
+  .btn.main { background: var(--ink); color: #fff; }
+  .btn.main:hover { background: #2a2e37; }
+  .btn.sub { background: #fff; color: var(--ink); border: 1px solid var(--line); height: 44px; font-size: 14px; padding: 0 16px; }
+  .small { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 24px 0 48px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card b { display: block; margin-bottom: 6px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  h2 { font-size: 20px; margin: 0 0 14px; }
+  ol { margin: 0 0 48px; padding-left: 20px; line-height: 1.9; }
+  .warn { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 48px; font-size: 14px; line-height: 1.8; }
+  .warn b { color: var(--accent); }
+  footer { padding: 24px 0 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="logo">C</span>CRION</header>
+  <section class="hero">
+    <h1>히리온 작품을<br>게임처럼 플레이하세요</h1>
+    <p class="lead">크랙 채팅을 배경·대사창·상태창·선택지가 있는 게임 화면으로 바꿔 주는 PC 앱이에요.<br>설치하고 크랙에 로그인하면 바로 시작돼요.</p>
+    <div class="dl">
+      <a class="btn main" id="dlMain" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">Windows용 다운로드</a>
+      <a class="btn sub" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-arm64.dmg">Mac (Apple 칩)</a>
+      <a class="btn sub" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-x64.dmg">Mac (Intel)</a>
+    </div>
+    <p class="small">무료 · Windows 10/11 64비트 · 설치 파일 하나로 끝</p>
+  </section>
+
+  <div class="cards">
+    <div class="card"><b>게임 화면</b><p>응답이 대사창으로 한 장면씩. 이름표, 인물 그림, 장면 그림까지.</p></div>
+    <div class="card"><b>상태창 정리</b><p>체력·자원 같은 숫자를 옆 패널에 게이지로 보여 줘요.</p></div>
+    <div class="card"><b>선택지 버튼</b><p>번호 선택지를 누르면 바로 보내져요. 지난 대화도 다시 볼 수 있어요.</p></div>
+    <div class="card"><b>자동 업데이트</b><p>새 작품과 개선 사항이 앱을 켜 두면 알아서 들어와요.</p></div>
+  </div>
+
+  <h2>설치 방법 (Windows)</h2>
+  <ol>
+    <li><b>Windows용 다운로드</b>를 눌러 <code>CRION-Setup.exe</code>를 받아요.</li>
+    <li>받은 파일을 실행하면 자동으로 설치되고 CRION이 열려요.</li>
+    <li>보고 싶은 작품을 누르고 크랙에 로그인한 뒤 대화를 시작하면 끝.</li>
+  </ol>
+  <div class="warn">
+    <b>“Windows의 PC 보호” 파란 창이 뜨면</b><br>
+    개인 제작 앱이라 아직 마이크로소프트 서명이 없어서 처음 한 번 뜨는 안내예요.
+    <b>추가 정보</b> → <b>실행</b>을 누르면 설치돼요.
+  </div>
+  <footer>CRION은 크리에이터 히리온의 팬 플레이용 앱이며 크랙(뤼튼)의 공식 앱이 아니에요.</footer>
+</div>
+</body>
+</html>
