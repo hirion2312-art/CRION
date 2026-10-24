@@ -19,6 +19,7 @@
     web: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>', 17),
     side: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>', 17),
     sync: svg('<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>', 15),
+    user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 16),
     x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 18),
     cont: svg('<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', 16)
   };
@@ -83,10 +84,13 @@
   function topHtml() {
     let crumb = '';
     let tools = '';
-    if (S.view === 'room' && S.work) {
+    if (S.view === 'login') {
+      crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">크랙 로그인</span>`;
+    } else if (S.view === 'room' && S.work) {
       crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">${esc(S.work.name)}</span>`;
       tools += `<button class="icon-btn" data-act="toggle-side" title="옆 패널">${I.side}</button>`;
     }
+    if (S.view === 'home') tools += `<button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
     tools += `<button class="icon-btn" data-act="settings" title="설정">${I.gear}</button>`;
     return `<header class="top"><div class="brand"><span class="logo">C</span>CRION</div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
   }
@@ -117,12 +121,21 @@
       ${noticeHtml()}
       <div class="hello"><div><h1>히리온 작품</h1><p>작품을 누르면 바로 게임 화면으로 플레이해요.</p></div>
         <div style="display:flex;gap:8px"><button class="btn" data-act="sync" ${S.syncing ? 'disabled' : ''}>${I.sync}목록 새로고침</button></div></div>
-      ${needSync && !S.syncing ? `<div class="note">작품 주소를 아직 못 불러왔어요. 크랙에 로그인이 안 되어 있으면 목록을 못 읽을 수 있어요.
-        아무 작품이나 눌러 크랙에 로그인한 뒤 <b>목록 새로고침</b>을 눌러 주세요.</div>` : ''}
+      ${!S.settings.onboarded ? `<div class="welcome"><div><b>처음 오셨나요?</b><span>① 크랙에 로그인 → ② 작품 고르기. 로그인은 한 번만 하면 돼요.</span></div>
+        <button class="btn primary" data-act="login">${I.user}크랙 로그인하기</button></div>`
+        : needSync && !S.syncing ? `<div class="note">작품 주소를 아직 못 불러왔어요. <b>목록 새로고침</b>을 눌러 주세요. 계속 안 되면 설정의 <b>목록 진단 복사</b> 결과를 보내 주세요.</div>` : ''}
       ${cont}
       <div class="section-h"><h2>전체 작품</h2><span class="sub">${S.works.length}개</span><span class="right muted">${syncLine}</span></div>
       <div class="grid">${cards}</div>
     </div></main>`;
+  }
+
+  // ---------- 크랙 로그인 화면 ----------
+  function loginHtml() {
+    return `<div class="login">
+      <div class="hint"><b>크랙 로그인</b><span>여기서 한 번 로그인해 두면 모든 작품에서 계속 로그인돼 있어요.</span>
+        <button class="btn primary sm" data-act="login-done">로그인 완료</button></div>
+      <webview id="crack" src="${esc(S.info.crackOrigin)}" partition="persist:crack" allowpopups></webview></div>`;
   }
 
   // ---------- 플레이 화면 ----------
@@ -372,7 +385,8 @@
     if (r.hasInput && r.autoOrig && r.orig && !r.turn) {
       // 대화창은 열렸는데 아직 응답이 없을 때: 게임 화면으로 넘어가 첫 입력을 기다린다
       setOrig(false, false);
-      showCover('대화를 시작해 보세요. 아래 입력창에 쓰고 보내면 돼요.');
+      showCover(getLearned() ? '이어서 진행해 보세요. 아래 입력창에 쓰고 보내면 돼요.'
+        : '아래 입력창에 첫 행동을 보내 주세요. 첫 응답을 받으면서 이 작품 화면을 맞춰요. (지난 대화는 크랙 원본 화면 버튼으로 볼 수 있어요)');
     }
   }
 
@@ -430,10 +444,17 @@
 
   function autosize(t) { t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
 
+  // 크랙 응답 상자 모양: 첫 응답에서 배우고 기억해 둔다 (작품이 달라도 크랙 화면은 같다)
+  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned') || 'null'); } catch (e) { return null; } }
+  function setLearned(v) { try { localStorage.setItem('crion.learned', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
+
   // ---------- 그리기 ----------
   function render() {
     const app = $('#app');
-    if (S.view === 'room' && S.room) {
+    if (S.view === 'login') {
+      app.innerHTML = topHtml() + loginHtml();
+      bindWebview();
+    } else if (S.view === 'room' && S.room) {
       app.innerHTML = topHtml() + roomHtml();
       renderSide();
       bindWebview();
@@ -450,7 +471,7 @@
     const v = wv();
     if (!v) return;
     v.addEventListener('dom-ready', () => {
-      v.send('crion:config', { play: true, rules: window.CRACK_RULES || {} });
+      v.send('crion:config', { play: S.view === 'room', rules: window.CRACK_RULES || {}, learned: getLearned() });
     });
     v.addEventListener('did-fail-load', (e) => { if (e.errorCode !== -3) showCover('크랙에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.'); });
     v.addEventListener('ipc-message', (e) => {
@@ -462,6 +483,7 @@
         case 'crion:sent': onSent(d); break;
         case 'crion:acted': if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
         case 'crion:diag': copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.'); break;
+        case 'crion:learned': if (d && d.tag) setLearned(d); break;
         default: break;
       }
     });
@@ -541,6 +563,8 @@
     if (act === 'close-modal' && el.classList.contains('scrim') && e.target !== el) return;
     switch (act) {
       case 'home': S.view = 'home'; S.room = null; S.work = null; render(); break;
+      case 'login': S.view = 'login'; S.room = null; S.work = null; render(); break;
+      case 'login-done': S.view = 'home'; await save({ onboarded: true }); render(); doSync(false); break;
       case 'play': openWork(el.dataset.id); break;
       case 'settings': openSettings(); break;
       case 'close-modal': closeModal(); break;

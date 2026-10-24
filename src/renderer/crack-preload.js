@@ -16,6 +16,8 @@ let doneSent = false;
 let idSeq = 0;
 let lastUrl = '';
 let lastHas = null;
+let learned = null;      // 첫 응답에서 배운 '응답 상자' 모양 { tag, cls, ptag, pcls }
+let watch = null;        // 보낸 직후: 그때 화면에 있던 글자 목록 → 새로 생긴 글자만 응답으로 본다
 
 const send = (ch, data) => { try { ipcRenderer.sendToHost(ch, data); } catch (e) { /* 호스트 없음 */ } };
 const visible = (el) => !!(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
@@ -24,6 +26,7 @@ const qa = (sel, root) => { try { return sel ? [...(root || document).querySelec
 
 ipcRenderer.on('crion:config', (_e, c) => {
   rules = (c && c.rules) || {};
+  learned = (c && c.learned && c.learned.tag) ? c.learned : null;
   active = !!(c && c.play);
   lastSig = ''; lastKey = ''; doneSent = false;
   schedule(60);
@@ -82,6 +85,7 @@ ipcRenderer.on('crion:send', (_e, msg) => {
     const btn = findSendButton(el);
     lastSent = text.trim();
     doneSent = false;
+    startWatch();
     if (btn) { btn.click(); send('crion:sent', { ok: true, how: 'button' }); }
     else {
       const ev = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
@@ -100,7 +104,7 @@ ipcRenderer.on('crion:action', (_e, name) => {
   if (!re) return;
   const own = name === 'regen' ? q(rules.regenSel) : null;
   const btn = own || qa('button, [role="button"]').reverse().find(b => re.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + (b.innerText || '').slice(0, 20)));
-  if (btn) { btn.click(); doneSent = false; schedule(400); }
+  if (btn) { if (name === 'regen') startWatch(); btn.click(); doneSent = false; schedule(400); }
   send('crion:acted', { name, ok: !!btn });
 });
 
@@ -121,7 +125,7 @@ function findList(input) {
   const own = q(rules.listSel);
   if (own) return own;
   const cands = scrollables().filter(el => !(input && el.contains(input)));
-  if (!cands.length) return document.scrollingElement && document.body;
+  if (!cands.length) return null;
   return cands.sort((a, b) => (b.innerText || '').length - (a.innerText || '').length)[0];
 }
 
@@ -160,9 +164,12 @@ function segments(root) {
       const src = n.currentSrc || n.src || '';
       if (!/^https?:|^data:image/.test(src)) return;
       const r = n.getBoundingClientRect();
-      if ((n.naturalWidth || r.width) < 48) return;          // 아이콘·이모지 그림은 뺀다
+      const nat = n.naturalWidth || 0;
+      const aw = Number(n.getAttribute('width')) || 0, ah = Number(n.getAttribute('height')) || 0;
+      if (nat > 0 && nat < 48) return;                                    // 아이콘·이모지 그림은 뺀다
+      if (!nat && Math.max(r.width, aw) > 0 && Math.max(r.width, aw) < 32) return;
       flush();
-      segs.push({ t: 'img', src, w: n.naturalWidth || Math.round(r.width), h: n.naturalHeight || Math.round(r.height), alt: (n.alt || n.title || '').slice(0, 80) });
+      segs.push({ t: 'img', src, w: nat || aw || Math.round(r.width), h: n.naturalHeight || ah || Math.round(r.height), alt: (n.alt || n.title || '').slice(0, 80) });
       return;
     }
     if (getComputedStyle(n).display === 'none') return;
@@ -176,21 +183,113 @@ function segments(root) {
   return segs.map(s => s.t === 'text' ? Object.assign(s, { s: s.s.replace(/\n{3,}/g, '\n\n') }) : s);
 }
 
+
+// ---------- 새로 생긴 글자로 응답 찾기 ----------
+function snapshot() {
+  const seen = new WeakSet();
+  if (!document.body) return seen;
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n;
+  while ((n = w.nextNode())) if (n.nodeType === 3 || n.tagName === 'IMG') seen.add(n);
+  return seen;
+}
+function startWatch() { watch = { seen: snapshot(), key: 'w' + Date.now() }; lastSig = ''; }
+
+const UI_BOX = 'button, nav, header, footer, aside, [role="button"], [role="navigation"], [role="menu"], [role="dialog"], [role="tooltip"], textarea, input, select';
+function scrollBox(el) {
+  for (let e = el; e && e !== document.body; e = e.parentElement) {
+    const oy = getComputedStyle(e).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && e.scrollHeight > e.clientHeight + 20) return e;
+  }
+  return document.body;
+}
+function lca(nodes) {
+  if (!nodes.length) return null;
+  let a = nodes[0].nodeType === 3 ? nodes[0].parentElement : nodes[0];
+  for (const n of nodes.slice(1)) { while (a && !a.contains(n)) a = a.parentElement; }
+  return a;
+}
+// 보낸 뒤 새로 생긴 글자·그림을 모아 그 공통 조상을 응답 상자로 본다
+function newRoot() {
+  if (!watch || !document.body) return null;
+  const input = findInput();
+  const echo = lastSent ? lastSent.replace(/\s+/g, ' ') : '';
+  const fresh = [];
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n;
+  while ((n = w.nextNode())) {
+    if (watch.seen.has(n)) continue;
+    const isImg = n.nodeType === 1 && n.tagName === 'IMG';
+    if (n.nodeType === 1 && !isImg) continue;
+    if (!isImg && !(n.nodeValue || '').trim()) continue;
+    const host = isImg ? n : n.parentElement;
+    if (!host || host.closest(UI_BOX) || (input && input.contains(host))) continue;
+    if (!visible(host)) continue;
+    // 내가 보낸 말이 화면에 찍힌 것(에코)은 뺀다
+    const box = host.closest('p, div, li, span') || host;
+    if (echo && (box.innerText || '').replace(/\s+/g, ' ').trim() === echo) continue;
+    fresh.push(n);
+  }
+  if (!fresh.length) return null;
+  // 글자가 가장 많이 생긴 스크롤 상자 안의 것만 (옆 목록 미리보기 등 제외)
+  const groups = new Map();
+  for (const f of fresh) {
+    const sb = scrollBox(f.nodeType === 3 ? f.parentElement : f);
+    const g = groups.get(sb) || { n: 0, items: [] };
+    g.n += f.nodeType === 3 ? f.nodeValue.trim().length : 40;
+    g.items.push(f);
+    groups.set(sb, g);
+  }
+  const best = [...groups.values()].sort((a, b) => b.n - a.n)[0];
+  if (best.n < 2) return null;
+  let root = lca(best.items);
+  if (!root || root === document.body || root === document.documentElement) return null;
+  if (input && root.contains(input)) return null;
+  return root;
+}
+
+// 배운 모양
+const clsOf = (el) => (typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(Boolean) : []).slice(0, 12);
+function sigOf(el) {
+  const p = el.parentElement;
+  return { tag: el.tagName, cls: clsOf(el), ptag: p ? p.tagName : '', pcls: p ? clsOf(p) : [] };
+}
+function overlap(a, b) {
+  if (!a.length && !b.length) return 1;
+  if (!a.length || !b.length) return 0;
+  const s = new Set(a);
+  return b.filter(x => s.has(x)).length / Math.max(a.length, b.length);
+}
+function bySig(sig) {
+  const els = [...document.getElementsByTagName(sig.tag)].filter((e) =>
+    overlap(clsOf(e), sig.cls) >= 0.6 && e.parentElement && e.parentElement.tagName === sig.ptag &&
+    overlap(clsOf(e.parentElement), sig.pcls) >= 0.5 && visible(e) && (e.innerText || '').trim());
+  return els.filter(e => !els.some(o => o !== e && o.contains(e)));
+}
+
 const keyOf = (el) => {
   if (!el.dataset.crionId) el.dataset.crionId = String(++idSeq);
   return el.dataset.crionId;
 };
 
+// 지금 보여 줄 응답: ① 보낸 직후면 새로 생긴 글자 ② 크랙 규칙 ③ 배운 모양. 셋 다 없으면 아무것도 안 읽는다
+// (예전처럼 페이지 전체 글자를 응답으로 오해하지 않도록)
 function latest() {
   const input = findInput();
-  const list = findList(input);
-  if (!list) return null;
-  const msgs = messages(list);
-  if (!msgs.length) return { input: !!input, msgs: 0 };
+  if (watch) {
+    const root = newRoot();
+    if (root) return { input: !!input, msgs: 1, el: root, text: (root.innerText || '').trim(), mine: false, key: watch.key, how: 'new' };
+    return { input: !!input, msgs: 0, waiting: !!lastSent, how: 'new' };
+  }
+  let msgs = [];
+  let how = 'none';
+  if (rules.msgSel) { msgs = qa(rules.msgSel).filter(visible); how = 'rules'; }
+  else if (learned) { msgs = bySig(learned); how = 'learned'; }
+  if (!msgs.length) return { input: !!input, msgs: 0, how, unknown: how === 'none' };
   const last = msgs[msgs.length - 1];
   const text = (last.innerText || '').trim();
   const mine = !!lastSent && text.replace(/\s+/g, ' ') === lastSent.replace(/\s+/g, ' ');
-  return { input: !!input, msgs: msgs.length, el: last, text, mine, all: msgs };
+  return { input: !!input, msgs: msgs.length, el: last, text, mine, all: msgs, how };
 }
 
 function scan() {
@@ -198,8 +297,8 @@ function scan() {
   if (!active) return;
   const L = latest();
   if (!L) return;
-  if (!L.el || L.mine) { send('crion:state', { input: L.input, msgs: L.msgs, waiting: !!L.mine }); return; }
-  const key = keyOf(L.el);
+  if (!L.el || L.mine) { send('crion:state', { input: L.input, msgs: L.msgs, waiting: !!(L.mine || L.waiting), unknown: !!L.unknown }); return; }
+  const key = L.key || keyOf(L.el);
   const segs = segments(L.el);
   const sig = key + '|' + L.text.length + '|' + segs.filter(s => s.t === 'img').length;
   if (sig === lastSig && doneSent && key === lastKey) return;
@@ -209,13 +308,21 @@ function scan() {
   if (changed) {
     send('crion:reply', { key, segs, done: false, input: L.input, url: location.href });
     clearTimeout(stableTimer);
-    stableTimer = setTimeout(() => {           // 1.6초 동안 그대로면 다 쓴 것
+    stableTimer = setTimeout(() => {           // 2초 동안 그대로면 다 쓴 것
       const again = latest();
-      if (again && again.el === L.el && (again.el.innerText || '').trim() === L.text) {
+      if (again && again.el && again.text === L.text) {
         doneSent = true;
-        send('crion:reply', { key, segs: segments(L.el), done: true, input: again.input, url: location.href });
+        const el = again.el;
+        if (L.how === 'new') {
+          // 응답 상자 모양을 배워 두고(다음에 열 때 바로 읽기), 같은 응답으로 이어지게 표시
+          el.dataset.crionId = key;
+          learned = sigOf(el);
+          send('crion:learned', learned);
+          watch = null;
+        }
+        send('crion:reply', { key, segs: segments(el), done: true, input: again.input, url: location.href });
       }
-    }, 1600);
+    }, 2000);
   }
 }
 
@@ -254,6 +361,8 @@ ipcRenderer.on('crion:diag', () => {
     send: desc(btn),
     list: desc(list),
     messages: msgs.length,
+    learned,
+    watching: !!watch,
     lastTwo: msgs.slice(-2).map(m => outline(m, 0)).join('\n---\n').slice(0, 6000),
     segs: msgs.length ? segments(msgs[msgs.length - 1]).slice(0, 30) : []
   });

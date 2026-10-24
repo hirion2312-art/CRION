@@ -182,7 +182,13 @@
       pieces.forEach((t, k) => {
         const beat = { kind: b.kind, who: b.who, text: t };
         if (b.face) beat.face = b.face;
-        if (k === 0 && pendImgs.length) { beat.imgs = pendImgs; pendImgs = []; }
+        if (k === 0 && pendImgs.length) {
+          const prev = beats[beats.length - 1];
+          const back = prev && prev.who && prev.who !== beat.who && pendImgs.every(im => nameIn(im, [prev.who]));
+          if (back) prev.imgs = (prev.imgs || []).concat(pendImgs);
+          else beat.imgs = pendImgs;
+          pendImgs = [];
+        }
         beats.push(beat);
       });
     }
@@ -204,23 +210,25 @@
   //  - 장면 그림(가로)은 다음 장면 그림이 나올 때까지 배경으로 남는다
   //  - 인물 그림(세로)은 그 그림이 나온 대사 묶음에서만 보이고, 다른 사람이 말하기 시작하면 내려간다
   //  - 그림 이름(alt)에 다른 인물 이름이 있으면 그 사람이 말할 때만 보인다
+  // 그림 이름(alt·파일명)에 들어 있는 인물 이름 (이 응답에 말한 사람 중에서)
+  function nameIn(img, names) {
+    const t = ((img.alt || '') + ' ' + decodeURIComponent(String(img.src || '').split('/').pop() || '')).replace(/[_:\-.]/g, ' ');
+    return names.filter(n => n && t.includes(n)).sort((a, b) => b.length - a.length)[0] || null;
+  }
+
   function stageFrames(beats) {
+    const names = [...new Set(beats.map(b => b.who).filter(Boolean))];
     let scene = null, person = null, owner = null;
     return beats.map((b) => {
       for (const im of b.imgs || []) {
-        if (imgKind(im) === 'scene') scene = im;
-        else { person = im; owner = (im.alt && b.who && im.alt.includes(b.who)) ? b.who : (b.who || null); }
+        if (imgKind(im) === 'scene') { scene = im; continue; }
+        person = im;
+        owner = nameIn(im, names) || (b.kind === 'say' ? b.who : null);
       }
-      if (person && b.kind === 'say' && b.who) {
-        if (owner === null && !(b.imgs || []).includes(person)) owner = b.who;
-        else if (owner && b.who !== owner && !(b.imgs || []).includes(person)) { person = null; owner = null; }
-      }
-      if (person && person.alt && b.kind === 'say' && b.who && !(b.imgs || []).includes(person)) {
-        // 그림 이름이 지금 말하는 사람과 다르면 내린다
-        const named = person.alt.replace(/[_:\-.]/g, ' ');
-        if (/[가-힣]{2,}/.test(named) && !named.includes(b.who)) { person = null; owner = null; }
-      }
-      return { scene, person, who: b.who };
+      if (person && b.kind === 'say' && b.who && !owner) owner = b.who;   // 이름 모르는 그림은 그다음 처음 말하는 사람 것
+      // 그림 주인이 아닌 사람이 말하는 동안에는 숨긴다 (주인이 다시 말하면 다시 보인다)
+      const show = person && !(b.kind === 'say' && b.who && owner && b.who !== owner);
+      return { scene, person: show ? person : null, who: b.who };
     });
   }
 

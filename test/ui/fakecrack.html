@@ -1,0 +1,48 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; }
+  aside { width: 240px; border-right: 1px solid #ddd; overflow-y: auto; }
+  main { flex: 1; display: flex; flex-direction: column; }
+  header { height: 48px; border-bottom: 1px solid #ddd; display: flex; align-items: center; padding: 0 12px; }
+  .list { flex: 1; overflow-y: auto; padding: 12px; }
+  .msg-row { margin: 8px 0; }
+  .bubble-user { text-align: right; color: #333; }
+  .bubble-ai { color: #111; }
+  .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #ddd; }
+  textarea { flex: 1; height: 40px; }
+  .filler { height: 900px; }
+</style></head>
+<body>
+<aside>
+  <div style="height:1400px">
+    <p>최근 대화</p><p>마법소녀의 최종보스 — 어제</p><p>이종족 길드 — 3일 전</p><p>추천 작품 더보기</p>
+  </div>
+</aside>
+<main>
+  <header><span>아포칼립스 안전지대의 관리자</span><button>공유</button><button>메뉴</button><span class="badge">크래커 1,234</span></header>
+  <div class="list" id="list">
+    <div class="filler"></div>
+    <div class="msg-row ai-row"><div class="bubble-ai markdown"><p>지난 응답입니다. 옥상은 조용했다.</p><p>세라: "괜찮아요?"</p></div><div class="tools"><button>재생성</button><button>복사</button></div></div>
+  </div>
+  <div class="composer"><textarea placeholder="메시지 입력"></textarea><button aria-label="전송" id="sendBtn">↑</button></div>
+</main>
+<script>
+  // 크랙 흉내: 보내면 내 말풍선 + 스트리밍 응답, 그동안 옆 목록 미리보기도 바뀐다
+  document.getElementById('sendBtn').onclick = () => {
+    const ta = document.querySelector('textarea');
+    const text = ta.value; ta.value = '';
+    const list = document.getElementById('list');
+    const u = document.createElement('div'); u.className = 'msg-row user-row';
+    u.innerHTML = '<div class="bubble-user"><p></p></div>'; u.querySelector('p').textContent = text;
+    list.appendChild(u);
+    document.querySelector('aside p:nth-child(2)').textContent = '아포칼립스 안전지대 — 방금';
+    const a = document.createElement('div'); a.className = 'msg-row ai-row';
+    a.innerHTML = '<div class="bubble-ai markdown"></div><div class="tools"><button>재생성</button><button>복사</button></div>';
+    list.appendChild(a);
+    const box = a.querySelector('.bubble-ai');
+    const parts = ['<p>*철문 너머로 신음이 깔렸다.*</p>', '<p>세라: "관리자님, 식량이 부족해요."</p>', '<p><img src="https://example.invalid/sera.png" width="250" height="410" alt="세라"></p>', '<p>카일 "내가 볼게."</p>', '<pre><code>📅 DAY 12 저녁 | 📍옥상\n🍞 식량 6/40 | 💧 물 12/40</code></pre>', '<p>1. 창고로 간다</p><p>2. 아래층으로 간다</p>'];
+    let i = 0;
+    const t = setInterval(() => { box.insertAdjacentHTML('beforeend', parts[i++]); if (i >= parts.length) clearInterval(t); }, 250);
+  };
+</script>
+</body></html>

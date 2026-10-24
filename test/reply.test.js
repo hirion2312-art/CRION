@@ -92,6 +92,19 @@ test('긴 서술은 문장 끝에서 나눈다', () => {
   assert.ok(r.beats.length > 1 && r.beats.every(b => b.text.length <= 160));
 });
 
+test('세라 그림이 세라 대사 뒤에 와도 카일이 말할 땐 안 보인다', () => {
+  const r = R.parse([{ t: 'text', s: '세라: "식량이 부족해요."\n' }, { t: 'img', src: 'https://x/a.png', w: 250, h: 410, alt: '세라' }, { t: 'text', s: '카일 "내가 볼게."\n세라 "조심해요."' }]);
+  const f = R.stageFrames(r.beats);
+  assert.strictEqual(f[0].person && f[0].person.alt, '세라');
+  assert.strictEqual(f[1].person, null);
+});
+test('파일 이름으로도 인물을 안다', () => {
+  const r = R.parse([{ t: 'img', src: 'https://x/%EC%84%B8%EB%9D%BC_smile.png', w: 300, h: 600 }, { t: 'text', s: '카일 "어."\n세라 "안녕."' }]);
+  const f = R.stageFrames(r.beats);
+  assert.strictEqual(f[0].person, null);
+  assert.ok(f[1].person);
+});
+
 let fail = 0;
 for (const [n, f] of t) {
   try { f(); console.log('  ✔ ' + n); } catch (e) { fail++; console.log('  ✘ ' + n + '\n    ' + e.message); }
