@@ -33,15 +33,72 @@ ipcRenderer.on('crion:config', (_e, c) => {
 });
 
 // ---------- 입력창 ----------
+// 채팅 입력창이 아닌 칸(댓글·리뷰·검색 등)은 절대 쓰지 않는다
+const NOT_CHAT = /댓글|답글|코멘트|comment|reply|리뷰|후기|review|검색|search|신고|report|닉네임|이메일|비밀번호|password|email/i;
+function attrsOf(e) {
+  return [e.getAttribute('placeholder'), e.getAttribute('aria-label'), e.getAttribute('name'), e.id,
+    typeof e.className === 'string' ? e.className : '', e.getAttribute('data-placeholder')].filter(Boolean).join(' ');
+}
+function nearCommentArea(e) {
+  // 가까운 조상 안에 '댓글'이라는 제목·버튼이 있으면 댓글 칸으로 본다
+  for (let a = e.parentElement, i = 0; a && i < 4; a = a.parentElement, i++) {
+    const heads = a.querySelectorAll('h1,h2,h3,h4,h5,h6,button,[role="button"],span,p,label');
+    for (const h of heads) {
+      if (h.contains(e)) continue;
+      const t = (h.innerText || '').trim();
+      if (t.length <= 12 && /^(댓글|답글|코멘트|리뷰|후기|등록|작성)/.test(t)) return true;
+    }
+  }
+  return false;
+}
+function isChatInput(e) {
+  if (!e || !visible(e) || e.disabled || e.readOnly) return false;
+  if (NOT_CHAT.test(attrsOf(e))) return false;
+  const r = e.getBoundingClientRect();
+  if (r.bottom < window.innerHeight * 0.55) return false;   // 채팅 입력창은 화면 아래쪽에 붙어 있다
+  if (nearCommentArea(e)) return false;
+  return true;
+}
 function findInput() {
   const own = q(rules.inputSel);
   if (own && visible(own)) return own;
-  const cands = qa('textarea, [contenteditable="true"], [role="textbox"], input[type="text"]')
-    .filter((e) => visible(e) && !e.disabled && !e.readOnly);
+  const cands = qa('textarea, [contenteditable="true"], [role="textbox"], input[type="text"]').filter(isChatInput);
   if (!cands.length) return null;
   // 화면 아래쪽에 있는 것이 채팅 입력창
   return cands.sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0];
 }
+
+// 작품 소개 페이지의 '대화 시작 / 이어하기' 버튼 찾기
+const START_WORDS = [
+  ['continue', /^(이어서\s*(대화|하기|플레이)?|이어하기|대화\s*이어(가기|하기)|계속\s*(하기|대화|플레이)|최근\s*대화)/],
+  ['new', /^(새\s*(대화|채팅)(\s*시작)?|대화\s*시작(하기)?|채팅\s*시작(하기)?|시작하기|플레이(하기)?|대화하기|채팅하기|처음부터)/]
+];
+let actionEls = [];
+function pageActions() {
+  actionEls = [];
+  const out = [];
+  for (const b of qa('button, a[href], [role="button"]')) {
+    if (!visible(b) || b.disabled) continue;
+    const t = (b.innerText || b.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ');
+    if (!t || t.length > 16) continue;
+    for (const [kind, re] of START_WORDS) {
+      if (re.test(t)) { out.push({ id: actionEls.length, kind, label: t }); actionEls.push(b); break; }
+    }
+  }
+  return out.slice(0, 4);
+}
+function pageKind() {
+  if (findInput()) return { page: 'chat', actions: [] };
+  const actions = pageActions();
+  return { page: actions.length ? 'detail' : 'other', actions };
+}
+// 플레이어가 CRION에서 누른 '이어하기/새로 시작'을 크랙 버튼에 그대로 전달 (한 번 누름 = 한 번)
+ipcRenderer.on('crion:click', (_e, id) => {
+  pageActions();
+  const b = actionEls[Number(id)];
+  if (b) b.click();
+  send('crion:clicked', { ok: !!b });
+});
 
 function setInput(el, text) {
   el.focus();
@@ -78,7 +135,7 @@ ipcRenderer.on('crion:send', (_e, msg) => {
   const text = String((msg && msg.text) || '');
   const fillOnly = !!(msg && msg.fillOnly);
   const el = findInput();
-  if (!el) { send('crion:sent', { ok: false, why: 'no-input' }); return; }
+  if (!el) { send('crion:sent', { ok: false, why: 'no-input' }); return; }   // 채팅 화면이 아니면 보내지 않는다
   setInput(el, text);
   if (fillOnly) { send('crion:sent', { ok: true, how: 'fill' }); return; }
   setTimeout(() => {
@@ -302,6 +359,7 @@ const keyOf = (el) => {
 // (예전처럼 페이지 전체 글자를 응답으로 오해하지 않도록)
 function latest() {
   const input = findInput();
+  if (!input) return { input: false, msgs: 0, how: 'no-chat' };   // 채팅 화면이 아니면 아무것도 읽지 않는다
   if (watch) {
     const root = newRoot();
     if (root) return { input: !!input, msgs: 1, el: root, text: (root.innerText || '').trim(), mine: false, key: watch.key, how: 'new' };
@@ -408,9 +466,10 @@ function start() {
       send('crion:url', { url: lastUrl, title: document.title });
       schedule(400);
     }
-    if (active && !timer) {
-      const has = !!findInput();
-      if (has !== lastHas) { lastHas = has; send('crion:state', { input: has, poll: true }); }
+    if (active) {
+      const k = pageKind();
+      const sig = k.page + '|' + k.actions.map(a => a.label).join(',');
+      if (sig !== lastHas) { lastHas = sig; send('crion:state', { input: k.page === 'chat', page: k.page, actions: k.actions, url: location.href, poll: true }); }
     }
   }, 1500);
 }

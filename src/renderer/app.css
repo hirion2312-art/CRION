@@ -216,3 +216,10 @@ input, textarea, select { font: inherit; color: inherit; }
 .guide h3, .guide h4, .guide h5 { margin: 18px 0 6px; }
 .guide p, .guide li { font-size: 14.5px; line-height: 1.75; color: var(--ink2); }
 .guide ul { padding-left: 20px; margin: 6px 0; }
+
+/* 작품 소개 페이지에서 시작 버튼 */
+.cover-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+.btn.big { height: 46px; padding: 0 22px; font-size: 15px; border-radius: 12px; }
+.cover .btn.primary { background: #fff; color: var(--ink); border-color: #fff; }
+.cover .btn.light { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.25); }
+.cover .btn.ghost.light { background: transparent; border-color: transparent; color: rgba(255,255,255,.7); }

@@ -185,7 +185,7 @@
           <div class="vign"></div>
           <div class="cover" id="cover"><div class="in">
             <div class="poster">${w.thumb ? `<img src="${esc(w.thumb)}" alt="">` : ''}</div>
-            <h2>${esc(w.name)}</h2><p id="coverText">크랙 화면을 불러오는 중이에요…</p></div></div>
+            <h2>${esc(w.name)}</h2><p id="coverText">크랙 화면을 불러오는 중이에요…</p><div class="cover-actions" id="coverActions"></div></div></div>
           <div class="choices" id="choices"></div>
           <div class="dlg hidden" id="dlg" tabindex="0">
             <div class="name hidden" id="dlgName"></div>
@@ -270,11 +270,19 @@
     if (!on) setTimeout(() => { const m = $('#msg'); if (m) m.focus(); }, 50);
   }
 
-  function showCover(text) {
+  function showCover(text, actions) {
     const c = $('#cover');
     if (!c) return;
     c.classList.toggle('hidden', !text);
     if (text) $('#coverText').textContent = text;
+    const box = $('#coverActions');
+    if (box) {
+      const acts = actions || [];
+      // 이어하기를 먼저, 그다음 새로 시작
+      acts.sort((a, b) => (a.kind === 'continue' ? 0 : 1) - (b.kind === 'continue' ? 0 : 1));
+      box.innerHTML = acts.map((a, i) => `<button class="btn ${i === 0 ? 'primary big' : 'big light'}" data-act="start" data-id="${a.id}">${esc(a.label)}</button>`).join('')
+        + (acts.length ? '<button class="btn ghost big light" data-act="to-orig">크랙 화면 보기</button>' : '');
+    }
   }
 
   let typeTimer = null;
@@ -425,12 +433,30 @@
     const r = S.room;
     if (!r) return;
     r.hasInput = !!d.input;
+    if (!d.page && d.input) d.page = 'chat';
+    if (d.page) {
+      const was = r.page;
+      r.page = d.page;
+      if (d.page === 'detail' && !r.turn) {
+        // 작품 소개 페이지: 크랙의 '이어하기/대화 시작' 버튼을 CRION 화면에 그대로 보여 준다
+        setOrig(false, false);
+        showCover(d.actions && d.actions.length ? '이어서 하거나 새로 시작해 주세요.' : '작품 페이지예요.', d.actions || []);
+      } else if (d.page === 'chat') {
+        if (was !== 'chat' && (d.url || r.url)) {
+          const urls = Object.assign({}, S.settings.workUrls, { [r.work.id]: d.url || r.url });
+          save({ workUrls: urls });            // 다음엔 이 대화방으로 바로
+        }
+      } else if (d.page === 'other' && !r.turn && r.autoOrig !== false) {
+        setOrig(true, true);                   // 로그인 등: 크랙 화면 그대로
+      }
+      updateSendable();
+    }
     if (d.waiting) {
       r.waiting = true;
       if (!r.orig) { $('#dlgLive') && ($('#dlgLive').innerHTML = '<span class="live"><i></i>응답 기다리는 중</span>'); }
       drawChoices();
     }
-    if (r.hasInput && r.autoOrig && r.orig && !r.turn) {
+    if (r.hasInput && (r.autoOrig || r.page === 'chat') && !r.turn && (r.orig || !$('#cover').classList.contains('hidden'))) {
       // 대화창은 열렸는데 아직 응답이 없을 때: 게임 화면으로 넘어가 첫 입력을 기다린다
       setOrig(false, false);
       showCover(getLearned() ? '이어서 진행해 보세요. 아래 입력창에 쓰고 보내면 돼요.'
@@ -441,12 +467,18 @@
   function onUrl(d) {
     const r = S.room;
     if (!r || !d.url) return;
-    r.url = d.url;
-    // 대화방 주소를 '이어하기' 주소로 기억 (작품 소개·프로필 페이지는 제외)
-    if (r.hasInput || /\/(chat|room|c|episodes?|play)\b/i.test(d.url)) {
-      const urls = Object.assign({}, S.settings.workUrls, { [r.work.id]: d.url });
-      save({ workUrls: urls });
-    }
+    r.url = d.url;          // 이어하기 주소는 채팅 화면으로 확인됐을 때만 저장한다 (onState)
+  }
+
+  // 채팅 화면일 때만 보낼 수 있다 (작품 소개 페이지의 댓글 칸 등에 들어가지 않게)
+  function updateSendable() {
+    const r = S.room;
+    const ok = !!(r && r.page === 'chat');
+    const m = $('#msg');
+    if (m) m.placeholder = ok ? '행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈' : '대화를 시작하면 여기서 입력할 수 있어요';
+    const b = $('#sendBtn');
+    if (b && !ok) b.disabled = true;
+    else if (b && ok && !sendGuard) b.disabled = false;
   }
 
   // ---------- 보내기 ----------
@@ -455,7 +487,8 @@
     const b = $('#sendBtn');
     if (b) b.disabled = !!on;
     clearTimeout(sendGuard);
-    if (on) sendGuard = setTimeout(() => setSending(false), 8000);
+    sendGuard = null;
+    if (on) sendGuard = setTimeout(() => { sendGuard = null; setSending(false); }, 8000);
   }
   function wv() { return $('#crack'); }
 
@@ -463,6 +496,7 @@
     const r = S.room;
     text = String(text || '').trim();
     if (!r || !text) return;
+    if (r.page !== 'chat') { toast('아직 대화 화면이 아니에요. 이어하기나 새로 시작을 먼저 눌러 주세요'); return; }
     const v = wv();
     if (!v) return;
     if ($('#sendBtn') && $('#sendBtn').disabled) return;
@@ -500,8 +534,8 @@
   function autosize(t) { t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
 
   // 크랙 응답 상자 모양: 첫 응답에서 배우고 기억해 둔다 (작품이 달라도 크랙 화면은 같다)
-  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned2') || 'null'); } catch (e) { return null; } }
-  function setLearned(v) { try { localStorage.setItem('crion.learned2', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
+  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned3') || 'null'); } catch (e) { return null; } }
+  function setLearned(v) { try { localStorage.setItem('crion.learned3', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
 
   // ---------- 그리기 ----------
   function render() {
@@ -513,6 +547,7 @@
       app.innerHTML = topHtml() + roomHtml();
       renderSide();
       bindWebview();
+      updateSendable();
       if (S.room.turn) drawBeat();
     } else {
       app.innerHTML = topHtml() + homeHtml();
@@ -538,6 +573,7 @@
         case 'crion:sent': onSent(d); break;
         case 'crion:acted': if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
         case 'crion:diag': copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.'); break;
+        case 'crion:clicked': if (!d.ok) { toast('크랙 버튼을 찾지 못했어요. 크랙 화면에서 눌러 주세요'); setOrig(true, false); } else showCover('여는 중이에요…'); break;
         case 'crion:learned': if (d && d.tag) setLearned(d); break;
         default: break;
       }
@@ -679,6 +715,7 @@
       case 'continue': sendText('계속'); break;
       case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); } break; }
       case 'log': openLog(); break;
+      case 'start': { const v = wv(); if (v) v.send('crion:click', Number(el.dataset.id)); break; }
       case 'guide': openGuide(); break;
       case 'immersive': setImmersive(!$('#app').classList.contains('immersive')); break;
       case 'pref': {
