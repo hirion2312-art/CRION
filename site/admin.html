@@ -67,7 +67,7 @@
   <!-- 연결 -->
   <section class="card" id="login">
     <h2>처음 한 번: GitHub 열쇠 연결</h2>
-    <p class="sub">이 페이지는 CRION 저장소의 작품 목록과 공지를 고쳐서 바로 배포해요. 고칠 권한을 확인하려고 GitHub '열쇠(토큰)'가 한 번 필요해요. 열쇠는 이 컴퓨터의 브라우저에만 저장돼요.</p>
+    <p class="sub">이 페이지는 CRION 저장소의 작품 목록·공지·소통 설정을 고쳐서 바로 배포해요. 고칠 권한을 확인하려고 GitHub '열쇠(토큰)'가 한 번 필요해요. 열쇠는 이 컴퓨터의 브라우저에만 저장돼요.</p>
     <ol class="steps">
       <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub 열쇠 만들기 페이지</a>를 열어요 (GitHub 로그인 상태).</li>
       <li><b>Token name</b>: <code>crion-admin</code> · <b>Expiration</b>: 1 year</li>
@@ -100,6 +100,22 @@
         <div class="full"><label>내용</label><input type="text" id="noticeText" maxlength="140" placeholder="예) 신작 「소환수 아카데미」가 열렸어요!"></div>
         <div class="full"><label>자세히 링크 (선택, https)</label><input type="text" id="noticeLink" placeholder="https://..."></div>
       </div>
+    </section>
+
+    <!-- 소통 -->
+    <section class="card">
+      <h2>소통 설정</h2>
+      <p class="sub">앱의 <b>소통 · 신고</b> 화면에 나오는 내용이에요. 오류 신고·건의·공략 제보는 아래 디스코드 웹후크로 바로 들어와요.</p>
+      <div class="fields">
+        <div><label>디스코드 초대 링크</label><input type="text" id="lkDiscord" placeholder="https://discord.gg/..."></div>
+        <div><label>카카오 오픈채팅 링크</label><input type="text" id="lkOpen" placeholder="https://open.kakao.com/o/..."></div>
+        <div class="full"><label>신고·건의를 받을 디스코드 웹후크 주소</label>
+          <div class="row"><input class="grow" type="text" id="hook" placeholder="https://discord.com/api/webhooks/..."><button class="btn sm" id="hookTest">시험 메시지 보내기</button></div>
+          <p class="sub" style="margin:6px 0 0">디스코드 채널 설정 → 연동 → 웹후크 → 새 웹후크 → <b>웹후크 URL 복사</b>. 장난 메시지가 오면 웹후크를 새로 만들어 바꾸면 돼요.</p></div>
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:18px"><h2 style="font-size:16px;margin:0">소식</h2><button class="btn sm" id="addNews">+ 소식 추가</button></div>
+      <p class="sub" style="margin:4px 0 8px">업데이트·신작·이벤트 소식. 최신 날짜가 위에 보여요.</p>
+      <div id="news"></div>
     </section>
 
     <!-- 설치 파일 -->
@@ -195,6 +211,13 @@
     const n = data.notice || {};
     $('#noticeText').value = n.text || '';
     $('#noticeLink').value = n.link || '';
+    data.links = data.links || {};
+    data.report = data.report || {};
+    data.news = Array.isArray(data.news) ? data.news : [];
+    $('#lkDiscord').value = data.links.discord || '';
+    $('#lkOpen').value = data.links.openchat || '';
+    $('#hook').value = data.report.webhook || '';
+    renderNews();
     base = collect();               // 비교 기준은 이 페이지가 쓰는 모양으로 맞춘다
     renderWorks();
     markDirty();
@@ -233,8 +256,55 @@
   }
 
   // ---------- 편집 ----------
+  function renderNews() {
+    $('#news').innerHTML = data.news.map((n, i) => `<div class="work" data-n="${i}" style="grid-template-columns:1fr auto">
+      <div class="fields">
+        <div><label>제목</label><input type="text" data-nf="title" value="${esc(n.title || '')}"></div>
+        <div><label>날짜</label><input type="text" data-nf="date" value="${esc(n.date || '')}" placeholder="2026-10-25"></div>
+        <div class="full"><label>내용</label><textarea data-nf="text" rows="2">${esc(n.text || '')}</textarea></div>
+        <div class="full"><label>링크 (선택, https)</label><input type="text" data-nf="link" value="${esc(n.link || '')}"></div>
+      </div>
+      <div class="side"><button class="btn sm danger" data-na="del">삭제</button></div></div>`).join('') || '<p class="sub">소식이 없어요.</p>';
+  }
+  $('#news').addEventListener('input', (e) => {
+    const row = e.target.closest('[data-n]');
+    if (!row || !e.target.dataset.nf) return;
+    data.news[Number(row.dataset.n)][e.target.dataset.nf] = e.target.value.trim();
+    markDirty();
+  });
+  $('#news').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-na=del]');
+    if (!b) return;
+    data.news.splice(Number(b.closest('[data-n]').dataset.n), 1);
+    renderNews(); markDirty();
+  });
+  $('#addNews').onclick = () => {
+    data.news.unshift({ date: new Date().toLocaleDateString('sv-SE'), title: '', text: '', link: '' });
+    renderNews(); markDirty();
+    const f = document.querySelector('#news input[data-nf=title]'); if (f) f.focus();
+  };
+  ['#lkDiscord', '#lkOpen', '#hook'].forEach(s => $(s).addEventListener('input', markDirty));
+  const HOOK_RE = /^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[\w-]+$/;
+  $('#hookTest').onclick = async () => {
+    const u = $('#hook').value.trim();
+    if (!HOOK_RE.test(u)) { toast('디스코드 웹후크 주소 모양이 아니에요'); return; }
+    const fd = new FormData();
+    fd.append('payload_json', JSON.stringify({ username: 'CRION', content: '✅ CRION 관리 페이지에서 보낸 시험 메시지예요. 이 채널로 오류 신고·건의·공략 제보가 들어와요.' }));
+    try { await fetch(u, { method: 'POST', body: fd, mode: 'no-cors' }); toast('보냈어요. 디스코드 채널에 메시지가 왔는지 확인해 주세요'); }
+    catch (e) { toast('보내지 못했어요: ' + e.message); }
+  };
+
   function collect() {
     const out = JSON.parse(JSON.stringify(data));
+    const clean = (u, re) => { u = (u || '').trim(); return re.test(u) ? u : ''; };
+    out.links = Object.assign({}, out.links, { discord: clean($('#lkDiscord').value, /^https:\/\//), openchat: clean($('#lkOpen').value, /^https:\/\//) });
+    if (!out.links.discord) delete out.links.discord;
+    if (!out.links.openchat) delete out.links.openchat;
+    out.report = Object.assign({}, out.report, { webhook: clean($('#hook').value, HOOK_RE) });
+    if (!out.report.webhook) delete out.report.webhook;
+    out.news = (out.news || []).filter(n => n.title || n.text).map(n => Object.assign(n, { link: /^https:\/\//.test(n.link || '') ? n.link : '' }));
+    ['links', 'report'].forEach(k => { if (!Object.keys(out[k]).length) delete out[k]; });
+    if (!out.news.length) delete out.news;
     const text = $('#noticeText').value.trim();
     const link = $('#noticeLink').value.trim();
     if (text) out.notice = { text, link: /^https:\/\//.test(link) ? link : '', id: String(Date.parse(new Date().toDateString())) + '-' + text.length };

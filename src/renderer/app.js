@@ -22,6 +22,8 @@
     full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 17),
     book: svg('<path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M5 16a4 4 0 0 1 4-4h9"/>', 17),
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 16),
+    chat: svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>', 16),
+    flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', 17),
     star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>', 15),
     info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', 15),
     music: svg('<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>', 17),
@@ -50,7 +52,9 @@
   const { fmtTime, ago } = window.CrionStore;
   const bgm = window.CrionBgm ? new window.CrionBgm() : null;
 
+  const CM = window.CrionCommunity;
   const S = {
+    cat: { links: {}, news: [], report: {} }, form: { kind: 'bug' }, diagText: '',
     info: null, settings: null, works: [], creatorUrl: '', syncedAt: null, syncing: false,
     view: 'home', work: null, room: null
   };
@@ -84,6 +88,7 @@
       const c = await res.json();
       const n = c && c.notice;
       S.notice = n && n.on !== false && n.text ? n : null;
+      S.cat = { links: (c && c.links) || {}, news: (c && Array.isArray(c.news)) ? c.news : [], report: (c && c.report) || {} };
     } catch (e) { /* 오프라인 */ }
   }
   const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
@@ -115,7 +120,10 @@
       tools += `<button class="icon-btn" data-act="immersive" title="몰입 모드 (F)">${I.full}</button>`;
       tools += `<button class="icon-btn" data-act="toggle-side" title="옆 패널">${I.side}</button>`;
     }
-    if (S.view === 'home') tools += `<button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
+    if (S.view === 'community') {
+      crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">소통</span>`;
+    }
+    if (S.view === 'home') tools += `<button class="btn" data-act="community">${I.chat}소통 · 신고</button><button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
     tools += `<button class="icon-btn" data-act="settings" title="설정">${I.gear}</button>`;
     return `<header class="top"><div class="brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#14161b"/><path d="M18 17h28a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7H31l-10 8v-8h-3a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z" fill="#fff"/><path d="M28 24.5 40 31l-12 6.5z" fill="#5b5bd6"/></svg>CRION</div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
   }
@@ -241,6 +249,116 @@
       <div class="body">${body}</div>`, true);
   }
 
+  // ---------- 소통: 소식 · 커뮤니티 · 신고 · 건의 · 공략 제보 ----------
+  function sentHistory() { try { return JSON.parse(localStorage.getItem('crion.sent') || '[]'); } catch (e) { return []; } }
+  function pushSent(item) { const h = sentHistory().concat(item).slice(-50); try { localStorage.setItem('crion.sent', JSON.stringify(h)); } catch (e) { /* 저장 안 됨 */ } }
+  const hookFor = (kind) => { const r = S.cat.report || {}; return (r.webhooks && r.webhooks[kind]) || r.webhook || ''; };
+
+  function formHtml(kind, opt) {
+    opt = opt || {};
+    const works = S.works.map(w => `<option ${opt.work === w.name ? 'selected' : ''}>${esc(w.name)}</option>`).join('');
+    const workSel = (req) => `<label class="f"><span>작품${req ? '' : ' (선택)'}</span><select id="fWork" class="field">${req ? '' : '<option value="">작품과 상관없음</option>'}${works}</select></label>`;
+    const nick = `<label class="f"><span>닉네임 (선택 · 답장이나 공략 출처 표시용)</span><input id="fNick" class="field" maxlength="30" value="${esc(localStorage.getItem('crion.nick') || '')}"></label>`;
+    let body = '';
+    if (kind === 'bug') {
+      body = `${workSel(false)}
+        <label class="f"><span>무슨 문제가 있었나요?</span><textarea id="fBody" class="field" rows="4" placeholder="예) 응답에 다른 글씨가 섞여 나와요 / 보내기를 눌러도 안 가요"></textarea></label>
+        <label class="f"><span>어떻게 하다가 생겼나요? (선택)</span><input id="fSteps" class="field" placeholder="예) 작품 열고 첫 대사 보냈을 때"></label>
+        ${opt.diag ? `<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (대화 내용 일부가 들어갈 수 있어요)</label>` : ''}`;
+    } else if (kind === 'idea') {
+      body = `<label class="f"><span>한 줄 요약</span><input id="fTitle" class="field" maxlength="80" placeholder="예) 대사창 글씨체를 바꾸고 싶어요"></label>
+        <label class="f"><span>자세히</span><textarea id="fBody" class="field" rows="5"></textarea></label>${workSel(false)}`;
+    } else {
+      body = `${workSel(true)}
+        <label class="f"><span>공략·팁</span><textarea id="fBody" class="field" rows="5" placeholder="다른 플레이어에게 도움이 될 팁을 적어 주세요. 좋은 공략은 작품 공략에 실려요."></textarea></label>`;
+    }
+    const ready = CM.isWebhook(hookFor(kind));
+    return `<div class="form" data-kind="${kind}">${body}${nick}
+      <div class="form-foot">${ready ? '<span class="muted">히리온에게 바로 전달돼요</span>' : '<span class="muted warn-text">받을 곳이 아직 준비 중이에요. 버튼을 누르면 내용이 복사돼요.</span>'}
+        <button class="btn primary" data-act="form-send" data-kind="${kind}">${ready ? '보내기' : '내용 복사'}</button></div></div>`;
+  }
+
+  function communityHtml() {
+    const L = S.cat.links || {};
+    const links = [
+      L.discord && ['디스코드', '플레이어들과 이야기하고 소식 받기', L.discord],
+      L.openchat && ['오픈채팅', '카카오톡 오픈채팅방', L.openchat],
+      ...((L.other || []).map(o => o && o.url && [o.label || '바로가기', o.desc || '', o.url]))
+    ].filter(Boolean);
+    const news = (S.cat.news || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const hist = sentHistory().slice().reverse().slice(0, 8);
+    const kinds = [['bug', '오류 신고'], ['idea', '건의'], ['tip', '공략 제보']];
+    return `<main class="home"><div class="home-in comm">
+      <div class="hello"><div><h1>소통</h1><p>소식을 보고, 문제나 의견을 히리온에게 바로 보낼 수 있어요.</p></div></div>
+      <div class="comm-grid">
+        <section>
+          <div class="section-h"><h2>소식</h2></div>
+          ${S.notice ? `<div class="news hot"><b>공지</b><p>${esc(S.notice.text)}</p></div>` : ''}
+          ${news.length ? news.map(n => `<article class="news">
+              <div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
+              ${n.text ? `<p>${esc(n.text)}</p>` : ''}
+              ${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}
+            </article>`).join('') : (!S.notice ? '<p class="muted">아직 소식이 없어요.</p>' : '')}
+          <div class="section-h"><h2>커뮤니티</h2></div>
+          ${links.length ? `<div class="links">${links.map(([t, d, u]) => `<button class="link-card" data-act="open-link" data-url="${esc(u)}"><b>${esc(t)}</b><span>${esc(d)}</span><i>→</i></button>`).join('')}</div>`
+            : '<p class="muted">커뮤니티가 곧 열려요.</p>'}
+        </section>
+        <section>
+          <div class="section-h"><h2>보내기</h2></div>
+          <div class="send-box">
+            <nav class="tabs">${kinds.map(([k, l]) => `<button class="${S.form.kind === k ? 'on' : ''}" data-act="form-kind" data-kind="${k}">${l}</button>`).join('')}</nav>
+            <div class="body">${formHtml(S.form.kind, { diag: false })}</div>
+          </div>
+          ${hist.length ? `<div class="section-h"><h2>내가 보낸 것</h2></div><div class="hist">${hist.map(h => `<div><b>${esc((CM.KINDS[h.kind] || {}).label || '')}</b><span>${esc(h.title || '')}</span><small>${ago(h.at)}${h.copied ? ' · 복사만 함' : ''}</small></div>`).join('')}</div>` : ''}
+        </section>
+      </div>
+    </div></main>`;
+  }
+
+  function openReport() {
+    const w = S.room && S.room.work;
+    S.diagText = '';
+    const v = wv();
+    if (v) { S.waitDiag = true; v.send('crion:diag'); }
+    modal(`<header><h3>문제 신고</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body">${formHtml('bug', { work: w && w.name, diag: !!v })}</div>`);
+  }
+
+  async function sendForm(kind) {
+    const v = (id) => { const el = $('#' + id); return el ? el.value.trim() : ''; };
+    const f = { work: v('fWork'), title: v('fTitle'), body: v('fBody'), steps: v('fSteps'), nick: v('fNick') };
+    if (!f.body) { toast('내용을 적어 주세요'); return; }
+    if (kind === 'bug' && !f.title) f.title = f.body.split('\n')[0].slice(0, 60);
+    if (kind === 'tip' && !f.title) f.title = (f.work ? f.work + ' 공략: ' : '') + f.body.slice(0, 40);
+    try { localStorage.setItem('crion.nick', f.nick); } catch (e) { /* 무시 */ }
+    const ctx = { app: S.info.version, engine: S.info.engineVersion, os: S.info.platform };
+    const hook = hookFor(kind);
+    const hist = sentHistory();
+    if (!CM.isWebhook(hook)) {
+      copy(CM.asText(kind, f, ctx), '내용을 복사했어요. 커뮤니티나 히리온에게 붙여서 보내 주세요');
+      pushSent({ kind, title: f.title, work: f.work, at: Date.now(), copied: true });
+      return finishForm();
+    }
+    const lim = CM.allowed(hist);
+    if (!lim.ok) { toast(lim.why); return; }
+    const attach = ($('#fDiag') && $('#fDiag').checked && S.diagText) ? { text: S.diagText, name: 'crion-diag.txt' } : null;
+    const btn = document.querySelector('[data-act=form-send]');
+    if (btn) { btn.disabled = true; btn.textContent = '보내는 중…'; }
+    try {
+      await CM.send(hook, CM.buildPayload(kind, f, ctx), attach);
+      pushSent({ kind, title: f.title, work: f.work, at: Date.now() });
+      toast('보냈어요. 고마워요!');
+      finishForm();
+    } catch (e) {
+      toast('보내지 못했어요. 인터넷 연결을 확인해 주세요');
+      if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
+    }
+  }
+  function finishForm() {
+    if ($('#layer').innerHTML) closeModal();
+    if (S.view === 'community') render();
+  }
+
   // ---------- 크랙 로그인 화면 ----------
   function loginHtml() {
     return `<div class="login">
@@ -303,6 +421,7 @@
           <button class="icon-btn" data-act="log" title="지난 대화">${I.log}</button>
           ${w.guide ? `<button class="icon-btn" data-act="guide" title="공략">${I.book}</button>` : ''}
           <button class="icon-btn" data-act="to-orig" title="크랙 원본 화면">${I.web}</button>
+          <button class="icon-btn" data-act="report-here" title="문제 신고 (지금 화면 정보 첨부)">${I.flag}</button>
         </div>
         <div class="quick" id="quick"></div>
         <textarea id="msg" rows="1" placeholder="행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈"></textarea>
@@ -693,6 +812,8 @@
       drawQuick();
       if (S.room.turn) drawBeat();
       startBgm();
+    } else if (S.view === 'community') {
+      app.innerHTML = topHtml() + communityHtml();
     } else {
       app.innerHTML = topHtml() + homeHtml();
     }
@@ -716,7 +837,10 @@
         case 'crion:url': onUrl(d); break;
         case 'crion:sent': onSent(d); break;
         case 'crion:acted': if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
-        case 'crion:diag': copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.'); break;
+        case 'crion:diag':
+          if (S.waitDiag) { S.waitDiag = false; S.diagText = diagText(d); }
+          else copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.');
+          break;
         case 'crion:clicked': if (!d.ok) { toast('크랙 버튼을 찾지 못했어요. 크랙 화면에서 눌러 주세요'); setOrig(true, false); } else showCover('여는 중이에요…'); break;
         case 'crion:learned': if (d && d.tag) setLearned(d); break;
         default: break;
@@ -885,6 +1009,10 @@
       case 'continue': sendText('계속'); break;
       case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); } break; }
       case 'log': openLog(); break;
+      case 'community': if (bgm) bgm.stop(); S.view = 'community'; S.room = null; S.work = null; render(); loadNotice().then(() => { if (S.view === 'community') render(); }); break;
+      case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
+      case 'form-send': sendForm(el.dataset.kind); break;
+      case 'report-here': openReport(); break;
       case 'start': { const v = wv(); if (v) v.send('crion:click', Number(el.dataset.id)); break; }
       case 'guide': openGuide(); break;
       case 'immersive': setImmersive(!$('#app').classList.contains('immersive')); break;
