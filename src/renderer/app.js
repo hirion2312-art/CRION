@@ -821,7 +821,8 @@
     renderHome();
     if (diag) {
       copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개`,
-        ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb ? 'thumb' : 'no-thumb'}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
+        ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}`),
+        '--- 소개 글 ---', ...(r.sample || []).map(x => `# ${x.title}\n${(x.text || '').replace(/\s+/g, ' ').slice(0, 220)}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
     } else toast(r.ok ? `작품 ${r.count}개를 불러왔어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
   }
 
