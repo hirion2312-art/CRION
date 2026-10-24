@@ -2,7 +2,7 @@
 (function () {
   const settings = { onboarded: true, volume: 60, textSpeed: 'fast', choiceSend: true, autoUpdate: true, workUrls: {}, recent: ['w1'], registryUrl: '' };
   const works = [
-    { id: 'w1', name: '아포칼립스 안전지대의 관리자', genre: '좀비 생존 운영', url: 'https://crack.wrtn.ai/detail/a', thumb: 'img/t1.png' },
+    { id: 'w1', name: '아포칼립스 안전지대의 관리자', genre: '좀비 생존 운영', url: 'https://crack.wrtn.ai/detail/a', thumb: 'img/t1.png', guide: '# 시작 팁\n- 첫날은 **식량**부터 확보하세요\n- 밤에는 바리케이드를 점검\n\n# 생존자\n세라는 의무실, 카일은 정찰 담당이에요.' },
     { id: 'w2', name: '마법소녀의 최종보스', genre: '샌드박스', url: 'https://crack.wrtn.ai/detail/b', thumb: 'img/t2.png' },
     { id: 'w3', name: '이종족 길드의 유일한 남자', genre: '판타지 모험', url: 'https://crack.wrtn.ai/detail/c', thumb: 'img/t3.png' },
     { id: 'w4', name: '크랙대학교', genre: '캠퍼스 로맨스 코미디', url: '', thumb: '' },

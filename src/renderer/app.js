@@ -19,6 +19,8 @@
     web: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>', 17),
     side: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>', 17),
     sync: svg('<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>', 15),
+    full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 17),
+    book: svg('<path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M5 16a4 4 0 0 1 4-4h9"/>', 17),
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 16),
     x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 18),
     cont: svg('<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', 16)
@@ -26,6 +28,18 @@
   const TINTS = ['#6d5bd0', '#d0457a', '#2f7fd1', '#0f9d76', '#d07a1f', '#7a8597', '#b0473a', '#3b8e9e'];
   const tintOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return TINTS[Math.abs(h) % TINTS.length]; };
   const SPEED = { slow: 42, normal: 24, fast: 10, instant: 0 };
+
+  // 화면 취향: 글자 크기 · 자동 진행 · 대사창 진하기 (이 컴퓨터에만 저장)
+  const PREF_DEFAULT = { font: 'm', auto: false, dlg: 'normal' };
+  function loadPrefs() { try { return Object.assign({}, PREF_DEFAULT, JSON.parse(localStorage.getItem('crion.prefs') || '{}')); } catch (e) { return Object.assign({}, PREF_DEFAULT); } }
+  let P = loadPrefs();
+  function savePref(k, v) { P[k] = v; try { localStorage.setItem('crion.prefs', JSON.stringify(P)); } catch (e) { /* 저장 안 됨 */ } applyPrefs(); }
+  function applyPrefs() {
+    const a = document.getElementById('app');
+    if (!a) return;
+    a.dataset.font = P.font;
+    a.dataset.dlg = P.dlg;
+  }
 
   const S = {
     info: null, settings: null, works: [], creatorUrl: '', syncedAt: null, syncing: false,
@@ -88,11 +102,12 @@
       crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">크랙 로그인</span>`;
     } else if (S.view === 'room' && S.work) {
       crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">${esc(S.work.name)}</span>`;
+      tools += `<button class="icon-btn" data-act="immersive" title="몰입 모드 (F)">${I.full}</button>`;
       tools += `<button class="icon-btn" data-act="toggle-side" title="옆 패널">${I.side}</button>`;
     }
     if (S.view === 'home') tools += `<button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
     tools += `<button class="icon-btn" data-act="settings" title="설정">${I.gear}</button>`;
-    return `<header class="top"><div class="brand"><span class="logo">C</span>CRION</div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
+    return `<header class="top"><div class="brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#14161b"/><path d="M18 17h28a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7H31l-10 8v-8h-3a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z" fill="#fff"/><path d="M28 24.5 40 31l-12 6.5z" fill="#5b5bd6"/></svg>CRION</div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
   }
 
   // ---------- 홈 ----------
@@ -188,6 +203,7 @@
         <div class="tools">
           <button class="icon-btn" data-act="regen" title="다시 생성">${I.redo}</button>
           <button class="icon-btn" data-act="log" title="지난 대화">${I.log}</button>
+          ${w.guide ? `<button class="icon-btn" data-act="guide" title="공략">${I.book}</button>` : ''}
           <button class="icon-btn" data-act="to-orig" title="크랙 원본 화면">${I.web}</button>
         </div>
         <textarea id="msg" rows="1" placeholder="행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈"></textarea>
@@ -197,25 +213,47 @@
     </div>`;
   }
 
+  // 상태창 칸 이름(숫자 뺀 글자)과 첫 숫자 → 지난 턴과 비교
+  const statusKey = (t) => String(t).replace(/-?\d+(?:[.,]\d+)?/g, '#').replace(/\s+/g, ' ').trim();
+  function firstNum(c) {
+    if (c.max) return c.cur;
+    const m = /(-?\d+(?:\.\d+)?)/.exec(String(c.text).replace(/,(?=\d{3})/g, ''));
+    return m ? Number(m[1]) : null;
+  }
+  function statusNums(st) {
+    const out = {};
+    if (!st || !st.rows) return out;
+    for (const row of st.rows) for (const c of row) { const n = firstNum(c); if (n != null) out[statusKey(c.text)] = n; }
+    return out;
+  }
+
   function sideHtml() {
     const r = S.room;
     const w = r.work;
     const st = r.status;
     let stHtml = '<p class="muted">응답에 상태창이 있으면 여기에 정리돼요.</p>';
     if (st && st.rows) {
+      const base = statusNums(r.baseStatus);
+      const delta = (c) => {
+        const k = statusKey(c.text);
+        const now = firstNum(c);
+        if (now == null || !(k in base) || base[k] === now) return '';
+        const d = Math.round((now - base[k]) * 10) / 10;
+        return `<em class="delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</em>`;
+      };
       stHtml = st.rows.map(row => `<div class="srow">${row.map(c => {
         if (c.max) {
           const p = Math.max(0, Math.min(100, Math.round(c.cur / c.max * 100)));
           const cls = p <= 30 ? 'low' : p <= 60 ? 'mid' : 'hi';
-          return `<div class="chip g">${esc(c.text)}<div class="bar"><i class="${cls}" style="width:${p}%"></i></div></div>`;
+          return `<div class="chip g">${esc(c.text)}${delta(c)}<div class="bar"><i class="${cls}" style="width:${p}%"></i></div></div>`;
         }
-        return `<span class="chip">${esc(c.text)}</span>`;
+        return `<span class="chip">${esc(c.text)}${delta(c)}</span>`;
       }).join('')}</div>`).join('');
     }
     return `<div class="side-in">
       <div class="work-head">${thumbHtml(w, 'mini')}<div><b>${esc(w.name)}</b><span>${esc(w.genre || '')}</span></div></div>
       <div class="panel"><h4>상태<span class="right">${st ? `<button class="btn ghost sm" data-act="copy-status">복사</button>` : ''}</span></h4>${stHtml}</div>
-      <div class="panel"><h4>조작</h4><div class="muted">화면 클릭 · Space · → 다음<br>← 이전 · 1~6 선택지 · Esc 닫기</div></div>
+      <div class="panel"><h4>조작</h4><div class="muted">화면 클릭 · Space · → 다음<br>← 이전 · 1~6 선택지 · F 몰입 모드</div></div>
     </div>`;
   }
 
@@ -306,7 +344,14 @@
     const pos = $('#dlgPos');
     if (pos && r.idx < r.turn.beats.length - 1 && !pos.querySelector('.more')) pos.insertAdjacentHTML('beforeend', '<span class="more"></span>');
     drawChoices();
+    // 자동 진행: 다 쓴 응답에서, 글 길이만큼 기다렸다가 다음 장면
+    clearTimeout(autoTimer);
+    if (P.auto && r.turn.done && !r.follow && r.idx < r.turn.beats.length - 1 && !$('#layer').innerHTML) {
+      const len = (r.turn.beats[r.idx].text || '').length;
+      autoTimer = setTimeout(() => { if (S.room === r) step(1); }, Math.min(7000, 1400 + len * 45));
+    }
   }
+  let autoTimer = null;
 
   function drawChoices() {
     const r = S.room;
@@ -320,6 +365,7 @@
   function step(d) {
     const r = S.room;
     if (!r || !r.turn) return;
+    clearTimeout(autoTimer);
     if (d > 0 && !r.typed) {            // 타자 중이면 먼저 끝까지 보여 준다
       clearInterval(typeTimer);
       $('#dlgText').textContent = r.turn.beats[r.idx].text;
@@ -344,6 +390,8 @@
     if (isNew && !parsed.beats.length && !parsed.status) return;
     if (isNew) {
       const live = r.waiting || r.expectLive;
+      r.baseStatus = r.status;            // 이번 응답 전 상태 (▲▼ 비교용)
+      clearTimeout(r.slowTimer);
       r.turn = { key: d.key, live, done: false };
       r.waiting = false;
       r.expectLive = false;
@@ -420,6 +468,13 @@
     if ($('#sendBtn') && $('#sendBtn').disabled) return;
     setSending(true);
     r.expectLive = true;
+    clearTimeout(r.slowTimer);
+    r.slowTimer = setTimeout(() => {
+      if (S.room !== r || !r.expectLive) return;
+      const live = $('#dlgLive');
+      if (live) live.innerHTML = '<span class="live slow"><i></i>응답이 늦어요 · <button data-act="to-orig">크랙 화면 확인</button></span>';
+      toast('응답이 늦어요. 크랙 화면에 안내 창(크래커 부족, 점검 등)이 떴는지 확인해 주세요', 5000);
+    }, 25000);
     r.log.push({ who: 'me', text, at: Date.now() });
     saveLog();
     v.send('crion:send', { text });
@@ -445,8 +500,8 @@
   function autosize(t) { t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
 
   // 크랙 응답 상자 모양: 첫 응답에서 배우고 기억해 둔다 (작품이 달라도 크랙 화면은 같다)
-  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned') || 'null'); } catch (e) { return null; } }
-  function setLearned(v) { try { localStorage.setItem('crion.learned', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
+  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned2') || 'null'); } catch (e) { return null; } }
+  function setLearned(v) { try { localStorage.setItem('crion.learned2', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
 
   // ---------- 그리기 ----------
   function render() {
@@ -496,17 +551,54 @@
       '--- 마지막 메시지 조각 ---', JSON.stringify(d.segs).slice(0, 3000)].join('\n');
   }
 
+  function setImmersive(on) {
+    const a = $('#app');
+    if (!a) return;
+    a.classList.toggle('immersive', on);
+    try {
+      if (on && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) { /* 전체 화면 안 됨 */ }
+    if (on) toast('몰입 모드 · F 또는 Esc로 나가기');
+  }
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) $('#app').classList.remove('immersive'); });
+
+  // 공략: 간단한 표기(# 제목, - 목록, **굵게**)만 그린다
+  function mdLite(t) {
+    const inline = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    let html = '', list = false;
+    for (const raw of String(t || '').split('\n')) {
+      const l = raw.trim();
+      const li = /^[-*•]\s+(.*)$/.exec(l);
+      if (li) { if (!list) { html += '<ul>'; list = true; } html += `<li>${inline(li[1])}</li>`; continue; }
+      if (list) { html += '</ul>'; list = false; }
+      const h = /^(#{1,3})\s+(.*)$/.exec(l);
+      if (h) html += `<h${h[1].length + 2}>${inline(h[2])}</h${h[1].length + 2}>`;
+      else if (l) html += `<p>${inline(l)}</p>`;
+    }
+    return html + (list ? '</ul>' : '');
+  }
+  function openGuide() {
+    const w = S.room && S.room.work;
+    if (!w || !w.guide) return;
+    modal(`<header><h3>${esc(w.name)} 공략</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body guide">${mdLite(w.guide)}</div>`, true);
+  }
+
   // ---------- 모달 ----------
   function modal(html, wide) {
     $('#layer').innerHTML = `<div class="scrim" data-act="close-modal"><div class="modal ${wide ? 'wide' : ''}" role="dialog">${html}</div></div>`;
   }
   const closeModal = () => { $('#layer').innerHTML = ''; };
+  const pseg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="pref" data-k="${key}" data-v="${v}" class="${String(P[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
   const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="set" data-k="${key}" data-v="${v}" class="${String(S.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
 
   function openSettings() {
     const i = S.info;
     modal(`<header><h3>설정</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body">
       <div class="set"><div class="lbl"><b>글자 나오는 속도</b><span>지난 장면을 다시 볼 때</span></div>${seg('textSpeed', [['slow', '느리게'], ['normal', '보통'], ['fast', '빠르게'], ['instant', '바로']])}</div>
+      <div class="set"><div class="lbl"><b>글자 크기</b><span>대사창</span></div>${pseg('font', [['s', '작게'], ['m', '보통'], ['l', '크게']])}</div>
+      <div class="set"><div class="lbl"><b>자동 진행</b><span>응답을 다 받으면 장면을 저절로 넘김</span></div>${pseg('auto', [[false, '끄기'], [true, '켜기']])}</div>
+      <div class="set"><div class="lbl"><b>대사창</b><span>배경 그림이 잘 보이게 옅게, 글이 잘 보이게 진하게</span></div>${pseg('dlg', [['soft', '옅게'], ['normal', '보통'], ['strong', '진하게']])}</div>
       <div class="set"><div class="lbl"><b>선택지를 누르면</b><span>바로 보내거나 입력창에만 넣기</span></div>${seg('choiceSend', [['true', '바로 보내기'], ['false', '입력창에 넣기']])}</div>
       <div class="set"><div class="lbl"><b>자동 업데이트</b><span>화면 엔진·작품 목록</span></div>${seg('autoUpdate', [['true', '켜기'], ['false', '끄기']])}</div>
       <div class="set"><div class="lbl"><b>작품 목록</b><span>${S.syncedAt ? '마지막 ' + new Date(S.syncedAt).toLocaleString('ko-KR') : '아직 안 읽음'}</span></div>
@@ -587,6 +679,15 @@
       case 'continue': sendText('계속'); break;
       case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); } break; }
       case 'log': openLog(); break;
+      case 'guide': openGuide(); break;
+      case 'immersive': setImmersive(!$('#app').classList.contains('immersive')); break;
+      case 'pref': {
+        let v = el.dataset.v;
+        if (v === 'true' || v === 'false') v = v === 'true';
+        savePref(el.dataset.k, v);
+        el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
+        break;
+      }
       case 'prev': step(-1); break;
       case 'next': step(1); break;
       case 'first': if (S.room && S.room.turn) { S.room.idx = 0; S.room.typed = false; S.room.follow = false; drawBeat(); } break;
@@ -608,12 +709,17 @@
   document.addEventListener('input', (e) => { if (e.target.id === 'msg') autosize(e.target); });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { if ($('#layer').innerHTML) closeModal(); return; }
+    if (e.key === 'Escape') {
+      if ($('#layer').innerHTML) closeModal();
+      else if ($('#app').classList.contains('immersive')) setImmersive(false);
+      return;
+    }
     const inText = /^(TEXTAREA|INPUT)$/.test(e.target.tagName);
     if (e.target.id === 'msg' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendText(e.target.value); return; }
     if (inText || !S.room || S.room.orig || $('#layer').innerHTML) return;
     if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); step(1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.key === 'f' || e.key === 'F' || e.key === 'F11') { e.preventDefault(); setImmersive(!$('#app').classList.contains('immersive')); }
     else if (/^[1-6]$/.test(e.key)) { const b = document.querySelector(`.choice[data-i="${Number(e.key) - 1}"]`); if (b) b.click(); }
   });
 
@@ -629,6 +735,7 @@
     S.settings = await api.getSettings();
     if (S.settings.choiceSend === undefined) S.settings.choiceSend = true;
     await loadWorks();
+    applyPrefs();
     render();
     api.engineReady();
     if (!S.syncedAt) doSync(false);

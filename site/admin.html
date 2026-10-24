@@ -13,7 +13,7 @@
   button, input, textarea { font: inherit; color: inherit; }
   .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
   header { display: flex; align-items: center; gap: 10px; padding: 20px 0; font-weight: 800; letter-spacing: .04em; }
-  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 900; }
+  .logo { display: block; }
   header .who { margin-left: auto; font-weight: 500; font-size: 13px; color: var(--muted); letter-spacing: 0; }
   .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
   h2 { margin: 0 0 4px; font-size: 18px; }
@@ -26,6 +26,7 @@
   .btn.sm { height: 30px; padding: 0 10px; font-size: 12px; border-radius: 8px; }
   .btn.danger { color: var(--bad); }
   .btn[disabled] { opacity: .45; cursor: default; }
+  textarea { resize: vertical; line-height: 1.6; }
   input[type=text], input[type=password], textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fafbfc; outline: none; font-size: 14px; }
   input:focus, textarea:focus { border-color: #c9cbf5; background: #fff; box-shadow: 0 0 0 3px var(--weak); }
   label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 5px; }
@@ -59,7 +60,7 @@
 </head>
 <body>
 <div class="wrap">
-  <header><span class="logo">C</span>CRION 관리<span class="who" id="who"></span></header>
+  <header><svg class="logo" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#14161b"/><path d="M18 17h28a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7H31l-10 8v-8h-3a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z" fill="#fff"/><path d="M28 24.5 40 31l-12 6.5z" fill="#5b5bd6"/></svg>CRION 관리<span class="who" id="who"></span></header>
 
   <!-- 연결 -->
   <section class="card" id="login">
@@ -207,6 +208,7 @@
           <div><label>제목</label><input type="text" data-f="name" value="${esc(w.name)}"></div>
           <div><label>장르 · 한 줄 소개</label><input type="text" data-f="genre" value="${esc(w.genre || '')}"></div>
           <div class="full"><label>크랙 작품 주소</label><input type="text" data-f="url" value="${esc(w.url || '')}" placeholder="https://crack.wrtn.ai/..."></div>
+          <div class="full"><label>공략 (선택 · 앱의 '공략' 버튼에 보여요 · # 제목, - 목록, **굵게** 사용 가능)</label><textarea data-f="guide" rows="3" placeholder="예) # 시작 팁&#10;- 첫날은 식량부터 확보하세요">${esc(w.guide || '')}</textarea></div>
           <div class="full"><label>썸네일 (이미지 주소 또는 올린 파일 이름)</label><input type="text" data-f="thumb" value="${esc(uploads[w.id] ? uploads[w.id].name : (w.thumb || ''))}" placeholder="비우면 앱이 프로필에서 찾은 썸네일을 써요"></div>
         </div>
         <div class="side">
@@ -246,7 +248,8 @@
     if (!row || !f) return;
     const w = data.works[Number(row.dataset.i)];
     const before = w.url;
-    w[f] = e.target.value.trim();
+    w[f] = f === 'guide' ? e.target.value.replace(/\s+$/, '') : e.target.value.trim();
+    if (f === 'guide' && !w.guide) delete w.guide;
     if (f === 'thumb') delete uploads[w.id];
     if (f === 'url' && before && data.hidden.includes(before)) data.hidden = data.hidden.map(u => u === before ? w.url : u);
     markDirty();

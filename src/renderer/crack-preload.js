@@ -195,7 +195,29 @@ function snapshot() {
 }
 function startWatch() { watch = { seen: snapshot(), key: 'w' + Date.now() }; lastSig = ''; }
 
-const UI_BOX = 'button, nav, header, footer, aside, [role="button"], [role="navigation"], [role="menu"], [role="dialog"], [role="tooltip"], textarea, input, select';
+// 대화 칸: 입력창과 같은 세로 줄에 있는 것만 대화다. 왼쪽 세션 목록·오른쪽 패널은 버린다
+function columnOf() {
+  const inp = findInput();
+  if (!inp) return null;
+  let a = inp.getBoundingClientRect();
+  // 입력창을 감싼 상자 중 너무 넓지 않은 것(대화 칸 너비)을 기준으로
+  for (let e = inp.parentElement, i = 0; e && i < 6; e = e.parentElement, i++) {
+    const r = e.getBoundingClientRect();
+    if (r.width > window.innerWidth * 0.85) break;
+    if (r.width >= a.width) a = r;
+  }
+  const pad = Math.max(40, a.width * 0.12);
+  return { left: a.left - pad, right: a.right + pad };
+}
+function inColumn(el, col) {
+  if (!col || !el || !el.getBoundingClientRect) return true;
+  const r = el.getBoundingClientRect();
+  if (!r.width && !r.height) return true;            // 아직 그려지지 않은 것은 판단 보류
+  const cx = r.left + r.width / 2;
+  return cx >= col.left && cx <= col.right && r.left >= col.left - 20;
+}
+
+const UI_BOX = 'a[href], li a, button, nav, header, footer, aside, [role="button"], [role="navigation"], [role="menu"], [role="dialog"], [role="tooltip"], textarea, input, select';
 function scrollBox(el) {
   for (let e = el; e && e !== document.body; e = e.parentElement) {
     const oy = getComputedStyle(e).overflowY;
@@ -213,6 +235,7 @@ function lca(nodes) {
 function newRoot() {
   if (!watch || !document.body) return null;
   const input = findInput();
+  const col = columnOf();
   const echo = lastSent ? lastSent.replace(/\s+/g, ' ') : '';
   const fresh = [];
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
@@ -225,6 +248,7 @@ function newRoot() {
     const host = isImg ? n : n.parentElement;
     if (!host || host.closest(UI_BOX) || (input && input.contains(host))) continue;
     if (!visible(host)) continue;
+    if (!inColumn(host, col)) continue;                 // 왼쪽 세션 목록 등 대화 칸 밖
     // 내가 보낸 말이 화면에 찍힌 것(에코)은 뺀다
     const box = host.closest('p, div, li, span') || host;
     if (echo && (box.innerText || '').replace(/\s+/g, ' ').trim() === echo) continue;
@@ -245,6 +269,7 @@ function newRoot() {
   let root = lca(best.items);
   if (!root || root === document.body || root === document.documentElement) return null;
   if (input && root.contains(input)) return null;
+  if (!inColumn(root, col)) return null;
   return root;
 }
 
@@ -264,7 +289,8 @@ function bySig(sig) {
   const els = [...document.getElementsByTagName(sig.tag)].filter((e) =>
     overlap(clsOf(e), sig.cls) >= 0.6 && e.parentElement && e.parentElement.tagName === sig.ptag &&
     overlap(clsOf(e.parentElement), sig.pcls) >= 0.5 && visible(e) && (e.innerText || '').trim());
-  return els.filter(e => !els.some(o => o !== e && o.contains(e)));
+  const col = columnOf();
+  return els.filter(e => !els.some(o => o !== e && o.contains(e)) && inColumn(e, col) && !e.closest('a[href], nav, aside'));
 }
 
 const keyOf = (el) => {
@@ -316,8 +342,10 @@ function scan() {
         if (L.how === 'new') {
           // 응답 상자 모양을 배워 두고(다음에 열 때 바로 읽기), 같은 응답으로 이어지게 표시
           el.dataset.crionId = key;
-          learned = sigOf(el);
-          send('crion:learned', learned);
+          if (inColumn(el, columnOf()) && !el.closest('a[href], nav, aside')) {
+            learned = sigOf(el);
+            send('crion:learned', learned);
+          }
           watch = null;
         }
         send('crion:reply', { key, segs: segments(el), done: true, input: again.input, url: location.href });

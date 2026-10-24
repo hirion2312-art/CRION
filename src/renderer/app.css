@@ -24,7 +24,7 @@ input, textarea, select { font: inherit; color: inherit; }
 .top { height: 56px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
 .top button, .top a { -webkit-app-region: no-drag; }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: .06em; font-size: 15px; }
-.logo { width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 900; letter-spacing: 0; }
+.logo { width: 28px; height: 28px; display: block; flex: none; }
 .crumb { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; color: var(--muted); }
 .crumb .title { color: var(--ink); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top .tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
@@ -197,3 +197,22 @@ input, textarea, select { font: inherit; color: inherit; }
 .welcome b { display: block; font-size: 16px; margin-bottom: 3px; }
 .welcome span { font-size: 13.5px; color: rgba(255,255,255,.72); }
 .welcome .btn { margin-left: auto; background: #fff; color: var(--ink); border-color: #fff; }
+
+/* 화면 취향 */
+#app[data-font="s"] .dlg .text { font-size: 15px; }
+#app[data-font="l"] .dlg .text { font-size: 20px; line-height: 1.7; }
+#app[data-dlg="soft"] .dlg { background: rgba(14,16,22,.55); }
+#app[data-dlg="strong"] .dlg { background: rgba(10,11,15,.95); }
+/* 상태 변화 */
+.delta { font-style: normal; font-size: 11px; font-weight: 800; margin-left: 6px; }
+.delta.up { color: var(--ok); } .delta.down { color: var(--bad); }
+/* 응답 지연 */
+.live.slow { color: #fbbf24; }
+.live.slow button { color: #fff; text-decoration: underline; font-weight: 700; }
+/* 몰입 모드 */
+#app.immersive .top, #app.immersive .side { display: none; }
+#app.immersive .room { grid-template-columns: 1fr 0; }
+/* 공략 */
+.guide h3, .guide h4, .guide h5 { margin: 18px 0 6px; }
+.guide p, .guide li { font-size: 14.5px; line-height: 1.75; color: var(--ink2); }
+.guide ul { padding-left: 20px; margin: 6px 0; }

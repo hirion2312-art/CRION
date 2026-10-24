@@ -37,7 +37,7 @@ async def main():
         text = ''.join(s.get('s', '') for s in last['segs'] if s['t'] == 'text')
         print('   조각:', [s['t'] for s in last['segs']])
         print('   응답 글:', json.dumps(text[:400], ensure_ascii=False))
-        for bad in ['최근 대화', '공유', '크래커', '옥상을 살핀다', '재생성', '지난 응답']:
+        for bad in ['최근 대화', '공유', '크래커', '옥상을 살핀다', '재생성', '지난 응답', '세션', '미리보기']:
             if bad in text: fails.append('leak:' + bad)
         if '식량이 부족' not in text or '창고로 간다' not in text: fails.append('missing reply text')
         if not any(s['t'] == 'img' for s in last['segs']): fails.append('missing img')
