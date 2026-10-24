@@ -22,6 +22,11 @@
     full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 17),
     book: svg('<path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M5 16a4 4 0 0 1 4-4h9"/>', 17),
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 16),
+    star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>', 15),
+    info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', 15),
+    music: svg('<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>', 17),
+    mute: svg('<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/><path d="M3 3l18 18"/>', 17),
+    plus: svg('<path d="M12 5v14M5 12h14"/>', 14),
     x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 18),
     cont: svg('<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', 16)
   };
@@ -40,6 +45,10 @@
     a.dataset.font = P.font;
     a.dataset.dlg = P.dlg;
   }
+
+  const store = new window.CrionStore.WorkStore((() => { try { return window.localStorage; } catch (e) { return null; } })());
+  const { fmtTime, ago } = window.CrionStore;
+  const bgm = window.CrionBgm ? new window.CrionBgm() : null;
 
   const S = {
     info: null, settings: null, works: [], creatorUrl: '', syncedAt: null, syncing: false,
@@ -102,6 +111,7 @@
       crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">크랙 로그인</span>`;
     } else if (S.view === 'room' && S.work) {
       crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">${esc(S.work.name)}</span>`;
+      if (S.work.bgm && bgm) tools += `<button class="icon-btn" data-act="music" title="배경 음악">${bgm.paused ? I.mute : I.music}</button>`;
       tools += `<button class="icon-btn" data-act="immersive" title="몰입 모드 (F)">${I.full}</button>`;
       tools += `<button class="icon-btn" data-act="toggle-side" title="옆 패널">${I.side}</button>`;
     }
@@ -111,38 +121,124 @@
   }
 
   // ---------- 홈 ----------
+  function featuredWork() {
+    return S.works.find(w => w.featured) ||
+      (S.settings.recent || []).map(workById).find(Boolean) ||
+      S.works.find(w => w.thumb) || S.works[0] || null;
+  }
+  function heroHtml() {
+    const w = featuredWork();
+    if (!w) return '';
+    const rec = store.get(w.id);
+    const label = S.settings.workUrls[w.id] ? '이어하기' : '플레이';
+    return `<section class="hero" ${w.thumb ? `style="--hero:${cssUrl(w.thumb)}"` : ''}>
+      <div class="hero-bg"></div>
+      <div class="hero-in">
+        <div class="hero-poster">${thumbInner(w)}</div>
+        <div class="hero-text">
+          <span class="eyebrow">${w.featured ? '추천 작품' : rec.turns ? '최근 플레이' : '오늘의 작품'}</span>
+          <h2>${esc(w.name)}</h2>
+          ${w.genre ? `<p class="genre">${esc(w.genre)}</p>` : ''}
+          ${w.desc ? `<p class="desc">${esc(w.desc)}</p>` : ''}
+          <div class="hero-btns">
+            <button class="btn big white" data-act="play" data-id="${esc(w.id)}">${I.play} ${label}</button>
+            <button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info} 작품 정보</button>
+          </div>
+          ${rec.turns ? `<p class="hero-meta">${rec.turns}턴 · ${fmtTime(rec.playMs)} · 마지막 ${ago(rec.lastAt)}</p>` : ''}
+        </div>
+      </div>
+    </section>`;
+  }
+  function statsHtml() {
+    const t = store.totals(S.works.map(w => w.id));
+    if (!t.turns) return '';
+    const items = [['플레이한 작품', t.played + '개'], ['진행한 턴', t.turns.toLocaleString('ko-KR')], ['플레이 시간', fmtTime(t.playMs)], ['별표 대사', t.quotes + '개'], ['모은 그림', t.album + '장']];
+    return `<div class="stats">${items.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
+  }
   function homeHtml() {
     const recent = (S.settings.recent || []).map(workById).filter(Boolean).slice(0, 4);
     const cont = recent.length ? `
       <div class="section-h"><h2>이어하기</h2></div>
-      <div class="continue">${recent.map(w => `
-        <button class="cont" data-act="play" data-id="${esc(w.id)}">
+      <div class="continue">${recent.map(w => {
+        const rec = store.get(w.id);
+        return `<button class="cont" data-act="play" data-id="${esc(w.id)}">
           ${thumbHtml(w, 'mini')}
-          <div><b>${esc(w.name)}</b><span>${S.settings.workUrls[w.id] ? '마지막 대화로 바로 이어져요' : '작품 페이지부터 열려요'}</span></div>
+          <div><b>${esc(w.name)}</b><span>${rec.turns ? `${rec.turns}턴 · ${ago(rec.lastAt)}` : S.settings.workUrls[w.id] ? '마지막 대화로 바로 이어져요' : '작품 페이지부터 열려요'}</span></div>
           <span class="go">이어하기 →</span>
-        </button>`).join('')}</div>` : '';
+        </button>`;
+      }).join('')}</div>` : '';
     const syncLine = S.syncing ? '<span class="spin"></span> 작가 프로필에서 작품을 불러오는 중'
       : S.syncedAt ? `프로필 기준 ${new Date(S.syncedAt).toLocaleDateString('ko-KR')} 업데이트` : '';
-    const cards = S.works.map(w => `
-      <button class="card" data-act="play" data-id="${esc(w.id)}" title="${esc(w.name)}">
-        <div class="thumb">${thumbInner(w)}
-          ${w.auto ? '<span class="tag">새 작품</span>' : ''}
+    const cards = S.works.map(w => {
+      const rec = store.get(w.id);
+      return `<div class="card">
+        <button class="thumb" data-act="play" data-id="${esc(w.id)}" title="${esc(w.name)} 플레이">${thumbInner(w)}
+          ${w.featured ? '<span class="tag hot">추천</span>' : w.auto ? '<span class="tag">새 작품</span>' : ''}
+          ${w.bgm ? `<span class="tag right">${I.music}</span>` : ''}
           <span class="play">${I.play} 플레이</span>
-        </div>
-        <div class="meta"><b>${esc(w.name)}</b><span>${esc(w.genre || (w.url ? '' : '주소 확인 중'))}</span></div>
-      </button>`).join('');
+        </button>
+        <div class="meta"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button>
+          <span>${rec.turns ? `${rec.turns}턴 플레이 · ${ago(rec.lastAt)}` : esc(w.genre || (w.url ? '' : '주소 확인 중'))}</span></div>
+        <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button>
+      </div>`;
+    }).join('');
     const needSync = !S.works.some(w => w.url);
     return `<main class="home"><div class="home-in">
       ${noticeHtml()}
-      <div class="hello"><div><h1>히리온 작품</h1><p>작품을 누르면 바로 게임 화면으로 플레이해요.</p></div>
-        <div style="display:flex;gap:8px"><button class="btn" data-act="sync" ${S.syncing ? 'disabled' : ''}>${I.sync}목록 새로고침</button></div></div>
       ${!S.settings.onboarded ? `<div class="welcome"><div><b>처음 오셨나요?</b><span>① 크랙에 로그인 → ② 작품 고르기. 로그인은 한 번만 하면 돼요.</span></div>
         <button class="btn primary" data-act="login">${I.user}크랙 로그인하기</button></div>`
         : needSync && !S.syncing ? `<div class="note">작품 주소를 아직 못 불러왔어요. <b>목록 새로고침</b>을 눌러 주세요. 계속 안 되면 설정의 <b>목록 진단 복사</b> 결과를 보내 주세요.</div>` : ''}
+      ${heroHtml()}
+      ${statsHtml()}
       ${cont}
-      <div class="section-h"><h2>전체 작품</h2><span class="sub">${S.works.length}개</span><span class="right muted">${syncLine}</span></div>
+      <div class="section-h"><h2>전체 작품</h2><span class="sub">${S.works.length}개</span>
+        <span class="right muted">${syncLine}<button class="btn sm ghost" data-act="sync" ${S.syncing ? 'disabled' : ''}>${I.sync}새로고침</button></span></div>
       <div class="grid">${cards}</div>
     </div></main>`;
+  }
+
+  // ---------- 작품 정보 창 ----------
+  function charsHtml(rec, empty) {
+    const list = Object.entries(rec.chars).sort((a, b) => b[1].lines - a[1].lines);
+    if (!list.length) return `<p class="muted">${empty}</p>`;
+    return `<div class="chars">${list.map(([name, c]) => `<div class="char">
+      <div class="face">${c.img ? `<img src="${esc(c.img)}" alt="" loading="lazy">` : `<span style="background:${tintOf(name)}">${esc(name.slice(0, 1))}</span>`}</div>
+      <div><b>${esc(name)}</b><small>대사 ${c.lines}번</small>${c.last ? `<p>“${esc(c.last)}”</p>` : ''}</div></div>`).join('')}</div>`;
+  }
+  function albumHtml(rec, empty) {
+    if (!rec.album.length) return `<p class="muted">${empty}</p>`;
+    return `<div class="album">${rec.album.slice().reverse().map(a => `<button class="ph-item" data-act="view-img" data-src="${esc(a.src)}"><img src="${esc(a.src)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+  }
+  function quotesHtml(rec, empty, wid) {
+    if (!rec.quotes.length) return `<p class="muted">${empty}</p>`;
+    return `<div class="quotes">${rec.quotes.slice().reverse().map(q => `<div class="quote">
+      ${q.who ? `<b>${esc(q.who)}</b>` : ''}<p>${esc(q.text)}</p>
+      <span><small>${ago(q.at)}</small><button class="link" data-act="unquote" data-w="${esc(wid)}" data-who="${esc(q.who)}" data-text="${esc(q.text)}">별표 빼기</button></span></div>`).join('')}</div>`;
+  }
+  function openInfo(id, tab) {
+    const w = workById(id);
+    if (!w) return;
+    const rec = store.get(w.id);
+    tab = tab || 'about';
+    const tabs = [['about', '소개'], ['chars', `등장인물 ${Object.keys(rec.chars).length}`], ['album', `앨범 ${rec.album.length}`], ['quotes', `명대사 ${rec.quotes.length}`]];
+    if (w.guide) tabs.splice(1, 0, ['guide', '공략']);
+    let body = '';
+    if (tab === 'about') {
+      body = `${w.desc ? `<p class="lead">${esc(w.desc)}</p>` : '<p class="muted">소개가 아직 없어요.</p>'}
+        <dl class="kv">${w.genre ? `<dt>장르</dt><dd>${esc(w.genre)}</dd>` : ''}
+          <dt>내 기록</dt><dd>${rec.turns ? `${rec.turns}턴 · ${fmtTime(rec.playMs)} · 마지막 ${ago(rec.lastAt)}` : '아직 플레이 전'}</dd>
+          ${rec.firstAt ? `<dt>처음 플레이</dt><dd>${new Date(rec.firstAt).toLocaleDateString('ko-KR')}</dd>` : ''}</dl>`;
+    } else if (tab === 'guide') body = `<div class="guide">${mdLite(w.guide)}</div>`;
+    else if (tab === 'chars') body = charsHtml(rec, '플레이하면서 만난 인물이 여기에 모여요.');
+    else if (tab === 'album') body = albumHtml(rec, '응답에 나온 그림이 여기에 모여요.');
+    else body = quotesHtml(rec, '대사창의 ☆를 누르면 마음에 드는 대사를 모을 수 있어요.', w.id);
+    modal(`<div class="info-head" ${w.thumb ? `style="--hero:${cssUrl(w.thumb)}"` : ''}><div class="hero-bg"></div>
+        <div class="info-head-in">${thumbHtml(w, 'info-poster')}<div><h3>${esc(w.name)}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
+          <div class="hero-btns"><button class="btn white" data-act="play" data-id="${esc(w.id)}">${I.play} ${S.settings.workUrls[w.id] ? '이어하기' : '플레이'}</button>
+          ${S.settings.workUrls[w.id] ? `<button class="btn glass" data-act="play-fresh" data-id="${esc(w.id)}">처음부터 (작품 페이지)</button>` : ''}</div></div></div>
+        <button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
+      <nav class="tabs">${tabs.map(([k, l]) => `<button class="${k === tab ? 'on' : ''}" data-act="info-tab" data-id="${esc(w.id)}" data-tab="${k}">${l}</button>`).join('')}</nav>
+      <div class="body">${body}</div>`, true);
   }
 
   // ---------- 크랙 로그인 화면 ----------
@@ -154,13 +250,15 @@
   }
 
   // ---------- 플레이 화면 ----------
-  function newRoom(work) {
+  function newRoom(work, fresh) {
+    const rec = store.get(work.id);
     return {
-      work, url: S.settings.workUrls[work.id] || work.url || S.creatorUrl || S.info.crackOrigin,
+      work, url: (!fresh && S.settings.workUrls[work.id]) || work.url || S.creatorUrl || S.info.crackOrigin,
+      tab: 'status', baseStatus: null,
       orig: true, autoOrig: true, side: true,
       turn: null,        // { key, segs, beats, frames, status, choices, done, live }
       idx: 0, typed: true, follow: false,
-      status: null, waiting: false, hasInput: false,
+      status: rec.lastStatus || null, waiting: false, hasInput: false,
       log: loadLog(work.id), typing: null
     };
   }
@@ -191,7 +289,7 @@
             <div class="name hidden" id="dlgName"></div>
             <div class="text" id="dlgText"></div>
             <div class="foot"><span class="pos" id="dlgPos"></span><span id="dlgLive"></span>
-              <span class="nav"><button data-act="prev">◀ 이전</button><button data-act="first">처음부터</button><button data-act="next">다음 ▶</button></span></div>
+              <span class="nav"><button data-act="star" id="starBtn" title="별표 대사 모으기">${I.star}</button><button data-act="prev">◀ 이전</button><button data-act="first">처음부터</button><button data-act="next">다음 ▶</button></span></div>
           </div>
         </div>
         <div class="orig"><div class="hint" id="origHint">${r.autoOrig ? '크랙에 로그인하고 대화를 시작해 주세요. 대화창이 열리면 게임 화면으로 바뀌어요.' : '크랙 원본 화면이에요.'}
@@ -206,6 +304,7 @@
           ${w.guide ? `<button class="icon-btn" data-act="guide" title="공략">${I.book}</button>` : ''}
           <button class="icon-btn" data-act="to-orig" title="크랙 원본 화면">${I.web}</button>
         </div>
+        <div class="quick" id="quick"></div>
         <textarea id="msg" rows="1" placeholder="행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈"></textarea>
         <button class="btn ghost" data-act="continue" title="이어서 진행">계속</button>
         <button class="send" data-act="send" id="sendBtn">${I.send}보내기</button>
@@ -250,10 +349,19 @@
         return `<span class="chip">${esc(c.text)}${delta(c)}</span>`;
       }).join('')}</div>`).join('');
     }
+    const rec = store.get(w.id);
+    const tabs = [['status', '상태'], ['chars', '인물'], ['album', '앨범'], ['quotes', '명대사']];
+    let body = '';
+    if (r.tab === 'chars') body = charsHtml(rec, '대사를 한 인물이 여기에 모여요.');
+    else if (r.tab === 'album') body = albumHtml(rec, '응답에 나온 그림이 여기에 모여요.');
+    else if (r.tab === 'quotes') body = quotesHtml(rec, '대사창의 ☆를 누르면 여기에 모여요.', w.id);
+    else body = `<div class="panel"><h4>상태<span class="right">${st ? `<button class="btn ghost sm" data-act="copy-status">복사</button>` : ''}</span></h4>${stHtml}</div>
+      <div class="panel"><h4>이번 작품 기록</h4><div class="muted">${rec.turns ? `${rec.turns}턴 · ${fmtTime(rec.playMs)} · 인물 ${Object.keys(rec.chars).length}명 · 그림 ${rec.album.length}장` : '첫 플레이예요. 기록이 여기에 쌓여요.'}</div></div>
+      <div class="panel"><h4>조작</h4><div class="muted">화면 클릭 · Space · → 다음<br>← 이전 · 1~6 선택지 · F 몰입 모드</div></div>`;
     return `<div class="side-in">
-      <div class="work-head">${thumbHtml(w, 'mini')}<div><b>${esc(w.name)}</b><span>${esc(w.genre || '')}</span></div></div>
-      <div class="panel"><h4>상태<span class="right">${st ? `<button class="btn ghost sm" data-act="copy-status">복사</button>` : ''}</span></h4>${stHtml}</div>
-      <div class="panel"><h4>조작</h4><div class="muted">화면 클릭 · Space · → 다음<br>← 이전 · 1~6 선택지 · F 몰입 모드</div></div>
+      <button class="work-head" data-act="info" data-id="${esc(w.id)}">${thumbHtml(w, 'mini')}<div><b>${esc(w.name)}</b><span>${esc(w.genre || '작품 정보 보기')}</span></div></button>
+      <nav class="tabs small">${tabs.map(([k, l]) => `<button class="${k === r.tab ? 'on' : ''}" data-act="side-tab" data-tab="${k}">${l}</button>`).join('')}</nav>
+      ${body}
     </div>`;
   }
 
@@ -324,6 +432,8 @@
     name.classList.toggle('hidden', !b.who);
     name.textContent = b.who || '';
     $('#dlgPos').textContent = `${r.idx + 1} / ${n}`;
+    const sb = $('#starBtn');
+    if (sb) sb.classList.toggle('on', !!b.text && store.hasQuote(r.work.id, { who: b.who, text: b.text }));
     $('#dlgLive').innerHTML = !t.done ? '<span class="live"><i></i>쓰는 중</span>' : '';
     const el = $('#dlgText');
     clearInterval(typeTimer);
@@ -419,6 +529,12 @@
     if (r.follow && wasAtEnd) { r.idx = t.beats.length - 1; r.typed = true; }
     if (d.done) {
       r.follow = false;
+      if (r.recordedKey !== d.key && t.live) {          // 이번 플레이에서 새로 받은 응답만 센다
+        r.recordedKey = d.key;
+        store.recordTurn(r.work.id, t.beats, t.frames);
+        if (r.status) { store.get(r.work.id).lastStatus = r.status; store.save(r.work.id); }
+        renderSide();
+      }
       const text = (d.segs || []).filter(s => s.t === 'text').map(s => s.s).join('').trim();
       const last = r.log[r.log.length - 1];
       if (text && !(last && last.key === d.key)) { r.log.push({ who: 'ai', key: d.key, text, at: Date.now() }); }
@@ -531,6 +647,32 @@
     }
   }
 
+  function drawQuick() {
+    const box = $('#quick');
+    const r = S.room;
+    if (!box || !r) return;
+    const list = store.get(r.work.id).quick || [];
+    box.innerHTML = list.map((q, i) => `<button class="qchip" data-act="quick" data-i="${i}" title="보내기">${esc(q)}</button>`).join('')
+      + `<button class="qchip add" data-act="quick-edit" title="자주 쓰는 문장 등록">${I.plus}${list.length ? '' : ' 단축 문장'}</button>`;
+  }
+  function openQuickEdit() {
+    const r = S.room;
+    const list = store.get(r.work.id).quick || [];
+    modal(`<header><h3>단축 문장</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body">
+      <p class="muted">이 작품에서 자주 보내는 말을 한 줄에 하나씩 적어 두세요(최대 8개). 입력창 위 버튼을 누르면 한 번 보내져요.</p>
+      <textarea id="quickText" rows="6" class="field" placeholder="주변을 살핀다&#10;상태창을 확인한다&#10;잠시 쉰다">${esc(list.join('\n'))}</textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" data-act="quick-save">저장</button></div></div>`);
+  }
+
+  // 작품 BGM: 관리 페이지에서 올린 곡을 반복 재생
+  function startBgm() {
+    if (!bgm) return;
+    const w = S.room && S.room.work;
+    if (!w || !w.bgm) { bgm.stop(); return; }
+    bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100);
+    bgm.play(w.bgm);
+  }
+
   function autosize(t) { t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
 
   // 크랙 응답 상자 모양: 첫 응답에서 배우고 기억해 둔다 (작품이 달라도 크랙 화면은 같다)
@@ -548,7 +690,9 @@
       renderSide();
       bindWebview();
       updateSendable();
+      drawQuick();
       if (S.room.turn) drawBeat();
+      startBgm();
     } else {
       app.innerHTML = topHtml() + homeHtml();
     }
@@ -656,11 +800,11 @@
   }
 
   // ---------- 동작 ----------
-  async function openWork(id) {
+  async function openWork(id, fresh) {
     const w = workById(id);
     if (!w) return;
     S.work = w;
-    S.room = newRoom(w);
+    S.room = newRoom(w, fresh);
     S.view = 'room';
     const recent = [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8);
     save({ recent });
@@ -690,10 +834,35 @@
     const act = el.dataset.act;
     if (act === 'close-modal' && el.classList.contains('scrim') && e.target !== el) return;
     switch (act) {
-      case 'home': S.view = 'home'; S.room = null; S.work = null; render(); break;
-      case 'login': S.view = 'login'; S.room = null; S.work = null; render(); break;
+      case 'home': S.view = 'home'; S.room = null; S.work = null; if (bgm) bgm.stop(); render(); break;
+      case 'login': if (bgm) bgm.stop(); S.view = 'login'; S.room = null; S.work = null; render(); break;
       case 'login-done': S.view = 'home'; await save({ onboarded: true }); render(); doSync(false); break;
-      case 'play': openWork(el.dataset.id); break;
+      case 'play': closeModal(); openWork(el.dataset.id); break;
+      case 'play-fresh': closeModal(); openWork(el.dataset.id, true); break;
+      case 'info': openInfo(el.dataset.id); break;
+      case 'info-tab': openInfo(el.dataset.id, el.dataset.tab); break;
+      case 'side-tab': S.room.tab = el.dataset.tab; renderSide(); break;
+      case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
+      case 'star': {
+        const r = S.room;
+        const b = r && r.turn && r.turn.beats[r.idx];
+        if (!b || !b.text) break;
+        const on = store.toggleQuote(r.work.id, { who: b.who, text: b.text });
+        el.classList.toggle('on', on);
+        toast(on ? '명대사에 모았어요' : '별표를 뺐어요');
+        if (r.tab === 'quotes') renderSide();
+        break;
+      }
+      case 'unquote': {
+        store.toggleQuote(el.dataset.w, { who: el.dataset.who, text: el.dataset.text });
+        if (S.room) renderSide();
+        if ($('#layer').innerHTML) openInfo(el.dataset.w, 'quotes');
+        break;
+      }
+      case 'quick': { const q = (store.get(S.room.work.id).quick || [])[Number(el.dataset.i)]; if (q) sendText(q); break; }
+      case 'quick-edit': openQuickEdit(); break;
+      case 'quick-save': store.setQuick(S.room.work.id, $('#quickText').value.split('\n')); closeModal(); drawQuick(); break;
+      case 'music': if (bgm) { bgm.toggle(); renderTop(); } break;
       case 'settings': openSettings(); break;
       case 'close-modal': closeModal(); break;
       case 'sync': doSync(false); break;
@@ -779,6 +948,9 @@
     else loadNotice().then(renderHome);
     setInterval(() => loadNotice().then(renderHome), 30 * 60 * 1000);
   })();
+
+  // 플레이 시간: 플레이 화면이 열려 있고 창을 보고 있을 때만 센다
+  setInterval(() => { if (S.view === 'room' && S.room && document.hasFocus()) store.addTime(S.room.work.id, 30000); }, 30000);
 
   // 시험용
   window.__crion = { S, onReply, onState, render, step };

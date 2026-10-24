@@ -90,6 +90,17 @@ if (fs.existsSync(thumbDir)) {
     w.thumb = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + v;   // 같은 이름으로 바꿔 올려도 새 그림이 보이게
   }
 }
+// 작품별 음악 (config/bgm/*.mp3)
+const bgmDir = path.join(ROOT, 'config', 'bgm');
+for (const w of works.works || []) {
+  if (!w.bgm || /^https?:/.test(w.bgm)) continue;
+  const name = w.bgm.replace(/^.*\//, '');
+  const file = path.join(bgmDir, name);
+  if (!fs.existsSync(file)) { console.error(`음악 파일 없음: ${name} (「${w.name}」에서 뺌)`); delete w.bgm; continue; }
+  fs.mkdirSync(path.join(OUT, 'bgm'), { recursive: true });
+  fs.copyFileSync(file, path.join(OUT, 'bgm', name));
+  w.bgm = base + 'bgm/' + encodeURIComponent(name) + '?v=' + U.sha256(fs.readFileSync(file)).slice(0, 8);
+}
 fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(Object.assign({ updated: new Date().toISOString() }, works), null, 2));
 console.log(`작품 목록 ${(works.works || []).length}개 → catalog.json`);
 

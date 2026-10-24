@@ -1,5 +1,5 @@
 {
-  "version": "0.3.4",
+  "version": "0.3.5",
   "apiLevel": 3,
   "minShell": "0.3.0",
   "note": "화면 엔진 = src/renderer 폴더 전체. 업데이트로 교체되는 부분. 껍데기(main.js, preload-host.js)가 바뀌어야 하는 변경이면 minShell을 올린다."

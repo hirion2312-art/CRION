@@ -39,6 +39,8 @@
   .fields .full { grid-column: 1 / -1; }
   .side { display: flex; flex-direction: column; gap: 6px; }
   .pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+  .feat { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink2); margin: 2px 0 0; cursor: pointer; }
+  .bgm-name { font-size: 11px; color: var(--muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pill.hid { background: #fde8e8; color: var(--bad); }
   .bar { position: sticky; bottom: 0; background: rgba(245,246,248,.92); backdrop-filter: blur(8px); padding: 14px 0; display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--line); }
   .bar .msg { flex: 1; font-size: 13px; color: var(--muted); }
@@ -84,7 +86,7 @@
     <!-- 작품 -->
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소.</p></div>
+        <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소. <b>홈 추천</b>을 고른 작품이 앱 홈 맨 위 큰 배너에 나와요. <b>음악</b>은 그 작품을 플레이하는 동안 반복 재생돼요(Suno mp3).</p></div>
         <button class="btn" id="add">+ 작품 추가</button>
       </div>
       <div id="works"></div>
@@ -121,6 +123,7 @@
 </div>
 <div id="toast"></div>
 <input type="file" id="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+<input type="file" id="bgmFile" accept="audio/mpeg,.mp3" class="hidden">
 
 <script>
 (() => {
@@ -131,7 +134,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let token = '';
-  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {};
+  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {}, bgmUp = {};
   const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2600); };
   const dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
   const enc = (str) => { const bytes = new TextEncoder().encode(str); let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
@@ -185,6 +188,7 @@
     data.works = data.works || [];
     data.hidden = data.hidden || [];
     uploads = {};
+    bgmUp = {};
     const p = await getFile('package.json');
     pkg = JSON.parse(p.text); pkgSha = p.sha;
     $('#ver').textContent = 'v' + pkg.version;
@@ -197,6 +201,7 @@
   }
 
   const thumbSrc = (w) => uploads[w.id] ? uploads[w.id].preview : !w.thumb ? '' : /^https?:/.test(w.thumb) ? w.thumb : RAW('config/thumbs/' + w.thumb);
+  const bgmName = (w) => (bgmUp[w.id] ? bgmUp[w.id].name : (w.bgm || ''));
   const isHidden = (w) => w.url && data.hidden.includes(w.url);
 
   function renderWorks() {
@@ -207,12 +212,16 @@
         <div class="fields">
           <div><label>제목</label><input type="text" data-f="name" value="${esc(w.name)}"></div>
           <div><label>장르 · 한 줄 소개</label><input type="text" data-f="genre" value="${esc(w.genre || '')}"></div>
+          <div class="full"><label>소개 (앱 홈 배너·작품 정보에 보여요)</label><textarea data-f="desc" rows="2" placeholder="두세 문장으로 작품을 소개해 주세요">${esc(w.desc || '')}</textarea></div>
           <div class="full"><label>크랙 작품 주소</label><input type="text" data-f="url" value="${esc(w.url || '')}" placeholder="https://crack.wrtn.ai/..."></div>
           <div class="full"><label>공략 (선택 · 앱의 '공략' 버튼에 보여요 · # 제목, - 목록, **굵게** 사용 가능)</label><textarea data-f="guide" rows="3" placeholder="예) # 시작 팁&#10;- 첫날은 식량부터 확보하세요">${esc(w.guide || '')}</textarea></div>
           <div class="full"><label>썸네일 (이미지 주소 또는 올린 파일 이름)</label><input type="text" data-f="thumb" value="${esc(uploads[w.id] ? uploads[w.id].name : (w.thumb || ''))}" placeholder="비우면 앱이 프로필에서 찾은 썸네일을 써요"></div>
         </div>
         <div class="side">
           <button class="btn sm" data-a="upload">이미지 올리기</button>
+          <button class="btn sm" data-a="bgm">${bgmName(w) ? '♪ 음악 바꾸기' : '♪ 음악 올리기'}</button>
+          ${bgmName(w) ? `<span class="bgm-name" title="${esc(bgmName(w))}">♪ ${esc(bgmName(w))}</span><button class="btn sm" data-a="bgm-del">음악 빼기</button>` : ''}
+          <label class="feat"><input type="radio" name="featured" data-a="featured" ${w.featured ? 'checked' : ''}> 홈 추천</label>
           <button class="btn sm" data-a="up" ${i === 0 ? 'disabled' : ''}>▲ 위로</button>
           <button class="btn sm" data-a="down" ${i === data.works.length - 1 ? 'disabled' : ''}>▼ 아래로</button>
           <button class="btn sm" data-a="hide">${isHidden(w) ? '다시 보이기' : '숨기기'}</button>
@@ -235,7 +244,7 @@
     return JSON.stringify(out, null, 2) + '\n';
   }
   function markDirty() {
-    const dirty = collect() !== base || Object.keys(uploads).length > 0;
+    const dirty = collect() !== base || Object.keys(uploads).length > 0 || Object.keys(bgmUp).length > 0;
     $('#state').textContent = dirty ? '바뀐 내용이 있어요 · 배포하기를 눌러야 앱에 반영돼요' : '바뀐 내용 없음';
     $('#state').classList.toggle('dirty', dirty);
     $('#deploy').disabled = !dirty;
@@ -248,8 +257,8 @@
     if (!row || !f) return;
     const w = data.works[Number(row.dataset.i)];
     const before = w.url;
-    w[f] = f === 'guide' ? e.target.value.replace(/\s+$/, '') : e.target.value.trim();
-    if (f === 'guide' && !w.guide) delete w.guide;
+    w[f] = (f === 'guide' || f === 'desc') ? e.target.value.replace(/\s+$/, '') : e.target.value.trim();
+    if ((f === 'guide' || f === 'desc') && !w[f]) delete w[f];
     if (f === 'thumb') delete uploads[w.id];
     if (f === 'url' && before && data.hidden.includes(before)) data.hidden = data.hidden.map(u => u === before ? w.url : u);
     markDirty();
@@ -276,6 +285,9 @@
       delete uploads[w.id];
     }
     if (a === 'upload') { uploadFor = w; $('#file').value = ''; $('#file').click(); return; }
+    if (a === 'bgm') { uploadFor = w; $('#bgmFile').value = ''; $('#bgmFile').click(); return; }
+    if (a === 'bgm-del') { delete w.bgm; delete bgmUp[w.id]; }
+    if (a === 'featured') { data.works.forEach(x => { if (x !== w) delete x.featured; }); w.featured = true; }
     renderWorks();
     markDirty();
   });
@@ -295,6 +307,18 @@
     renderWorks();
     markDirty();
     toast('이미지를 넣었어요. 배포하기를 눌러야 올라가요');
+  });
+  $('#bgmFile').addEventListener('change', async () => {
+    const f = $('#bgmFile').files[0];
+    if (!f || !uploadFor) return;
+    if (f.size > 15 * 1024 * 1024) { toast('15MB 이하 mp3만 올릴 수 있어요 (Suno 곡은 보통 3~6MB)'); return; }
+    const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+    const name = (uploadFor.id || 'work') + '.mp3';
+    bgmUp[uploadFor.id] = { name, b64: String(url).split(',')[1] };
+    uploadFor.bgm = name;
+    renderWorks();
+    markDirty();
+    toast('음악을 넣었어요. 배포하기를 눌러야 올라가요');
   });
   $('#add').onclick = () => {
     const id = 'w' + Date.now().toString(36);
@@ -318,6 +342,13 @@
         let old = null;
         try { old = (await gh('/contents/config/thumbs/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
         await putFile('config/thumbs/' + u.name, u.b64, `썸네일: ${u.name}`, old);
+      }
+      for (const id of Object.keys(bgmUp)) {
+        const u = bgmUp[id];
+        let old = null;
+        try { old = (await gh('/contents/config/bgm/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
+        btn.textContent = '음악 올리는 중…';
+        await putFile('config/bgm/' + u.name, u.b64, `음악: ${u.name}`, old);
       }
       const r = await putFile('config/works.json', enc(collect()), '관리 페이지: 작품 목록·공지 수정', sha);
       sha = r.content.sha;
