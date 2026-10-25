@@ -90,7 +90,7 @@
       const n = c && c.notice;
       S.notice = n && n.on !== false && n.text ? n : null;
       S.cat = { links: (c && c.links) || {}, news: (c && Array.isArray(c.news)) ? c.news : [], report: (c && c.report) || {} };
-      if (c && Array.isArray(c.works)) { S.catalog = { works: c.works, hidden: c.hidden || [] }; rebuildWorks(); }
+      if (c && Array.isArray(c.works)) { S.catalog = { works: c.works, hidden: c.hidden || [], profileSync: c.profileSync }; rebuildWorks(); }
     } catch (e) { /* 오프라인 */ }
   }
   const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
@@ -104,12 +104,13 @@
   }
 
   // 작품 목록 = 작가 프로필(기본) + 관리 페이지 값(덧입힘). 합치는 규칙은 catalog.js
-  function savedProfile() { try { return JSON.parse(localStorage.getItem('crion.profile') || 'null'); } catch (e) { return null; } }
+  function savedProfile() { try { return JSON.parse(localStorage.getItem('crion.profile2') || 'null'); } catch (e) { return null; } }
   function rebuildWorks() {
     const prof = savedProfile();
     const shell = S.shellWorks || [];
-    const catalog = S.catalog || { works: shell.filter(w => !w.auto), hidden: [] };
-    S.works = window.CrionCatalog.merge(catalog, prof ? prof.works : [], shell);
+    const catalog = S.catalog || { works: shell.filter(w => !w.auto && !w.fromProfile), hidden: [] };
+    // 프로필을 아직 못 읽었으면 관리 페이지 목록만 (예전 방식이 잘못 모은 작품은 쓰지 않는다)
+    S.works = window.CrionCatalog.merge(catalog, prof ? prof.works : [], S.catalog ? S.catalog.works : shell.filter(w => !w.auto));
     S.profileCount = prof ? prof.works.length : 0;
     if (prof && prof.at) S.syncedAt = prof.at;
   }
@@ -1066,13 +1067,14 @@
     const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
     S.syncing = false;
     if (r && r.ok && Array.isArray(r.sample) && r.sample.length) {
-      try { localStorage.setItem('crion.profile', JSON.stringify({ at: new Date().toISOString(), works: r.sample })); } catch (e) { /* 저장 안 됨 */ }
+      try { localStorage.setItem('crion.profile2', JSON.stringify({ at: new Date().toISOString(), works: r.sample })); } catch (e) { /* 저장 안 됨 */ }
     }
     await loadWorks();
     renderHome();
     if (diag) {
-      copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개`,
-        ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}`),
+      const s0 = (r.sample || [])[0] || {};
+      copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개 · 방식 ${s0._method || '-'}`, `기록: ${s0._log || '-'}`,
+        ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}${x.sec ? ' | 구역: ' + x.sec : ''}`),
         '--- 소개 글 ---', ...(r.sample || []).map(x => `# ${x.title}\n${(x.text || '').replace(/\s+/g, ' ').slice(0, 220)}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
     } else if (!quiet) toast(r.ok ? `작가 프로필에서 작품 ${r.count}개를 찾아 목록에 넣었어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
     else if (r.ok && S.works.length > before) toast(`새 작품 ${S.works.length - before}개가 추가됐어요`);

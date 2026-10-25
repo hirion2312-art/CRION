@@ -33,15 +33,20 @@
   function merge(catalog, profile, fallback) {
     const cat = (catalog && Array.isArray(catalog.works)) ? catalog.works : [];
     const hidden = new Set(((catalog && catalog.hidden) || []).map(normUrl));
-    const prof = (profile || []).filter(p => p && p.url && p.title);
+    const off = catalog && catalog.profileSync === false;          // 관리 페이지에서 자동 연동을 끈 경우
+    const prof = off ? [] : (profile || []).filter(p => p && p.url && p.title);
+    if (off) return cat.filter(w => !(w.url && hidden.has(normUrl(w.url))));
     if (!prof.length) return (fallback && fallback.length ? fallback : cat).filter(w => !(w.url && hidden.has(normUrl(w.url))));
     const used = new Set();
     const out = [];
     const seen = new Set();
+    const seenTitle = new Set();
     for (const p of prof) {
       const k = normUrl(p.url);
-      if (seen.has(k) || hidden.has(k)) continue;
+      const tk = normTitle(p.title);
+      if (seen.has(k) || hidden.has(k) || seenTitle.has(tk)) continue;   // 같은 작품은 한 번만
       seen.add(k);
+      seenTitle.add(tk);
       const c = cat.find(x => !used.has(x) && sameWork(x, p));
       if (c) used.add(c);
       if (c && c.url && hidden.has(normUrl(c.url))) continue;
@@ -57,7 +62,7 @@
     }
     for (const c of cat) {
       if (used.has(c) || !c.url) continue;                 // 주소 없는 예전 고정 작품은 뺀다
-      if (hidden.has(normUrl(c.url)) || seen.has(normUrl(c.url))) continue;
+      if (hidden.has(normUrl(c.url)) || seen.has(normUrl(c.url)) || seenTitle.has(normTitle(c.name))) continue;
       out.push(Object.assign({}, c));
     }
     return out;

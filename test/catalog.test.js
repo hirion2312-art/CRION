@@ -63,6 +63,16 @@ test('새 작품 id는 주소로 정해져서 매번 같다', () => {
   assert.strictEqual(C.idFor('https://crack.wrtn.ai/detail/b2'), C.idFor('https://crack.wrtn.ai/detail/b2/'));
 });
 
+test('같은 작품이 여러 주소로 와도 한 번만', () => {
+  const dup = profile.concat([{ url: 'https://crack.wrtn.ai/detail/a1/chat', title: '아포칼립스 안전지대의 관리자', thumb: 'x' }, { url: 'https://crack.wrtn.ai/c/zz', title: ' 아포칼립스 안전지대의  관리자 ', thumb: 'y' }]);
+  const w = C.merge(catalog, dup, []);
+  assert.strictEqual(w.filter(x => x.name.includes('아포칼립스')).length, 1);
+});
+test('자동 연동을 끄면 관리 페이지 목록만', () => {
+  const w = C.merge(Object.assign({}, catalog, { profileSync: false }), profile, []);
+  assert.deepStrictEqual(w.map(x => x.id), catalog.works.map(x => x.id));
+});
+
 let fail = 0;
 for (const [n, f] of t) {
   try { f(); console.log('  ✔ ' + n); } catch (e) { fail++; console.log('  ✘ ' + n + '\n    ' + e.message); }

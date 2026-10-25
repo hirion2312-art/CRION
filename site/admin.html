@@ -87,7 +87,7 @@
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소. <b>홈 추천</b>을 고른 작품이 앱 홈 맨 위 큰 배너에 나와요. <b>음악</b>은 그 작품을 플레이하는 동안 반복 재생돼요(Suno mp3).</p></div>
-        <button class="btn" id="add">+ 작품 추가</button>
+        <div class="row"><label class="feat" style="margin:0"><input type="checkbox" id="profileSync"> 작가 프로필에서 자동으로 불러오기</label><button class="btn" id="add">+ 작품 추가</button></div>
       </div>
       <div id="works"></div>
     </section>
@@ -214,6 +214,7 @@
     data.links = data.links || {};
     data.report = data.report || {};
     data.news = Array.isArray(data.news) ? data.news : [];
+    $('#profileSync').checked = data.profileSync !== false;
     $('#lkDiscord').value = data.links.discord || '';
     $('#lkOpen').value = data.links.openchat || '';
     $('#hook').value = data.report.webhook || '';
@@ -284,6 +285,7 @@
     const f = document.querySelector('#news input[data-nf=title]'); if (f) f.focus();
   };
   ['#lkDiscord', '#lkOpen', '#hook'].forEach(s => $(s).addEventListener('input', markDirty));
+  $('#profileSync').addEventListener('change', markDirty);
   const HOOK_RE = /^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[\w-]+$/;
   $('#hookTest').onclick = async () => {
     const u = $('#hook').value.trim();
@@ -296,6 +298,7 @@
 
   function collect() {
     const out = JSON.parse(JSON.stringify(data));
+    if ($('#profileSync').checked) delete out.profileSync; else out.profileSync = false;
     const clean = (u, re) => { u = (u || '').trim(); return re.test(u) ? u : ''; };
     out.links = Object.assign({}, out.links, { discord: clean($('#lkDiscord').value, /^https:\/\//), openchat: clean($('#lkOpen').value, /^https:\/\//) });
     if (!out.links.discord) delete out.links.discord;
