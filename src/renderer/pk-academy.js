@@ -175,12 +175,40 @@
     if (f) { s.base = f.lin.base; s.stage = f.stage; s.el = f.lin.el; s.rarity = f.lin.rarity; s.formName = (f.lin.names || [])[f.stage - 1]; }
     return s;
   }
+  // 실제 작품 전투창 (2026-10 확인, 상태창 안에 뜸):
+  //  ⚔️ 연습전 · 1턴째 | 🔮 상대 예고: …
+  //  🟦 플리시아 Lv24 ❤️214/214 ▰▰▰ | - | 대기 ●
+  //  🟥 라벨 Lv24 ❤️214/214 ▰▰▰ | 간파 중 | 대기 ●
+  const SWORD = /^\s*\**\s*⚔\uFE0F?/u;
+  const TEAM = /^\s*\**\s*(🟦|🟥)/u;
+  function teamSide(l, dex) {
+    const parts = l.replace(/\*\*/g, '').replace(TEAM, '').split('|').map(x => x.trim());
+    const s = side(parts[0].replace(/[▰▱■□▮▯█░]+/g, ' '), dex);
+    if (!s) return null;
+    const st = (parts[1] || '').trim();
+    if (st && !/^[-–—]$|^(없음|정상)$/.test(st) && !s.ailment) s.ailment = st;
+    s.extra = (parts[2] || '').trim();
+    return s;
+  }
   function parseBattle(lines, dex) {
     let b = null;
     for (const raw of lines) {
       const l = raw.replace(/\*\*/g, '').trim();
-      if (/^⚔️/.test(l) && /\bvs\b/i.test(l)) {
-        const [a, e] = l.replace(/^⚔️\s*/u, '').split(/\s+vs\s+/i);
+      if (SWORD.test(l) && !/\bvs\b/i.test(l)) {
+        const head = l.replace(SWORD, '').split('|').map(x => x.trim());
+        const turn = /(\d+)\s*턴/.exec(l);
+        const fore = /🔮\s*(.*)$/u.exec(l);
+        b = { title: head[0].replace(/\s*·?\s*\d+\s*턴째?\s*$/, '').trim(), turn: turn ? Number(turn[1]) : null, forecast: fore ? fore[1].trim() : '', ally: null, enemy: null, allies: [], enemies: [], log: [], pp: [] };
+        continue;
+      }
+      if (b && TEAM.test(l)) {
+        const blue = /🟦/u.test(l);
+        const sd = teamSide(l, dex);
+        if (sd) { (blue ? b.allies : b.enemies).push(sd); if (blue && !b.ally) b.ally = sd; if (!blue && !b.enemy) b.enemy = sd; }
+        continue;
+      }
+      if (SWORD.test(l) && /\bvs\b/i.test(l)) {
+        const [a, e] = l.replace(SWORD, '').replace(/^\s*/, '').split(/\s+vs\s+/i);
         b = { ally: side(a, dex), enemy: side(e || '', dex), log: [], pp: [] };
         continue;
       }
@@ -195,6 +223,7 @@
       const pp = [...l.matchAll(/([가-힣A-Za-z ]+?)\s*(\d+)\s*\/\s*(\d+)/g)];
       if (pp.length && !/[❤️📅🐾]/u.test(l) && b.pp.length === 0 && l.length < 120) b.pp = pp.map(x => ({ name: x[1].replace(/^[,\s]+/, '').trim(), left: Number(x[2]), max: Number(x[3]) }));
     }
+    if (b && (!b.ally || !b.enemy)) return null;
     if (b && b.ally && b.enemy && dex) {
       b.mult = b.ally.el && b.enemy.el ? dex.mult(b.ally.el, b.enemy.el) : 1;
       b.multBack = b.ally.el && b.enemy.el ? dex.mult(b.enemy.el, b.ally.el) : 1;
@@ -314,7 +343,15 @@
     }
     // 전투창
     let battle = null;
-    const bi = lines.findIndex((l, i) => !drop[i] && /^\s*\**\s*⚔️/u.test(l) && /\bvs\b/i.test(l));
+    // 새 형식(⚔️ 머리줄 + 🟦/🟥 줄) — 상태창 안에 있어도 읽는다
+    const ni = lines.findIndex((l, i) => SWORD.test(l) && !/\bvs\b/i.test(l) && lines.slice(i + 1, i + 8).some(x => TEAM.test(x)));
+    if (ni >= 0) {
+      let e = ni + 1;
+      while (e < lines.length && e <= ni + 8 && (TEAM.test(lines[e]) || /^\s*▶/.test(lines[e]))) e++;
+      battle = parseBattle(lines.slice(ni, e), dex);
+      for (let i = ni; i < e; i++) drop[i] = true;
+    }
+    const bi = battle ? -1 : lines.findIndex((l, i) => !drop[i] && SWORD.test(l) && /\bvs\b/i.test(l));
     if (bi >= 0) {
       let e = bi + 1;
       while (e < lines.length && e <= bi + 4 && !drop[e] && (/^\s*▶/.test(lines[e]) || (/\d+\s*\/\s*\d+/.test(lines[e]) && !/[“"「]/.test(lines[e]) && lines[e].length < 120))) e++;

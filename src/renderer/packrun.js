@@ -427,7 +427,8 @@
       if (!b) { box.hidden = true; box.innerHTML = ''; return; }
       box.hidden = false;
       const multTag = b.mult > 1 ? '<span class="good">상성 유리 ×1.5</span>' : b.mult < 1 ? '<span class="weak">상성 불리 ×0.5</span>' : '<span>상성 보통</span>';
-      box.innerHTML = `<div class="ak-bt-row">${sideHtml(b.ally, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(b.enemy, 'foe')}</div>
+      const head = b.title || b.turn || b.forecast ? `<div class="ak-bhead">${b.title ? `<b>⚔️ ${esc(b.title)}</b>` : ''}${b.turn ? `<span>${b.turn}턴째</span>` : ''}${b.forecast ? `<em>🔮 ${esc(b.forecast)}</em>` : ''}</div>` : '';
+      box.innerHTML = head + `<div class="ak-bt-row">${sideHtml(b.ally, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(b.enemy, 'foe')}</div>
         <div class="ak-blog">${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : ''}${x.note ? `<span class="${/굉장/.test(x.note) ? 'good' : /별로/.test(x.note) ? 'weak' : ''}">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
         ${b.over ? `<div class="ak-bover">${b.enemy && b.enemy.hp <= 0 ? '승리!' : '쓰러졌다…'}</div>` : ''}`;
       if (fresh) {
@@ -575,6 +576,13 @@
       for (const p of data.people || []) if (all.includes(p.name)) M.met[p.name] = 1;
       // 전투
       R.battle = r.battle || null;
+      // 아군 이름이 별명이면 내 소환수 카드에서 계열·단계를 가져온다
+      if (R.battle) for (const sd of [R.battle.ally].concat(R.battle.allies || [])) {
+        if (!sd || sd.base) continue;
+        const pt = ((R.status && R.status.partners) || []).find(p => p.nick === sd.name || p.formName === sd.name);
+        if (pt) Object.assign(sd, { base: pt.base, stage: pt.stage, el: pt.el, rarity: pt.rarity, formName: pt.formName });
+      }
+      if (R.battle && R.battle.ally && R.battle.enemy && R.battle.ally.el && R.battle.enemy.el && R.battle.mult == null) { R.battle.mult = dex.mult(R.battle.ally.el, R.battle.enemy.el); }
       if (R.battle && R.battle.enemy && R.battle.enemy.base && markCodex(R.battle.enemy.base, R.battle.enemy.stage || 1, 'S')) o.toast(`📖 도감 목격: ${R.battle.enemy.formName || R.battle.enemy.base}`, 2600);
       const ally = R.battle && R.battle.ally;
       const sp = R.status && R.status.partners && R.status.partners[0];

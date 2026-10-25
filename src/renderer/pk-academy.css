@@ -430,3 +430,8 @@
 /* 입학 등록 */
 .ak-reg-in { width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(242,230,198,.45); background: rgba(8,10,30,.55); color: #f2ecdc; font: 13px/1.6 inherit; }
 .ak-reg-in:focus { outline: 2px solid var(--ak-accent); }
+/* 전투창 머리줄 (연습전 · n턴째 · 상대 예고) */
+.ak-bhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; font-size: 13px; }
+.ak-bhead b { font-family: var(--f-title); font-weight: 400; font-size: 16px; color: var(--ak-accent); }
+.ak-bhead span { opacity: .8; }
+.ak-bhead em { font-style: normal; color: #c9b6ff; flex-basis: 100%; }

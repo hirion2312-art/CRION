@@ -139,3 +139,17 @@ for (const [n, f] of t) {
 }
 console.log(`\n소환수 아카데미 해석 ${t.length - fail}/${t.length} 통과`);
 if (fail) process.exit(1);
+
+// 실제 전투창 (상태창 안, 🟦/🟥 줄) — 2026-10-25 히리온 플레이 화면
+{
+  const t = '서술.\n━━━━\n📅 1학년 봄 3일차 오후\n📍 대투기장\n⚔️ 연습전 · 1턴째 | 🔮 상대 예고: 흑우 난무(연타)\n🟦 플리시아 Lv24 ❤️214/214 ▰▰▰▰ | - | 대기 ●\n🟥 라벨 Lv24 ❤️180/214 ▰▰▰ | 간파 중 | 대기 ●\n━━━━';
+  const r = A.parse(t, null, {});
+  assert.ok(r.battle, '전투창');
+  assert.strictEqual(r.battle.title, '연습전');
+  assert.strictEqual(r.battle.turn, 1);
+  assert.strictEqual(r.battle.ally.name, '플리시아');
+  assert.strictEqual(r.battle.enemy.hp, 180);
+  assert.strictEqual(r.battle.enemy.ailment, '간파 중');
+  assert.ok(!r.beats.some(b => /🟦|🟥|⚔/.test(b.text)), '전투창 줄은 대사로 안 나옴');
+  console.log('  ✔ 실제 전투창(🟦/🟥) 읽기');
+}
