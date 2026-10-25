@@ -76,8 +76,8 @@ const START_WORDS = [
   ['continue', /^(이어서\s*(대화|하기|플레이)?|이어하기|대화\s*이어(가기|하기)|계속\s*(하기|대화|플레이)|최근\s*대화)/],
   ['new', /^(새\s*(대화|채팅)(\s*시작)?|대화\s*시작(하기)?|채팅\s*시작(하기)?|시작하기|플레이(하기)?|대화하기|채팅하기|처음부터)/]
 ];
-// '새 대화' 계열 (크랙 표기 예: 새로 대화하기 · 새 대화 · 새로운 대화 · 처음부터) — 작품 화면·대화 화면 모두
-const NEW_STRONG = /^[+＋]?\s*(새로운?\s*(대화|채팅)(\s*(시작|하기))?(하기)?|새로\s*(대화|채팅|시작)(하기)?|새\s*(대화|채팅)(\s*(시작|하기))?|처음부터(\s*(시작|하기))?|대화\s*새로\s*(시작|하기)|다시\s*시작(하기)?)$/;
+// '새 대화' 계열 (크랙 실제 표기: 작품 화면의 '새로하기' — 누르면 확인 없이 바로 새 대화가 열림. 그 밖에 새로 대화하기 · 새 대화 · 처음부터) — 작품 화면·대화 화면 모두
+const NEW_STRONG = /^[+＋]?\s*(새로\s*하기|새로운?\s*(대화|채팅)(\s*(시작|하기))?(하기)?|새로\s*(대화|채팅|시작)(하기)?|새\s*(대화|채팅)(\s*(시작|하기))?|처음부터(\s*(시작|하기))?|대화\s*새로\s*(시작|하기)|다시\s*시작(하기)?)$/;
 const CONFIRM = /^(확인|시작|시작하기|대화\s*시작(하기)?|새로\s*시작(하기)?|네|예|계속)$/;
 const DIALOG = '[role="dialog"], [aria-modal="true"], [class*="modal" i], [class*="dialog" i], [class*="popup" i]';
 const labelOf = (b) => ((b.innerText || b.textContent || b.getAttribute('aria-label') || b.title || '') + '').trim().replace(/\s+/g, ' ');
@@ -107,8 +107,33 @@ function pageActions(onChat) {
   const rank = { new: 0, confirm: 1, continue: 2 };
   return keep.sort((a, b) => (rank[a.kind] - rank[b.kind]) || (a.hidden - b.hidden)).slice(0, 6);
 }
+// ---------- 크랙 실제 대화 화면 구조 (2026-10-25 실제 화면에서 확인) ----------
+// 말 하나 = [data-message-group-id] 상자. 목록이 flex-col-reverse 라 문서 순서가 '새 것 → 옛 것'
+// 크랙 응답: 말풍선(.wrtn-markdown 의 부모)이 rounded-none / 내 말: rounded-lg, 줄에 border-y
+const GROUP = '[data-message-group-id]';
+function crackGroups() {
+  if (rules.msgSel) return null;
+  const gs = qa(GROUP).filter(g => !g.closest('nav, aside, a[href]') && !gs_nested(g));
+  if (!gs.length) return null;
+  const p = gs[0].parentElement;
+  let rev = false;
+  try { rev = !!p && getComputedStyle(p).flexDirection === 'column-reverse'; } catch (e) { rev = false; }
+  return rev ? gs.reverse() : gs;     // 옛 것 → 새 것
+}
+function gs_nested(g) { const up = g.parentElement && g.parentElement.closest(GROUP); return !!up; }
+function isUserGroup(g) {
+  const md = g.querySelector('.wrtn-markdown');
+  const bub = md && md.parentElement;
+  const c = bub && typeof bub.className === 'string' ? bub.className : '';
+  if (/\brounded-none\b/.test(c)) return false;
+  if (/\brounded-lg\b/.test(c)) return true;
+  return !!g.querySelector('.border-y');
+}
+function groupText(g) { const md = g.querySelector('.wrtn-markdown'); return ((md || g).innerText || '').trim(); }
 let msgCount = { url: '', n: -1, at: 0 };
 function chatMsgs(input) {
+  const gs = crackGroups();
+  if (gs) return gs.length;
   // 대화 칸의 메시지 수 (새 대화인지 판단용) — 주소가 바뀌었거나 5초가 지났을 때만 다시 센다
   if (msgCount.url === location.href && Date.now() - msgCount.at < 5000) return msgCount.n;
   let n = -1;
@@ -118,7 +143,7 @@ function chatMsgs(input) {
 }
 function pageKind() {
   const inp = findInput();
-  if (inp) return { page: 'chat', actions: pageActions(true), msgs: chatMsgs(inp) };
+  if (inp) { const gs = crackGroups(); return { page: 'chat', actions: pageActions(true), msgs: chatMsgs(inp), users: gs ? gs.filter(isUserGroup).length : null }; }
   const actions = pageActions();
   return { page: actions.length ? 'detail' : 'other', actions };
 }
@@ -383,6 +408,15 @@ function bySig(sig) {
   return els.filter(e => !els.some(o => o !== e && o.contains(e)) && inColumn(e, col) && !e.closest('a[href], nav, aside'));
 }
 
+// 크랙 응답의 열쇠: 상자의 data-message-group-id. 다 쓴 뒤 id가 바뀌어도 글이 같으면 같은 응답으로 본다
+let crackLast = { id: '', key: '', text: '' };
+function crackKey(g, text) {
+  const id = g.getAttribute('data-message-group-id') || '';
+  if (id === crackLast.id) { crackLast.text = text; return crackLast.key; }
+  if (crackLast.key && text && text === crackLast.text) { crackLast.id = id; return crackLast.key; }
+  crackLast = { id, key: 'g' + id, text };
+  return crackLast.key;
+}
 const keyOf = (el) => {
   if (!el.dataset.crionId) el.dataset.crionId = String(++idSeq);
   return el.dataset.crionId;
@@ -410,6 +444,16 @@ function columnMessages(input) {
 function latest() {
   const input = findInput();
   if (!input) return { input: false, msgs: 0, how: 'no-chat' };   // 채팅 화면이 아니면 아무것도 읽지 않는다
+  const gs = crackGroups();
+  if (gs) {
+    watch = null;
+    const ai = gs.filter(g => !isUserGroup(g));
+    const lastG = gs[gs.length - 1];
+    if (isUserGroup(lastG)) return { input: true, msgs: gs.length, mine: true, waiting: !!lastSent, how: 'crack' };   // 내 말이 마지막 = 응답 기다리는 중
+    const el = lastG.querySelector('.wrtn-markdown') || lastG;
+    const text = (el.innerText || '').trim();
+    return { input: true, msgs: gs.length, el, text, mine: false, key: crackKey(lastG, text), all: ai.map(g => g.querySelector('.wrtn-markdown') || g), how: 'crack' };
+  }
   if (watch) {
     const root = newRoot();
     if (root) return { input: !!input, msgs: 1, el: root, text: (root.innerText || '').trim(), mine: false, key: watch.key, how: 'new' };
@@ -506,6 +550,7 @@ ipcRenderer.on('crion:diag', () => {
     send: desc(btn),
     list: desc(list),
     messages: msgs.length,
+    crack: (() => { const gs = crackGroups(); return gs ? { groups: gs.length, users: gs.filter(isUserGroup).length, last: groupText(gs[gs.length - 1]).slice(0, 80) } : null; })(),
     learned,
     watching: !!watch,
     lastTwo: msgs.slice(-2).map(m => outline(m, 0)).join('\n---\n').slice(0, 6000),
@@ -529,8 +574,8 @@ function start() {
     }
     if (active) {
       const k = pageKind();
-      const sig = k.page + '|' + k.actions.map(a => a.label).join(',') + '|' + location.href + '|' + (k.msgs == null ? '' : k.msgs);
-      if (sig !== lastHas) { lastHas = sig; send('crion:state', { input: k.page === 'chat', page: k.page, actions: k.actions, msgs: k.msgs, url: location.href, poll: true }); }
+      const sig = k.page + '|' + k.actions.map(a => a.label).join(',') + '|' + location.href + '|' + (k.msgs == null ? '' : k.msgs) + '|' + (k.users == null ? '' : k.users);
+      if (sig !== lastHas) { lastHas = sig; send('crion:state', { input: k.page === 'chat', page: k.page, actions: k.actions, msgs: k.msgs, users: k.users, url: location.href, poll: true }); }
     }
   }, 1500);
 }

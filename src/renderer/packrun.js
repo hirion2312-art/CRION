@@ -648,13 +648,15 @@
       } else if (kind === 'new') {
         b.hidden = false; b.className = 'ak-banner center';
         const acts = (R.actions || []).filter(a => a.kind === 'new');
-        b.innerHTML = `<div class="ak-gate"><b>새 대화를 여는 중이에요</b><span>${R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요. 시작 설정을 고르는 창이 나오면 크랙 화면에서 골라 주세요.' : '크랙 작품 화면을 여는 중이에요…'}</span>
+        const why = R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요.'
+          : (R.page === 'detail' && !acts.length ? '크랙 작품 화면에서 「새로하기」 버튼을 찾지 못했어요. 크랙 화면 보기를 눌러 직접 「새로하기」를 누르면 바로 이어져요.' : '크랙 작품 화면을 여는 중이에요…');
+        b.innerHTML = `<div class="ak-gate"><b>새 대화를 여는 중이에요</b><span>${why}</span>
           <div class="row">${acts.map(a => `<button class="ak-btn ${a.kind === 'new' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'old') {
         b.hidden = false; b.className = 'ak-banner center';
         const acts = (R.actions || []).filter(a => a.kind === 'new');
-        b.innerHTML = `<div class="ak-gate"><b>크랙이 예전 대화를 열었어요</b><span>처음부터 하려면 새 대화를 시작해 주세요. 예전 대화는 읽지 않아요.</span>
-          <div class="row">${acts.map(a => `<button class="ak-btn primary" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn ${acts.length ? '' : 'primary'}" data-ak="crack">크랙 화면에서 새 대화 열기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
+        b.innerHTML = `<div class="ak-gate"><b>크랙이 예전 대화를 열었어요</b><span>처음부터 하려면 새 대화가 필요해요. 「작품 화면에서 새로하기」를 누르면 CRION이 새 대화를 열어요. 예전 대화는 읽지 않아요.</span>
+          <div class="row">${acts.map(a => `<button class="ak-btn primary" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn ${acts.length ? '' : 'primary'}" data-ak="retry-new">작품 화면에서 새로하기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'away') {
         b.hidden = false; b.className = 'ak-banner center';
         b.innerHTML = `<div class="ak-gate"><b>이 세이브의 대화가 아니에요</b><span>크랙 화면에서 다른 대화로 옮겨 갔어요. 이 대화는 읽지 않아요.</span>
@@ -817,6 +819,7 @@
         case 't-del': { const id = t.dataset.id; if (R.delAsk === id) { saves = saves.filter(x => x.id !== id); putSaves(); try { localStorage.removeItem(memKey(id)); } catch (err) { /* 없음 */ } R.delAsk = null; o.toast('세이브를 지웠어요 (크랙 대화는 그대로 남아요)'); } else { R.delAsk = id; } renderTitle(); break; }
         case 'crack': o.showCrack(true); break;
         case 'diag': o.diag(); break;
+        case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(o.workUrl); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); break;
         case 'copy': o.copy(t.dataset.text); break;
         case 'open': o.openExternal(t.dataset.url); break;
@@ -936,7 +939,9 @@
       }
       if (st.page !== 'chat') { banner('new'); return; }
       const u = normUrl(st.url || R.curUrl);
-      const fresh = !used.has(u) && ((nf.clicked && u !== normUrl(nf.fromUrl)) || (st.msgs != null && st.msgs >= 0 && st.msgs <= 2));
+      // 새 대화 판단: ① CRION이 '새로하기'를 누른 뒤 열린 다른 주소 ② 내 말이 하나도 없는 대화(프롤로그뿐) — 플레이어가 크랙 화면에서 직접 새로하기를 눌러도 잡힌다
+      const noUser = st.users != null ? (st.users === 0 && st.msgs >= 1) : (st.msgs != null && st.msgs >= 0 && st.msgs <= 2);
+      const fresh = !used.has(u) && ((nf.clicked && u !== normUrl(nf.fromUrl)) || noUser);
       if (fresh) {
         const sv = curSave();
         if (sv) { sv.url = st.url || R.curUrl; sv.last = Date.now(); putSaves(); }
