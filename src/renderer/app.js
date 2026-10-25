@@ -34,6 +34,12 @@
     eye: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 16),
     trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
     menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>', 18),
+    key: svg('<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/>', 19),
+    edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>', 15),
+    up: svg('<path d="m6 15 6-6 6 6"/>', 15),
+    dn: svg('<path d="m6 9 6 6 6-6"/>', 15),
+    lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 16),
+    plus: svg('<path d="M12 5v14M5 12h14"/>', 16),
     spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>', 18),
     ext: svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v6H4V6h6"/>', 15)
   };
@@ -62,7 +68,8 @@
     packs: [], packsState: 'loading',
     view: 'home', play: null,
     homeQ: '', storeTab: 'all', storeQ: '', commTab: 'news', form: { kind: 'bug' },
-    update: null, diagText: '', waitDiag: false
+    update: null, diagText: '', waitDiag: false,
+    dev: { repo: null, data: null, busy: false, deploy: null, fails: 0, lockUntil: 0, previews: {} }
   };
 
   // ---------- 공통 ----------
@@ -130,9 +137,10 @@
     const packUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
     return `<nav class="nav ${P.navSmall ? 'small' : ''}">
       <div class="nav-brand"><img class="wordmark" src="logo.png" alt="CRION"><img class="mark" src="icon.png" alt="CRION"></div>
-      <div class="nav-list">${NAV.map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>
+      <div class="nav-list">${NAV.concat(S.dev.repo ? [['dev', '작품 관리', I.key]] : []).map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>
       <div class="nav-foot">
         ${upd ? `<button class="nav-upd" data-act="${upd.type === 'engine' ? 'relaunch' : 'open-link'}" data-url="${esc(upd.url || '')}">${I.spark}<span>${upd.type === 'engine' ? '새 버전 준비됨<small>눌러서 다시 시작</small>' : '새 설치 파일이 나왔어요<small>눌러서 받기</small>'}</span></button>` : ''}
+        ${S.dev.repo ? `<button class="nav-dev" data-act="dev-lock" title="개발자 잠그기">${I.lock}<span>개발자 모드 · 잠그기</span></button>` : ''}
         <button class="nav-i ${S.view === 'login' ? 'on' : ''}" data-act="go" data-v="login" data-tut="login" title="크랙 로그인">${I.user}<span>크랙 로그인</span></button>
         <button class="nav-fold" data-act="nav-fold" title="${P.navSmall ? '메뉴 펼치기' : '메뉴 접기'}">${P.navSmall ? I.fwd : I.back}<span>메뉴 접기</span></button>
       </div>
@@ -465,8 +473,216 @@
         ${row('문제가 있나요?', '커뮤니티에서 바로 신고할 수 있어요', '<button class="btn sm" data-act="go-report">오류 신고</button>')}
         ${row('데이터 폴더', '설정·업데이트 파일이 있는 곳', '<button class="btn sm ghost" data-act="open-folder">열기</button>')}
       </section>
+      <section class="set-group"><h3>개발자</h3>
+        ${S.dev.repo
+          ? row('개발자 모드 켜짐', '작품을 직접 추가·수정·삭제할 수 있어요', `<button class="btn sm primary" data-act="go" data-v="dev">${I.key}작품 관리</button><button class="btn sm" data-act="dev-lock">잠그기</button>`)
+          : row('개발자 로그인', '히리온 전용 · 비밀번호를 넣으면 작품 관리가 열려요', `<button class="btn sm" data-act="dev-login">${I.lock}개발자 로그인</button>`)}
+      </section>
       <p class="muted note-line">CRION · 히리온의 크랙 작품 플레이어</p>
     </div></main>`;
+  }
+
+  // ---------- 개발자 모드: 작품 직접 추가·제거 ----------
+  const DV = window.CrionDev;
+  const vault = new DV.Vault(ls);
+  function devLoginModal(mode, err) {
+    mode = mode || (vault.exists() ? 'pw' : 'setup');
+    const wait = Math.ceil((S.dev.lockUntil - Date.now()) / 1000);
+    let body;
+    if (mode === 'pw') {
+      body = `<p class="muted">비밀번호를 넣으면 작품 관리가 열려요. 앱을 끄거나 잠그기를 누르면 다시 잠겨요.</p>
+        <label class="f"><span>비밀번호</span><input id="devPw" type="password" class="field" autocomplete="current-password" ${wait > 0 ? 'disabled' : ''}></label>
+        ${err ? `<p class="err">${esc(err)}</p>` : ''}
+        <div class="form-foot"><button class="link" data-act="dev-forgot">비밀번호를 잊었어요</button>
+          <button class="btn primary" data-act="dev-enter" ${wait > 0 ? 'disabled' : ''}>${wait > 0 ? wait + '초 뒤 다시' : '입장'}</button></div>`;
+    } else {
+      body = `<p class="muted">이 컴퓨터에서 처음 한 번만 해요. 관리 페이지에서 쓰던 <b>GitHub 열쇠</b>를 넣고, 앞으로 쓸 <b>비밀번호</b>를 정해 주세요.
+        열쇠는 비밀번호로 잠가서 이 컴퓨터에만 저장되고, 비밀번호 자체는 어디에도 저장되지 않아요.</p>
+        <label class="f"><span>GitHub 열쇠 (github_pat_로 시작)</span><input id="devTok" type="password" class="field" autocomplete="off"></label>
+        <label class="f"><span>새 비밀번호 (4자 이상)</span><input id="devPw" type="password" class="field" autocomplete="new-password"></label>
+        <label class="f"><span>비밀번호 확인</span><input id="devPw2" type="password" class="field" autocomplete="new-password"></label>
+        ${err ? `<p class="err">${esc(err)}</p>` : ''}
+        <div class="form-foot"><span class="muted">열쇠가 없으면 관리 페이지 안내대로 새로 만들 수 있어요</span><button class="btn primary" data-act="dev-setup">저장하고 입장</button></div>`;
+    }
+    modal(`<header><h3>${I.lock} 개발자 로그인</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body form">${body}</div>`);
+    setTimeout(() => { const i = $(mode === 'pw' ? '#devPw' : '#devTok'); if (i && !i.disabled) i.focus(); }, 30);
+  }
+  async function devEnter() {
+    if (Date.now() < S.dev.lockUntil) return;
+    const pw = ($('#devPw') || {}).value || '';
+    if (!pw) return;
+    const btn = $('[data-act=dev-enter]'); if (btn) { btn.disabled = true; btn.textContent = '확인 중…'; }
+    let token;
+    try { token = await vault.open(pw); } catch (e) {
+      S.dev.fails++;
+      if (S.dev.fails >= 5) { S.dev.lockUntil = Date.now() + 30000; S.dev.fails = 0; setTimeout(() => { if ($('#devPw')) devLoginModal('pw'); }, 30500); }
+      return devLoginModal('pw', S.dev.fails ? `비밀번호가 달라요 (${S.dev.fails}/5)` : '5번 틀려서 30초 동안 잠겼어요');
+    }
+    await devStart(token, 'pw');
+  }
+  async function devSetup() {
+    const tok = (($('#devTok') || {}).value || '').trim(), pw = ($('#devPw') || {}).value || '', pw2 = ($('#devPw2') || {}).value || '';
+    if (!tok) return devLoginModal('setup', 'GitHub 열쇠를 넣어 주세요');
+    if (pw.length < 4) return devLoginModal('setup', '비밀번호는 4자 이상으로 정해 주세요');
+    if (pw !== pw2) return devLoginModal('setup', '비밀번호 확인이 달라요');
+    const btn = $('[data-act=dev-setup]'); if (btn) { btn.disabled = true; btn.textContent = '열쇠 확인 중…'; }
+    const repo = new DV.Repo(tok);
+    try { await repo.check(); } catch (e) {
+      return devLoginModal('setup', /nopush/.test(e.message) ? '이 열쇠에는 고치기 권한(Contents: Read and write)이 없어요'
+        : /401/.test(e.message) ? '열쇠가 틀렸거나 만료됐어요' : /404/.test(e.message) ? '이 열쇠로 CRION 저장소를 볼 수 없어요' : '확인 실패: ' + e.message);
+    }
+    await vault.save(tok, pw);
+    await devStart(tok, 'setup');
+  }
+  async function devStart(token, how) {
+    const repo = new DV.Repo(token);
+    try { if (how === 'pw') await repo.check(); } catch (e) {
+      return devLoginModal('pw', /401/.test(e.message) ? '저장된 GitHub 열쇠가 만료됐어요. "비밀번호를 잊었어요"로 새 열쇠를 넣어 주세요' : '연결 실패: ' + e.message);
+    }
+    S.dev.repo = repo; S.dev.fails = 0;
+    closeModal();
+    toast('개발자 모드가 켜졌어요');
+    go('dev');
+    devLoad();
+  }
+  function devLock() { S.dev.repo = null; S.dev.data = null; S.dev.previews = {}; if (S.view === 'dev') go('settings'); else render(); toast('개발자 모드를 잠갔어요'); }
+  async function devLoad() {
+    if (!S.dev.repo) return;
+    S.dev.busy = 'load'; if (S.view === 'dev') render();
+    try { S.dev.data = (await S.dev.repo.loadWorks()).data; } catch (e) { toast('작품 목록을 못 불러왔어요: ' + e.message); }
+    S.dev.busy = false; if (S.view === 'dev') render();
+    devWatch(true);
+  }
+  // 앱 화면용 목록으로 바꾸기 (저장소 파일 이름 → 업데이트 서버 주소, 방금 고른 그림은 바로 보이게)
+  function devApply(data) {
+    const b = regBase();
+    const full = (name, dir) => !name ? '' : /^https?:|^data:/.test(name) ? name : b + dir + '/' + encodeURIComponent(name);
+    setCatalog({ hidden: data.hidden, works: data.works.map(w => Object.assign({}, w, { thumb: S.dev.previews[w.id] || full(w.thumb, 'thumbs'), bgm: full(w.bgm, 'bgm') })) });
+  }
+  // 늘 최신 파일을 받아서 고친 뒤 올린다 (관리 페이지에서 동시에 고쳐도 덮어쓰지 않게)
+  async function devMutate(fn, message, thumb) {
+    if (!S.dev.repo || S.dev.busy) return false;
+    S.dev.busy = 'save'; render();
+    try {
+      const { data, sha } = await S.dev.repo.loadWorks();
+      const out = fn(data);
+      if (thumb && out && out.id) {
+        const name = out.id + '.webp';
+        const p = 'config/thumbs/' + name;
+        await S.dev.repo.put(p, thumb.b64, `앱에서 썸네일: ${out.name}`, await S.dev.repo.shaOf(p));
+        out.thumb = name;
+        S.dev.previews[out.id] = thumb.preview;
+      }
+      await S.dev.repo.saveWorks(data, sha, 'CRION 앱(개발자 모드): ' + message);
+      S.dev.data = data;
+      devApply(data);
+      toast('저장했어요. 1~2분 뒤 모든 사람 앱에 반영돼요', 3500);
+      setTimeout(() => devWatch(), 5000);
+      return true;
+    } catch (e) {
+      toast(/409|does not match/.test(e.message) ? '방금 다른 곳에서 고쳤어요. 한 번 더 눌러 주세요' : '저장하지 못했어요: ' + e.message, 4500);
+      return false;
+    } finally { S.dev.busy = false; if (S.view === 'dev') render(); }
+  }
+  let devTimer = null;
+  async function devWatch(once) {
+    clearTimeout(devTimer);
+    if (!S.dev.repo) return;
+    try { S.dev.deploy = await S.dev.repo.lastDeploy(); } catch (e) { S.dev.deploy = null; }
+    const st = $('#devDeploy'); if (st) st.outerHTML = devDeployHtml();
+    if (S.dev.deploy && S.dev.deploy.status !== 'completed' && !once) devTimer = setTimeout(() => devWatch(), 8000);
+    else if (S.dev.deploy && S.dev.deploy.conclusion === 'success' && !once) loadCatalog().then(() => { if (S.view !== 'dev') refresh(); });
+  }
+  function devDeployHtml() {
+    const d = S.dev.deploy;
+    if (!d) return '<div class="dev-dep" id="devDeploy"></div>';
+    const [cls, txt] = d.status !== 'completed' ? ['run', '서버에 반영하는 중…'] : d.conclusion === 'success' ? ['ok', '모든 사람 앱에 반영됨'] : ['bad', '반영 실패 · GitHub Actions 확인 필요'];
+    return `<div class="dev-dep ${cls}" id="devDeploy"><i></i>${txt}<small>${ago(Date.parse(d.at))}</small></div>`;
+  }
+  function devHtml() {
+    const d = S.dev.data;
+    const b = regBase();
+    const thumbOf = (w) => S.dev.previews[w.id] || (!w.thumb ? '' : /^https?:/.test(w.thumb) ? w.thumb : b + 'thumbs/' + encodeURIComponent(w.thumb));
+    let body;
+    if (!d) body = `<div class="empty"><span class="spin"></span><b>저장소에서 작품 목록을 받는 중이에요</b></div>`;
+    else if (!d.works.length) body = `<div class="empty"><b>작품이 없어요</b><button class="btn primary" data-act="dev-edit">${I.plus}작품 추가</button></div>`;
+    else body = `<div class="dev-list">${d.works.map((w, i) => {
+      const hid = w.url && d.hidden.includes(w.url);
+      const th = thumbOf(w);
+      return `<div class="dev-row ${hid ? 'hid' : ''}">
+        <div class="mini">${thumbInner({ name: w.name, thumb: th })}</div>
+        <div class="dev-t"><b>${esc(w.name)}</b><span>${esc(w.url || '주소 없음 · 앱에서 "준비 중"으로 보여요')}</span>
+          <div class="dev-tags">${w.genre ? `<i>${esc(w.genre)}</i>` : ''}${w.featured ? '<i class="hot">홈 추천</i>' : ''}${hid ? '<i>숨김</i>' : ''}${w.bgm ? '<i>음악</i>' : ''}${w.guide ? '<i>공략</i>' : ''}</div></div>
+        <div class="dev-btns">
+          <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="-1" title="위로" ${i ? '' : 'disabled'}>${I.up}</button>
+          <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="1" title="아래로" ${i < d.works.length - 1 ? '' : 'disabled'}>${I.dn}</button>
+          <button class="btn sm" data-act="dev-edit" data-id="${esc(w.id)}">${I.edit}수정</button>
+          <button class="btn sm" data-act="dev-hide" data-id="${esc(w.id)}" ${w.url ? '' : 'disabled'}>${hid ? '보이기' : '숨기기'}</button>
+          <button class="btn sm danger" data-act="dev-del" data-id="${esc(w.id)}">${I.trash}삭제</button>
+        </div></div>`;
+    }).join('')}</div>`;
+    return `<main class="page"><div class="page-in narrow">
+      ${pageHead('작품 관리', '여기서 바꾸면 저장소에 바로 올라가고, 1~2분 뒤 모든 사람 앱에 반영돼요.',
+        `<button class="btn" data-act="dev-reload" ${S.dev.busy ? 'disabled' : ''}>${I.reload}새로고침</button><button class="btn primary" data-act="dev-edit" ${S.dev.busy || !d ? 'disabled' : ''}>${I.plus}작품 추가</button>`)}
+      <div class="dev-bar">${S.dev.busy === 'save' ? '<div class="dev-dep run"><i></i>저장소에 올리는 중…</div>' : devDeployHtml()}
+        <span class="muted">공지·소식·음악·설치 파일은 <button class="link" data-act="open-link" data-url="${esc(b + 'admin.html')}">관리 페이지</button>에서</span></div>
+      ${body}
+    </div></main>`;
+  }
+  let devThumb = null;
+  function devEditModal(id) {
+    const d = S.dev.data;
+    const w = (id && d && d.works.find(x => x.id === id)) || { name: '', url: '', genre: '' };
+    devThumb = null;
+    const b = regBase();
+    const th = S.dev.previews[w.id] || (!w.thumb ? '' : /^https?:/.test(w.thumb) ? w.thumb : b + 'thumbs/' + encodeURIComponent(w.thumb));
+    modal(`<header><h3>${id ? '작품 수정' : '작품 추가'}</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body"><div class="dev-form" data-id="${esc(id || '')}">
+        <button class="dev-thumb" data-act="dev-pick" title="썸네일 고르기">${th ? `<img id="devThumbImg" src="${esc(th)}" alt="">` : `<span id="devThumbImg">${I.plus}<b>썸네일</b><small>3:4 세로 그림</small></span>`}</button>
+        <div class="form">
+          <label class="f"><span>작품 이름 *</span><input id="dName" class="field" maxlength="60" value="${esc(w.name)}"></label>
+          <label class="f"><span>크랙 작품 주소</span><input id="dUrl" class="field" placeholder="https://crack.wrtn.ai/… 또는 https://share.crack.wrtn.ai/…" value="${esc(w.url || '')}"></label>
+          <label class="f"><span>장르 · 한 줄 소개</span><input id="dGenre" class="field" maxlength="40" value="${esc(w.genre || '')}"></label>
+        </div></div>
+        <div class="form" style="margin-top:12px">
+          <label class="f"><span>소개 (홈 배너·작품 정보)</span><textarea id="dDesc" class="field" rows="3">${esc(w.desc || '')}</textarea></label>
+          <label class="f"><span>공략 (선택 · # 제목, - 목록, **굵게**)</span><textarea id="dGuide" class="field" rows="3">${esc(w.guide || '')}</textarea></label>
+          <label class="chk"><input type="checkbox" id="dFeat" ${w.featured ? 'checked' : ''}> 홈 맨 위 추천 작품으로</label>
+          <div class="form-foot"><span class="muted">주소가 비어 있으면 "준비 중"으로 보여요</span><button class="btn primary" data-act="dev-save">${id ? '저장' : '추가하기'}</button></div>
+        </div>
+        <input type="file" id="devFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+      </div>`, true);
+    setTimeout(() => { const i = $('#dName'); if (i) i.focus(); }, 30);
+  }
+  async function devPickFile(f) {
+    if (!f) return;
+    const img = await createImageBitmap(f);
+    const scale = Math.min(1, 600 / img.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const url = c.toDataURL('image/webp', 0.86);
+    devThumb = { b64: url.split(',')[1], preview: url };
+    const box = $('#devThumbImg');
+    if (box) box.outerHTML = `<img id="devThumbImg" src="${url}" alt="">`;
+  }
+  async function devSave() {
+    const id = $('.dev-form').dataset.id || undefined;
+    const v = (s) => ($(s) || {}).value || '';
+    const w = { id, name: v('#dName'), url: v('#dUrl'), genre: v('#dGenre'), desc: v('#dDesc'), guide: v('#dGuide'), featured: $('#dFeat').checked };
+    try { DV.upsert(JSON.parse(JSON.stringify(S.dev.data || { works: [], hidden: [] })), w); } catch (e) { toast(e.message); return; }
+    const btn = $('[data-act=dev-save]'); if (btn) { btn.disabled = true; btn.textContent = '올리는 중…'; }
+    const ok = await devMutate((data) => DV.upsert(data, w), (id ? '수정 ' : '추가 ') + w.name.trim(), devThumb);
+    if (ok) { closeModal(); devThumb = null; }
+    else if (btn) { btn.disabled = false; btn.textContent = id ? '저장' : '추가하기'; }
+  }
+  function devConfirmDel(id) {
+    const w = S.dev.data && S.dev.data.works.find(x => x.id === id);
+    if (!w) return;
+    modal(`<header><h3>작품 삭제</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body"><p class="lead">「${esc(w.name)}」을(를) 목록에서 지울까요?</p>
+        <p class="muted">모든 사람 앱에서 사라져요. 플레이 기록은 각자 컴퓨터에 남아요. 잠깐만 안 보이게 하려면 <b>숨기기</b>를 쓰세요.</p>
+        <div class="row end"><button class="btn" data-act="close-modal">취소</button><button class="btn danger-fill" data-act="dev-del-ok" data-id="${esc(id)}">${I.trash}삭제</button></div></div>`);
   }
 
   // ---------- 크랙 로그인 ----------
@@ -607,6 +823,7 @@
     else if (S.view === 'community') main = communityHtml();
     else if (S.view === 'records') main = recordsHtml();
     else if (S.view === 'settings') main = settingsHtml();
+    else if (S.view === 'dev' && S.dev.repo) main = devHtml();
     else main = homeHtml();
     app.innerHTML = navHtml() + main;
     if (S.view === 'login') bindWebview();
@@ -618,6 +835,7 @@
     if (view === 'community' && S.commTab === 'news') markNewsSeen();
     render();
     const pg = $('.page'); if (pg) pg.scrollTop = 0;
+    if (view === 'dev' && S.dev.repo && !S.dev.data && !S.dev.busy) devLoad();
     if (view === 'store' && S.packsState !== 'loading') loadPacks().then(() => { if (S.view === 'store') render(); });
   }
   const refresh = () => { if (S.view !== 'play' && S.view !== 'login') render(); };
@@ -687,6 +905,20 @@
       case 'tut-prev': showTut(Math.max(0, tutI - 1)); break;
       case 'tut-end': endTut(); break;
       case 'tut-login': endTut(); go('login'); break;
+      // 개발자
+      case 'dev-login': devLoginModal(); break;
+      case 'dev-enter': devEnter(); break;
+      case 'dev-setup': devSetup(); break;
+      case 'dev-forgot': devLoginModal('setup', vault.exists() ? '새 열쇠와 비밀번호를 넣으면 예전 것은 지워져요' : ''); break;
+      case 'dev-lock': devLock(); break;
+      case 'dev-reload': devLoad(); break;
+      case 'dev-edit': if (S.dev.data) devEditModal(id); break;
+      case 'dev-pick': { const f = $('#devFile'); if (f) { f.value = ''; f.click(); } break; }
+      case 'dev-save': devSave(); break;
+      case 'dev-move': { const d = Number(el.dataset.d); const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.move(data, id, d); return null; }, `순서 ${w ? w.name : id}`); break; }
+      case 'dev-hide': { const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.toggleHide(data, id); return null; }, `${w && S.dev.data.hidden.includes(w.url) ? '보이기' : '숨기기'} ${w ? w.name : id}`).catch(() => {}); break; }
+      case 'dev-del': devConfirmDel(id); break;
+      case 'dev-del-ok': { closeModal(); const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.remove(data, id); return null; }, `삭제 ${w ? w.name : id}`); break; }
       default: break;
     }
   });
@@ -705,6 +937,8 @@
       else if (document.fullscreenElement) setFull(false);
       return;
     }
+    if (e.key === 'Enter' && e.target.id === 'devPw') { e.preventDefault(); if ($('#devPw2')) devSetup(); else devEnter(); return; }
+    if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { e.preventDefault(); if (S.dev.repo) go('dev'); else devLoginModal(); return; }
     if (e.key === 'F11' && S.view === 'play') { e.preventDefault(); setFull(!document.fullscreenElement); }
     if (tutI >= 0 && (e.key === 'ArrowRight' || e.key === 'Enter')) { e.preventDefault(); if (tutI < TUT.length - 1) showTut(tutI + 1); else endTut(); }
     if (tutI >= 0 && e.key === 'ArrowLeft') { e.preventDefault(); showTut(Math.max(0, tutI - 1)); }
@@ -745,5 +979,6 @@
   setInterval(() => { if (S.view === 'play' && S.play && document.visibilityState === 'visible') store.addTime(S.play.work.id, 30000); }, 30000);
 
   // 시험용
+  document.addEventListener('change', (e) => { if (e.target.id === 'devFile') devPickFile(e.target.files[0]).catch(() => toast('그림을 읽지 못했어요')); });
   window.__crion = { S, render, go, showTut, endTut };
 })();

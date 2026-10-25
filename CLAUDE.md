@@ -9,6 +9,7 @@
   - `app.js`, `app.css`, `index.html` 화면: 왼쪽 메뉴(홈·스토어·커뮤니티·내 기록·설정), 시작 애니메이션, 첫 실행 사용법
   - `crack-preload.js` 크랙 화면 안 도우미: 주소·대화 화면 여부만 알림(이어하기용), 진단. 읽기·보내기 없음
   - `packs.js` 스토어 목록·설치 상태 (시험: `test/packs.test.js`), `store.js` 내 기록 (시험: `test/store.test.js`)
+  - `dev.js` 개발자 모드(설정 > 개발자 로그인, Ctrl+Shift+D): GitHub 열쇠를 비밀번호로 암호화해 그 컴퓨터에만 저장, 앱에서 작품 추가·수정·숨기기·삭제·순서 → `config/works.json`·`config/thumbs/`에 바로 커밋 (시험: `test/dev.test.js`, `test/ui/run_dev.py`)
   - `catalog-extract.js` 빈 결과만 돌려줌(작가 프로필 자동 수집 중단 — 남의 작품을 섞어 와서). 작품 목록은 관리 페이지만
 - `packs/<id>/` 플레이팩 (형식: `packs/README.md`). 지금은 없음 → 스토어 "첫 플레이팩 준비 중"
 - `config/works.json` 작품 목록·공지 (히리온은 관리 페이지 `site/admin.html`로 고친다)
