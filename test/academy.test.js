@@ -153,3 +153,20 @@ if (fail) process.exit(1);
   assert.ok(!r.beats.some(b => /🟦|🟥|⚔/.test(b.text)), '전투창 줄은 대사로 안 나옴');
   console.log('  ✔ 실제 전투창(🟦/🟥) 읽기');
 }
+
+// 실제 상태창 (한 줄에 📅|📍|💰, 🐾 줄에 기술: 이름(설명)) — 2026-10-25
+{
+  const t = '서술.\n📅 3학년 봄 1일차 오전 | 📍대투기장 | 💰12은 0동\n🐾 라나벨(램비·최종) Lv40 ❤️264/340 | 기술: 털뭉치 박치기(폭신한 털뭉치로 들이받는다), 자장가(나른한 노래로 상대를 재운다), 양털 성벽(피해 경감), 구름 양떼(궁극기·아군 회복)\n🎒 상처약×2, 계약석×1\n📦 계약 1/12 | 📖 3/80 | 🏅 0/7';
+  const r = A.parse(t, null, {});
+  const s = r.status;
+  assert.strictEqual(s.place, '대투기장');
+  assert.strictEqual(s.money.silver, 12);
+  assert.strictEqual(s.year, 3);
+  const p = s.partners[0];
+  assert.strictEqual(p.nick, '라나벨'); assert.strictEqual(p.lv, 40); assert.strictEqual(p.hp, 264); assert.strictEqual(p.hpMax, 340);
+  assert.deepStrictEqual(p.skills.map(x => x.name), ['털뭉치 박치기', '자장가', '양털 성벽', '구름 양떼']);
+  assert.ok(p.skills[3].ult);
+  assert.strictEqual(s.items.length, 2);
+  assert.strictEqual(s.contract.max, 12); assert.strictEqual(s.dex.n, 3); assert.strictEqual(s.badges.max, 7);
+  console.log('  ✔ 실제 상태창(한 줄 섞임·설명형 기술) 읽기');
+}

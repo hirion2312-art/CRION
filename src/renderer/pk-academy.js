@@ -82,6 +82,63 @@
     return out;
   }
 
+  // 괄호 밖 쉼표로 나누기: "털뭉치 박치기(폭신한 털뭉치로, 들이받는다), 자장가(…)"
+  function splitTop(s) {
+    const out = []; let d = 0, b = '';
+    for (const ch of s) {
+      if ('(（'.includes(ch)) d++; else if (')）'.includes(ch)) d = Math.max(0, d - 1);
+      if (d === 0 && ',，、'.includes(ch)) { if (b.trim()) out.push(b.trim()); b = ''; } else b += ch;
+    }
+    if (b.trim()) out.push(b.trim());
+    return out;
+  }
+  // 설명형 기술 "이름(설명)" — 위력·횟수는 도감 자료에서 이름으로 찾아 채운다
+  function parseSkillsLoose(line, dex, base) {
+    const lin = dex && base ? dex.lineage(base) : null;
+    const known = lin && lin.skills ? [].concat(...Object.values(lin.skills)) : [];
+    return splitTop(line).map(x => {
+      const m = /^(.+?)\s*[(（](.*)[)）]\s*$/.exec(x);
+      const name = (m ? m[1] : x).trim(), eff = m ? m[2].trim() : '';
+      const k = known.find(z => z.name === name || name.includes(z.name) || z.name.includes(name));
+      const kind = k ? k.kind : (/궁극/.test(eff) ? '특수' : /회복|경감|재운|올린|낮춘|막는|방벽|보호/.test(eff) ? '보조' : '물리');
+      return { name, kind, icon: { 물리: '⚔️', 특수: '💫', 보조: '✨' }[kind] || '✨', power: k && k.power ? String(k.power) : '', left: null, max: k && k.pp ? Number(k.pp) : null, eff, ult: /궁극/.test(eff) };
+    }).filter(x => x.name);
+  }
+  // 한 조각(📅 · 📍 · 💰 · 🎒 · 📦 · 📖 · 🏅 · 📜 · 🗓 · 🎓 · 🏠)을 상태에 넣는다
+  function statusPart(st, part) {
+    const t = part.trim(); let m;
+    if (/^📅/.test(t)) {
+      const d = t.replace(/^📅\s*/, '');
+      m = /(\d)\s*학년\s*(봄|여름|가을|겨울)\s*(\d+)\s*일차\s*(오전|오후|저녁|밤|아침|새벽|점심)?/.exec(d);
+      if (m) Object.assign(st, { year: Number(m[1]), season: m[2], day: Number(m[3]), time: m[4] || '' });
+      st.dateText = d.trim(); return true;
+    }
+    if (/^📍/.test(t)) { st.place = t.replace(/^📍\s*/, '').trim(); return true; }
+    if (/^🎓/.test(t)) { st.student = t.replace(/^🎓\s*/, '').trim(); return true; }
+    if (/^🏠/.test(t)) { st.dorm = t.replace(/^🏠\s*/, '').trim(); return true; }
+    if (/^💰/.test(t)) {
+      const s2 = t.replace(/^💰\s*/, '');
+      const g = /(\d+)\s*금/.exec(s2), sv = /(\d+)\s*은/.exec(s2), c = /(\d+)\s*동/.exec(s2);
+      st.money = { gold: g ? Number(g[1]) : 0, silver: sv ? Number(sv[1]) : 0, copper: c ? Number(c[1]) : 0, text: s2.trim() }; return true;
+    }
+    if (/^🎒/.test(t)) {
+      const s2 = t.replace(/^🎒\s*/, '').trim();
+      st.items = /^(없음|-|—)?$/.test(s2) ? [] : s2.split(/\s*[,，、]\s*/).filter(Boolean).map(x => {
+        const q = /^(.+?)\s*[×x*]\s*(\d+)$/.exec(x);
+        return q ? { name: q[1].trim(), n: Number(q[2]) } : { name: x.trim(), n: 1 };
+      }); return true;
+    }
+    if (/^📦/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.contract = { n: Number(m[1]), max: Number(m[2]) }; return true; }
+    if (/^📖/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.dex = { n: Number(m[1]), max: Number(m[2]) }; return true; }
+    if (/^🏅/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.badges = { n: Number(m[1]), max: Number(m[2]) }; return true; }
+    if (/^📜/.test(t)) { const q = t.replace(/^📜\s*(의뢰)?\s*[:：]?\s*/, '').trim(); st.quests = /^(없음|-|—)?$/.test(q) ? [] : q.split(/\s*[,/]\s*/).filter(Boolean); return true; }
+    if (/^🗓/.test(t)) {
+      const q = t.replace(/^🗓️?\s*(다음\s*일정)?\s*[:：]?\s*/u, '').trim();
+      const d = /D\s*-\s*(\d+)/i.exec(q);
+      st.next = { text: q.replace(/\s*D\s*-\s*\d+/i, '').trim(), d: d ? Number(d[1]) : null }; return true;
+    }
+    return false;
+  }
   function parseStatusLines(lines, dex) {
     const st = { partners: [] };
     let cur = null;
@@ -89,12 +146,10 @@
       const l = raw.replace(/\*\*/g, '').trim();
       if (!l || DIVIDER.test(l)) continue;
       let m;
-      if (/^📅/.test(l)) {
-        const [d, p] = l.split(/\s*\|\s*/);
-        m = /(\d)\s*학년\s*(봄|여름|가을|겨울)\s*(\d+)\s*일차\s*(오전|오후|저녁|밤|아침|새벽|점심)?/.exec(d);
-        if (m) Object.assign(st, { year: Number(m[1]), season: m[2], day: Number(m[3]), time: m[4] || '' });
-        st.dateText = d.replace(/^📅\s*/, '').trim();
-        if (p) st.place = p.replace(/^📍\s*/, '').trim();
+      // 🐾 줄이 아니면: '|'로 나눈 조각마다 이모지로 판단 (한 줄에 📅|📍|💰 처럼 섞여 나와도 됨)
+      if (!/^🐾/.test(l) && /^(📅|📍|🎓|🏠|💰|🎒|📦|📖|🏅|📜|🗓)/u.test(l)) {
+        for (const part of l.split(/\s*[|｜]\s*/)) statusPart(st, part);
+        if (/^(📦|📖|🏅|📜|🗓)/u.test(l)) cur = null;
         continue;
       }
       if (/^📍/.test(l)) { st.place = l.replace(/^📍\s*/, '').trim(); continue; }
@@ -122,8 +177,12 @@
         m = /^(.+?)\s*\(\s*([^·()]+?)\s*·\s*([^()]+?)\s*\)\s*(?:Lv\.?\s*(\d+))?/.exec(head[0]);
         if (m) { cur.nick = m[1].trim(); cur.base = m[2].trim(); cur.stageName = m[3].trim(); cur.stage = stageNo(m[3]); cur.lv = m[4] ? Number(m[4]) : 0; }
         else { const n = /^(.+?)\s*(?:Lv\.?\s*(\d+))?$/.exec(head[0]); cur.nick = n[1].trim(); cur.lv = n[2] ? Number(n[2]) : 0; const f = dex && dex.find(cur.nick); if (f) { cur.base = f.lin.base; cur.stage = f.stage; } }
+        { const g0 = /❤️?\s*(\d+)\s*\/\s*(\d+)/u.exec(head[0]); if (g0) { cur.hp = Number(g0[1]); cur.hpMax = Number(g0[2]); } }
+        // 기술 목록 안의 '|'는 조각을 나누지 않게: '기술:' 뒤는 통째로
+        { const ki = l.search(/[|｜]\s*기술\s*[:：]/); if (ki >= 0) { cur.skillsRaw = l.slice(ki).replace(/^[|｜]\s*기술\s*[:：]\s*/, ''); head.splice(1, head.length, ...l.slice(0, ki).replace(/^🐾\s*/, '').split(/\s*\|\s*/).slice(1)); } }
         for (const part of head.slice(1)) {
           let g;
+          if (/^기술\s*[:：]/.test(part)) { cur.skillsRaw = part.replace(/^기술\s*[:：]\s*/, ''); continue; }
           if ((g = /Lv\.?\s*(\d+)/.exec(part)) && !cur.lv) cur.lv = Number(g[1]);
           if ((g = /❤️?\s*(\d+)\s*\/\s*(\d+)/u.exec(part))) { cur.hp = Number(g[1]); cur.hpMax = Number(g[2]); }
           else if ((g = /XP\s*(\d+)\s*\/\s*(\d+)/i.exec(part))) { cur.xp = Number(g[1]); cur.xpMax = Number(g[2]); }
@@ -132,6 +191,7 @@
           const lin = dex.lineage(cur.base);
           if (lin) { cur.el = lin.el; cur.rarity = lin.rarity; cur.formName = (lin.names || [])[cur.stage - 1] || cur.base; }
         }
+        if (cur.skillsRaw) { const s1 = parseSkills(cur.skillsRaw); cur.skills = s1.length ? s1 : parseSkillsLoose(cur.skillsRaw, dex, cur.base); }
         st.partners.push(cur);
         continue;
       }
@@ -142,7 +202,7 @@
         cur.ailment = a && !/^(없음|-|—|정상)$/.test(a.trim()) ? a.trim() : '';
         continue;
       }
-      if (cur && /^기술\s*[:：]/.test(l)) { cur.skills = parseSkills(l.replace(/^기술\s*[:：]\s*/, '')); continue; }
+      if (cur && /^기술\s*[:：]/.test(l)) { const r = l.replace(/^기술\s*[:：]\s*/, ''); const s1 = parseSkills(r); cur.skills = s1.length ? s1 : parseSkillsLoose(r, dex, cur.base); continue; }
       if (/^📦|📖|🏅/.test(l)) {
         if ((m = /계약\s*(\d+)\s*\/\s*(\d+)/.exec(l))) st.contract = { n: Number(m[1]), max: Number(m[2]) };
         if ((m = /도감\s*(\d+)\s*\/\s*(\d+)/.exec(l))) st.dex = { n: Number(m[1]), max: Number(m[2]) };

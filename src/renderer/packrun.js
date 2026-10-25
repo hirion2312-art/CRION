@@ -316,7 +316,7 @@
           </div>
           <div class="ak-pc-back">
             <div class="ak-stats">${[['공격', st.atk], ['방어', st.def], ['특공', st.spa], ['특방', st.spd], ['속도', st.spe]].map(([k, v]) => `<div><span>${k}</span><i><b style="width:${pct(v || 0, statMax)}%"></b></i><em>${v == null ? '-' : v}</em></div>`).join('')}</div>
-            <div class="ak-skills">${(p.skills || []).map(s => `<div class="${s.left === 0 ? 'out' : ''}"><i>${esc(s.icon)}</i><b>${esc(s.name)}</b><span>${s.power ? esc(s.power) + ' · ' : ''}${s.left}/${s.max}</span>${s.eff ? `<small>${esc(s.eff)}</small>` : ''}</div>`).join('') || '<p>기술 정보 없음</p>'}</div>
+            <div class="ak-skills">${(p.skills || []).map(s => `<div class="${s.left === 0 ? 'out' : ''}"><i>${esc(s.icon)}</i><b>${esc(s.name)}</b><span>${s.power ? esc(s.power) + ' · ' : ''}${s.left != null ? s.left + '/' + s.max : s.max != null ? s.max + '회' : (s.ult ? '궁극기' : '')}</span>${s.eff ? `<small>${esc(s.eff)}</small>` : ''}</div>`).join('') || '<p>기술 정보 없음</p>'}</div>
             ${lin && lin.quote ? `<q>${esc(lin.quote)}</q>` : ''}
           </div>
         </div></button>`;
@@ -388,7 +388,7 @@
       const hasItem = (n) => items.some(x => x.name === n && x.n > 0);
       const others = (st.partners || []).filter(p => p.base !== me.base && p.hp > 0);
       const btn = (text, label, sub, cls, dis) => `<button class="ak-act ${cls || ''}" data-ak="fill" data-fill="${esc(text)}" ${dis ? 'disabled' : ''}>${label}${sub ? `<small>${sub}</small>` : ''}</button>`;
-      let h = skills.map(s => btn(`${nick}, ${s.name}!`, `<i>${esc(s.icon)}</i>${esc(s.name)}`, `${s.power ? '위력 ' + esc(s.power) + ' · ' : ''}${s.left}/${s.max}${s.kind !== '보조' && eff > 1 ? ' · 효과 굉장' : s.kind !== '보조' && eff < 1 ? ' · 효과 별로' : ''}`, 'skill ' + (s.kind !== '보조' && eff > 1 ? 'good' : s.kind !== '보조' && eff < 1 ? 'weak' : ''), s.left === 0)).join('');
+      let h = skills.map(s => btn(`${nick}, ${s.name}!`, `<i>${esc(s.icon)}</i>${esc(s.name)}`, `${s.power ? '위력 ' + esc(s.power) + ' · ' : ''}${s.left != null ? s.left + '/' + s.max : s.eff ? esc(s.eff.slice(0, 18)) : ''}${s.kind !== '보조' && eff > 1 ? ' · 효과 굉장' : s.kind !== '보조' && eff < 1 ? ' · 효과 별로' : ''}`, 'skill ' + (s.kind !== '보조' && eff > 1 ? 'good' : s.kind !== '보조' && eff < 1 ? 'weak' : ''), s.left === 0)).join('');
       h += btn(`${nick}, 방어해!`, '🛡️ 방어', '받는 피해 절반');
       for (const p of others) h += btn(`${p.nick}(으)로 교체한다`, '🔁 ' + esc(p.nick), '교체 · 행동 1회');
       if (hasItem('상처약')) h += btn(`${nick}에게 상처약을 쓴다`, '🧪 상처약', 'HP 30%');
