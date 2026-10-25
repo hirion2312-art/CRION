@@ -1,63 +1,68 @@
-// CRION 화면 로직 (홈 · 공용 게임 화면 · 설정)
+// CRION 화면 (0.4) — 홈 · 스토어 · 커뮤니티 · 내 기록 · 설정 / 플레이 = 크랙 화면 그대로
+// 예전 공용 게임 화면(응답을 읽어 다시 그리던 화면)은 archive/common-game-ui 에 보관
 (function () {
   'use strict';
   const api = window.crion;
-  const R = window.CrionReply;
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  // 속성 안(style="…")에서도 깨지지 않게 작은따옴표로 감싼다
   const cssUrl = (u) => `url('${String(u).replace(/['"\\\n<>]/g, (c) => encodeURIComponent(c))}')`;
+  const BOOT_AT = Date.now();
 
   const svg = (d, w) => `<svg width="${w || 18}" height="${w || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const I = {
-    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>'),
-    chev: svg('<path d="m9 6 6 6-6 6"/>', 14),
-    back: svg('<path d="m15 6-6 6 6 6"/>', 16),
-    play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>',
-    send: svg('<path d="M5 12h13M13 6l6 6-6 6"/>', 16),
-    redo: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>', 17),
-    log: svg('<path d="M5 5h14M5 10h14M5 15h9M5 20h6"/>', 17),
-    web: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>', 17),
-    side: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>', 17),
-    sync: svg('<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>', 15),
-    full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 17),
+    home: svg('<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>', 19),
+    store: svg('<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>', 19),
+    comm: svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>', 19),
+    rec: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', 19),
+    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>', 19),
+    user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 18),
+    back: svg('<path d="m15 6-6 6 6 6"/>', 18),
+    fwd: svg('<path d="m9 6 6 6-6 6"/>', 18),
+    reload: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>', 17),
+    page: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>', 17),
+    play: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>',
     book: svg('<path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M5 16a4 4 0 0 1 4-4h9"/>', 17),
-    user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', 16),
-    chat: svg('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>', 16),
     flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', 17),
-    star: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>', 15),
-    info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', 15),
+    full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 17),
     music: svg('<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>', 17),
     mute: svg('<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/><path d="M3 3l18 18"/>', 17),
-    plus: svg('<path d="M12 5v14M5 12h14"/>', 14),
     x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 18),
-    cont: svg('<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>', 16)
+    search: svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>', 16),
+    info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', 16),
+    down: svg('<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>', 16),
+    check: svg('<path d="m5 12 5 5 9-10"/>', 16),
+    eye: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', 16),
+    trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
+    menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>', 18),
+    spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>', 18),
+    ext: svg('<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v6H4V6h6"/>', 15)
   };
-  const TINTS = ['#6d5bd0', '#d0457a', '#2f7fd1', '#0f9d76', '#d07a1f', '#7a8597', '#b0473a', '#3b8e9e'];
+  const TINTS = ['#e8573a', '#d0457a', '#2f7fd1', '#0f9d76', '#d07a1f', '#7a5bd0', '#b0473a', '#3b8e9e'];
   const tintOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return TINTS[Math.abs(h) % TINTS.length]; };
-  const SPEED = { slow: 42, normal: 24, fast: 10, instant: 0 };
 
-  // 화면 취향: 글자 크기 · 자동 진행 · 대사창 진하기 (이 컴퓨터에만 저장)
-  const PREF_DEFAULT = { font: 'm', auto: false, dlg: 'normal' };
+  // 화면 취향 (이 컴퓨터에만)
+  const PREF_DEFAULT = { splash: true, navSmall: false, openMode: 'continue', bgmAuto: true };
   function loadPrefs() { try { return Object.assign({}, PREF_DEFAULT, JSON.parse(localStorage.getItem('crion.prefs') || '{}')); } catch (e) { return Object.assign({}, PREF_DEFAULT); } }
-  let P = loadPrefs();
-  function savePref(k, v) { P[k] = v; try { localStorage.setItem('crion.prefs', JSON.stringify(P)); } catch (e) { /* 저장 안 됨 */ } applyPrefs(); }
-  function applyPrefs() {
-    const a = document.getElementById('app');
-    if (!a) return;
-    a.dataset.font = P.font;
-    a.dataset.dlg = P.dlg;
-  }
+  const P = loadPrefs();
+  function savePref(k, v) { P[k] = v; try { localStorage.setItem('crion.prefs', JSON.stringify(P)); } catch (e) { /* 저장 안 됨 */ } }
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 저장 안 됨 */ } };
 
-  const store = new window.CrionStore.WorkStore((() => { try { return window.localStorage; } catch (e) { return null; } })());
+  const ls = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+  const store = new window.CrionStore.WorkStore(ls);
   const { fmtTime, ago } = window.CrionStore;
+  const PK = window.CrionPacks;
+  const installed = new PK.Installed(ls);
   const bgm = window.CrionBgm ? new window.CrionBgm() : null;
-
   const CM = window.CrionCommunity;
+
   const S = {
-    cat: { links: {}, news: [], report: {} }, form: { kind: 'bug' }, diagText: '',
-    info: null, settings: null, works: [], creatorUrl: '', syncedAt: null, syncing: false,
-    view: 'home', work: null, room: null
+    info: null, settings: null, works: [], creatorUrl: '',
+    cat: { links: {}, news: [], report: {} }, notice: null,
+    packs: [], packsState: 'loading',
+    view: 'home', play: null,
+    homeQ: '', storeTab: 'all', storeQ: '', commTab: 'news', form: { kind: 'bug' },
+    update: null, diagText: '', waitDiag: false
   };
 
   // ---------- 공통 ----------
@@ -69,929 +74,156 @@
     $('#toast').appendChild(t);
     setTimeout(() => t.remove(), ms || 2600);
   }
-  async function copy(text, msg) {
-    try { await api.copy(text); toast(msg || '복사했어요'); } catch (e) { toast('복사하지 못했어요'); }
-  }
+  async function copy(text, msg) { try { await api.copy(text); toast(msg || '복사했어요'); } catch (e) { toast('복사하지 못했어요'); } }
   function thumbInner(w) {
-    const ph = `<div class="ph" style="background:linear-gradient(140deg, ${tintOf(w.name)}, #1d2130)">${esc((w.name || '?').slice(0, 1))}</div>`;
-    return ph + (w.thumb ? `<img src="${esc(w.thumb)}" alt="" loading="lazy" style="position:relative" onerror="this.remove()">` : '');
+    const ph = `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(w.name)}, #2a1f1c)">${esc((w.name || '?').slice(0, 1))}</div>`;
+    return ph + (w.thumb ? `<img src="${esc(w.thumb)}" alt="" loading="lazy" onerror="this.remove()">` : '');
   }
-  const thumbHtml = (w, cls) => `<div class="${cls}">${thumbInner(w)}</div>`;
   const workById = (id) => S.works.find(w => w.id === id);
+  const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
+  const packFor = (w) => PK.forWork(S.packs, w);
+  const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
 
-  // 공지: 업데이트 서버의 catalog.json 에 notice 가 있으면 홈 위에 띄운다
-  async function loadNotice() {
-    const u = S.info && S.info.registryUrl;
-    if (!u) return;
+  // ---------- 작품 목록: 관리 페이지(catalog.json)만 쓴다 ----------
+  function setCatalog(c) {
+    const hidden = new Set((c.hidden || []).map(u => String(u).replace(/\/$/, '')));
+    S.works = (c.works || []).filter(w => w && w.id && w.name && !(w.url && hidden.has(String(w.url).replace(/\/$/, ''))));
+    if (c.creatorUrl) S.creatorUrl = c.creatorUrl;
+  }
+  async function loadCatalog() {
+    const b = regBase();
+    if (!b) return false;
     try {
-      const res = await fetch(u.replace(/[^/]*$/, '') + 'catalog.json?t=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) return;
+      const res = await fetch(b + 'catalog.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return false;
       const c = await res.json();
       const n = c && c.notice;
       S.notice = n && n.on !== false && n.text ? n : null;
       S.cat = { links: (c && c.links) || {}, news: (c && Array.isArray(c.news)) ? c.news : [], report: (c && c.report) || {} };
-      if (c && Array.isArray(c.works)) { S.catalog = { works: c.works, hidden: c.hidden || [], profileSync: c.profileSync }; rebuildWorks(); }
-    } catch (e) { /* 오프라인 */ }
+      if (c && Array.isArray(c.works)) setCatalog(c);
+      return true;
+    } catch (e) { return false; }
   }
-  const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
-  function noticeHtml() {
-    const n = S.notice;
-    if (!n) return '';
-    try { if (localStorage.getItem(noticeId(n))) return ''; } catch (e) { /* 저장 안 됨 */ }
-    return `<div class="notice"><b>공지</b><span>${esc(n.text)}</span>
-      ${n.link && /^https:\/\//.test(n.link) ? `<button class="btn sm" data-act="open-link" data-url="${esc(n.link)}">자세히</button>` : ''}
-      <button class="icon-btn" data-act="close-notice" title="닫기">${I.x}</button></div>`;
+  async function loadShellWorks() {
+    try {
+      const r = await api.getWorks();
+      S.creatorUrl = r.creatorUrl || '';
+      // 예전 버전이 프로필에서 자동으로 모은 작품(auto)은 쓰지 않는다
+      if (!S.works.length) setCatalog({ works: (r.works || []).filter(w => !w.auto && !w.fromProfile) });
+    } catch (e) { /* 본체 목록 없음 */ }
   }
-
-  // 작품 목록 = 작가 프로필(기본) + 관리 페이지 값(덧입힘). 합치는 규칙은 catalog.js
-  function savedProfile() { try { return JSON.parse(localStorage.getItem('crion.profile2') || 'null'); } catch (e) { return null; } }
-  function rebuildWorks() {
-    const prof = savedProfile();
-    const shell = S.shellWorks || [];
-    const catalog = S.catalog || { works: shell.filter(w => !w.auto && !w.fromProfile), hidden: [] };
-    // 프로필을 아직 못 읽었으면 관리 페이지 목록만 (예전 방식이 잘못 모은 작품은 쓰지 않는다)
-    S.works = window.CrionCatalog.merge(catalog, prof ? prof.works : [], S.catalog ? S.catalog.works : shell.filter(w => !w.auto));
-    S.profileCount = prof ? prof.works.length : 0;
-    if (prof && prof.at) S.syncedAt = prof.at;
-  }
-  async function loadWorks() {
-    const r = await api.getWorks();
-    S.shellWorks = r.works || [];
-    S.creatorUrl = r.creatorUrl || '';
-    S.syncedAt = r.syncedAt || null;
-    rebuildWorks();
+  async function loadPacks() {
+    const u = S.info && S.info.registryUrl;
+    if (!u) { S.packsState = 'off'; return; }
+    try {
+      const res = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(res.status);
+      S.packs = PK.fromIndex(await res.json());
+      S.packsState = 'ok';
+    } catch (e) { S.packsState = 'err'; }
   }
 
-  // ---------- 상단 ----------
-  function topHtml() {
-    let crumb = '';
-    let tools = '';
-    if (S.view === 'login') {
-      crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">크랙 로그인</span>`;
-    } else if (S.view === 'room' && S.work) {
-      crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">${esc(S.work.name)}</span>`;
-      if (S.work.bgm && bgm) tools += `<button class="icon-btn" data-act="music" title="배경 음악">${bgm.paused ? I.mute : I.music}</button>`;
-      tools += `<button class="icon-btn" data-act="immersive" title="몰입 모드 (F)">${I.full}</button>`;
-      tools += `<button class="icon-btn" data-act="toggle-side" title="옆 패널">${I.side}</button>`;
-    }
-    if (S.view === 'community') {
-      crumb = `<button class="btn ghost sm" data-act="home">${I.back}홈</button><span class="title">소통</span>`;
-    }
-    if (S.view === 'home') tools += `<button class="btn" data-act="community">${I.chat}소통 · 신고</button><button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
-    tools += `<button class="icon-btn" data-act="settings" title="설정">${I.gear}</button>`;
-    return `<header class="top"><div class="brand"><img class="wordmark" src="logo.png" alt="CRION"></div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
+  // ---------- 왼쪽 메뉴 ----------
+  const NAV = [['home', '홈', I.home], ['store', '스토어', I.store], ['community', '커뮤니티', I.comm], ['records', '내 기록', I.rec], ['settings', '설정', I.gear]];
+  function navHtml() {
+    const upd = S.update;
+    const packUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
+    return `<nav class="nav ${P.navSmall ? 'small' : ''}">
+      <div class="nav-brand"><img class="wordmark" src="logo.png" alt="CRION"><img class="mark" src="icon.png" alt="CRION"></div>
+      <div class="nav-list">${NAV.map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>
+      <div class="nav-foot">
+        ${upd ? `<button class="nav-upd" data-act="${upd.type === 'engine' ? 'relaunch' : 'open-link'}" data-url="${esc(upd.url || '')}">${I.spark}<span>${upd.type === 'engine' ? '새 버전 준비됨<small>눌러서 다시 시작</small>' : '새 설치 파일이 나왔어요<small>눌러서 받기</small>'}</span></button>` : ''}
+        <button class="nav-i ${S.view === 'login' ? 'on' : ''}" data-act="go" data-v="login" data-tut="login" title="크랙 로그인">${I.user}<span>크랙 로그인</span></button>
+        <button class="nav-fold" data-act="nav-fold" title="${P.navSmall ? '메뉴 펼치기' : '메뉴 접기'}">${P.navSmall ? I.fwd : I.back}<span>메뉴 접기</span></button>
+      </div>
+    </nav>`;
+  }
+  const newsKey = () => 'crion.newsSeen';
+  function newsSeen() { const top = (S.cat.news || []).map(n => n.date + n.title).sort().pop() || ''; return lsGet(newsKey()) === top; }
+  function markNewsSeen() { const top = (S.cat.news || []).map(n => n.date + n.title).sort().pop() || ''; lsSet(newsKey(), top); }
+
+  function pageHead(title, sub, right) {
+    return `<div class="page-h"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div>${right ? `<div class="page-h-r">${right}</div>` : ''}</div>`;
   }
 
   // ---------- 홈 ----------
+  const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
+  function noticeHtml() {
+    const n = S.notice;
+    if (!n || lsGet(noticeId(n))) return '';
+    return `<div class="notice"><b>공지</b><span>${esc(n.text)}</span>
+      ${n.link && /^https:\/\//.test(n.link) ? `<button class="btn sm" data-act="open-link" data-url="${esc(n.link)}">자세히</button>` : ''}
+      <button class="icon-btn sm" data-act="close-notice" title="닫기">${I.x}</button></div>`;
+  }
   function featuredWork() {
-    return S.works.find(w => w.featured) ||
-      (S.settings.recent || []).map(workById).find(Boolean) ||
-      S.works.find(w => w.thumb) || S.works[0] || null;
+    return S.works.find(w => w.featured && w.url) || (S.settings.recent || []).map(workById).find(w => w && w.url) || S.works.find(w => w.thumb && w.url) || S.works[0] || null;
+  }
+  function playBtns(w, big) {
+    if (!w.url) return `<button class="btn ${big ? 'big' : ''}" disabled>준비 중</button>`;
+    const c = hasCont(w);
+    return `<button class="btn primary ${big ? 'big' : ''}" data-act="play" data-id="${esc(w.id)}">${I.play}${c && P.openMode === 'continue' ? '이어하기' : '플레이'}</button>`
+      + (c ? `<button class="btn ${big ? 'big glass' : ''}" data-act="play-fresh" data-id="${esc(w.id)}" title="작품 페이지부터 열기">처음 화면</button>` : '');
   }
   function heroHtml() {
     const w = featuredWork();
     if (!w) return '';
     const rec = store.get(w.id);
-    const label = S.settings.workUrls[w.id] ? '이어하기' : '플레이';
     return `<section class="hero">
       <div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
       <div class="hero-in">
-        <div class="hero-poster">${thumbInner(w)}</div>
+        <button class="hero-poster" data-act="info" data-id="${esc(w.id)}">${thumbInner(w)}</button>
         <div class="hero-text">
-          <span class="eyebrow">${w.featured ? '추천 작품' : rec.turns ? '최근 플레이' : '오늘의 작품'}</span>
+          <span class="eyebrow">${w.featured ? '추천 작품' : rec.lastAt ? '최근 플레이' : '오늘의 작품'}</span>
           <h2>${esc(w.name)}</h2>
           ${w.genre ? `<p class="genre">${esc(w.genre)}</p>` : ''}
           ${w.desc ? `<p class="desc">${esc(w.desc)}</p>` : ''}
-          <div class="hero-btns">
-            <button class="btn big white" data-act="play" data-id="${esc(w.id)}">${I.play} ${label}</button>
-            <button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info} 작품 정보</button>
-          </div>
-          ${rec.turns ? `<p class="hero-meta">${rec.turns}턴 · ${fmtTime(rec.playMs)} · 마지막 ${ago(rec.lastAt)}</p>` : ''}
+          <div class="hero-btns">${playBtns(w, true)}<button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info}작품 정보</button></div>
+          ${rec.lastAt ? `<p class="hero-meta">마지막 플레이 ${ago(rec.lastAt)}${rec.playMs > 60000 ? ' · 함께한 시간 ' + fmtTime(rec.playMs) : ''}</p>` : ''}
         </div>
       </div>
     </section>`;
   }
-  function statsHtml() {
-    const t = store.totals(S.works.map(w => w.id));
-    if (!t.turns) return '';
-    const items = [['플레이한 작품', t.played + '개'], ['진행한 턴', t.turns.toLocaleString('ko-KR')], ['플레이 시간', fmtTime(t.playMs)], ['별표 대사', t.quotes + '개'], ['모은 그림', t.album + '장']];
-    return `<div class="stats">${items.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`;
+  function cardHtml(w) {
+    const rec = store.get(w.id);
+    const pk = packFor(w);
+    const sub = !w.url ? '준비 중' : rec.lastAt ? `${ago(rec.lastAt)} 플레이` : (w.genre || '');
+    return `<div class="card ${w.url ? '' : 'off'}">
+      <button class="thumb" data-act="${w.url ? 'play' : 'info'}" data-id="${esc(w.id)}" title="${esc(w.name)}">${thumbInner(w)}
+        ${w.featured ? '<span class="tag hot">추천</span>' : ''}
+        ${pk ? `<span class="tag pack">${installed.has(pk.id) ? '전용 화면' : '플레이팩'}</span>` : ''}
+        ${w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
+      </button>
+      <div class="meta"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div>
+      <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button>
+    </div>`;
+  }
+  function gridHtml() {
+    const q = S.homeQ.trim().toLowerCase();
+    const list = q ? S.works.filter(w => [w.name, w.genre, w.desc].join(' ').toLowerCase().includes(q)) : S.works;
+    if (!S.works.length) return `<div class="empty"><b>작품 목록을 불러오는 중이에요</b><span>인터넷 연결을 확인해 주세요. 계속 비어 있으면 커뮤니티에서 알려 주세요.</span></div>`;
+    if (!list.length) return `<div class="empty"><b>“${esc(S.homeQ)}” 작품이 없어요</b><span>다른 말로 찾아보세요.</span></div>`;
+    return `<div class="grid">${list.map(cardHtml).join('')}</div>`;
   }
   function homeHtml() {
-    const recent = (S.settings.recent || []).map(workById).filter(Boolean).slice(0, 4);
-    const cont = recent.length ? `
-      <div class="section-h"><h2>이어하기</h2></div>
+    const recent = (S.settings.recent || []).map(workById).filter(w => w && w.url).slice(0, 4);
+    const cont = recent.length ? `<div class="section-h"><h2>이어하기</h2><span class="sub">마지막으로 보던 대화로 바로 열려요</span></div>
       <div class="continue">${recent.map(w => {
         const rec = store.get(w.id);
-        return `<button class="cont" data-act="play" data-id="${esc(w.id)}">
-          ${thumbHtml(w, 'mini')}
-          <div><b>${esc(w.name)}</b><span>${rec.turns ? `${rec.turns}턴 · ${ago(rec.lastAt)}` : S.settings.workUrls[w.id] ? '마지막 대화로 바로 이어져요' : '작품 페이지부터 열려요'}</span></div>
-          <span class="go">이어하기 →</span>
-        </button>`;
+        return `<button class="cont" data-act="play" data-id="${esc(w.id)}"><div class="mini">${thumbInner(w)}</div>
+          <div><b>${esc(w.name)}</b><span>${[rec.lastAt ? ago(rec.lastAt) : '', rec.playMs > 60000 ? fmtTime(rec.playMs) : '', hasCont(w) ? '마지막 대화로 바로' : '작품 페이지부터'].filter(Boolean).join(' · ')}</span></div><span class="go">${I.play}</span></button>`;
       }).join('')}</div>` : '';
-    const syncLine = S.syncing ? '<span class="spin"></span> 작가 프로필에서 작품을 불러오는 중'
-      : S.syncedAt ? `작가 프로필 연동 · ${ago(Date.parse(S.syncedAt))}${S.profileCount ? ` · ${S.profileCount}개 찾음` : ''}` : '작가 프로필 연동 전';
-    const cards = S.works.map(w => {
-      const rec = store.get(w.id);
-      return `<div class="card">
-        <button class="thumb" data-act="play" data-id="${esc(w.id)}" title="${esc(w.name)} 플레이">${thumbInner(w)}
-          ${w.featured ? '<span class="tag hot">추천</span>' : w.auto ? '<span class="tag">새 작품</span>' : ''}
-          ${w.bgm ? `<span class="tag right">${I.music}</span>` : ''}
-          <span class="play">${I.play} 플레이</span>
-        </button>
-        <div class="meta"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button>
-          <span>${rec.turns ? `${rec.turns}턴 플레이 · ${ago(rec.lastAt)}` : esc(w.genre || (w.url ? '' : '주소 확인 중'))}</span></div>
-        <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button>
-      </div>`;
-    }).join('');
-    const needSync = !S.works.some(w => w.url);
-    return `<main class="home"><div class="home-in">
-      ${noticeHtml()}
-      ${!S.settings.onboarded ? `<div class="welcome"><div><b>처음 오셨나요?</b><span>① 크랙에 로그인 → ② 작품 고르기. 로그인은 한 번만 하면 돼요.</span></div>
-        <button class="btn primary" data-act="login">${I.user}크랙 로그인하기</button></div>`
-        : needSync && !S.syncing ? `<div class="note">작품 주소를 아직 못 불러왔어요. <b>목록 새로고침</b>을 눌러 주세요. 계속 안 되면 설정의 <b>목록 진단 복사</b> 결과를 보내 주세요.</div>` : ''}
-      ${heroHtml()}
-      ${statsHtml()}
-      ${cont}
+    const first = !S.settings.onboarded ? `<div class="start-card">
+        <div class="steps"><div><i>1</i><b>크랙 로그인</b><span>한 번만 하면 계속 유지돼요</span></div><div><i>2</i><b>작품 고르기</b><span>크랙 화면 그대로 열려요</span></div><div><i>3</i><b>이어하기</b><span>보던 대화를 기억해 둬요</span></div></div>
+        <button class="btn primary" data-act="go" data-v="login">${I.user}크랙 로그인하기</button></div>` : '';
+    return `<main class="page"><div class="page-in">
+      ${noticeHtml()}${first}${heroHtml()}${cont}
       <div class="section-h"><h2>전체 작품</h2><span class="sub">${S.works.length}개</span>
-        <span class="right muted">${syncLine}<button class="btn sm ghost" data-act="sync" ${S.syncing ? 'disabled' : ''}>${I.sync}새로고침</button></span></div>
-      <div class="grid">${cards}</div>
+        <label class="search right">${I.search}<input id="homeQ" placeholder="작품 찾기" value="${esc(S.homeQ)}"></label></div>
+      <div id="homeGrid">${gridHtml()}</div>
     </div></main>`;
   }
 
-  // ---------- 작품 정보 창 ----------
-  function charsHtml(rec, empty) {
-    const list = Object.entries(rec.chars).sort((a, b) => b[1].lines - a[1].lines);
-    if (!list.length) return `<p class="muted">${empty}</p>`;
-    return `<div class="chars">${list.map(([name, c]) => `<div class="char">
-      <div class="face">${c.img ? `<img src="${esc(c.img)}" alt="" loading="lazy">` : `<span style="background:${tintOf(name)}">${esc(name.slice(0, 1))}</span>`}</div>
-      <div><b>${esc(name)}</b><small>대사 ${c.lines}번</small>${c.last ? `<p>“${esc(c.last)}”</p>` : ''}</div></div>`).join('')}</div>`;
-  }
-  function albumHtml(rec, empty) {
-    if (!rec.album.length) return `<p class="muted">${empty}</p>`;
-    return `<div class="album">${rec.album.slice().reverse().map(a => `<button class="ph-item" data-act="view-img" data-src="${esc(a.src)}"><img src="${esc(a.src)}" alt="" loading="lazy"></button>`).join('')}</div>`;
-  }
-  function quotesHtml(rec, empty, wid) {
-    if (!rec.quotes.length) return `<p class="muted">${empty}</p>`;
-    return `<div class="quotes">${rec.quotes.slice().reverse().map(q => `<div class="quote">
-      ${q.who ? `<b>${esc(q.who)}</b>` : ''}<p>${esc(q.text)}</p>
-      <span><small>${ago(q.at)}</small><button class="link" data-act="unquote" data-w="${esc(wid)}" data-who="${esc(q.who)}" data-text="${esc(q.text)}">별표 빼기</button></span></div>`).join('')}</div>`;
-  }
-  function openInfo(id, tab) {
-    const w = workById(id);
-    if (!w) return;
-    const rec = store.get(w.id);
-    tab = tab || 'about';
-    const tabs = [['about', '소개'], ['chars', `등장인물 ${Object.keys(rec.chars).length}`], ['album', `앨범 ${rec.album.length}`], ['quotes', `명대사 ${rec.quotes.length}`]];
-    if (w.guide) tabs.splice(1, 0, ['guide', '공략']);
-    let body = '';
-    if (tab === 'about') {
-      body = `${w.desc ? `<p class="lead">${esc(w.desc)}</p>` : '<p class="muted">소개가 아직 없어요.</p>'}
-        <dl class="kv">${w.genre ? `<dt>장르</dt><dd>${esc(w.genre)}</dd>` : ''}
-          <dt>내 기록</dt><dd>${rec.turns ? `${rec.turns}턴 · ${fmtTime(rec.playMs)} · 마지막 ${ago(rec.lastAt)}` : '아직 플레이 전'}</dd>
-          ${rec.firstAt ? `<dt>처음 플레이</dt><dd>${new Date(rec.firstAt).toLocaleDateString('ko-KR')}</dd>` : ''}</dl>`;
-    } else if (tab === 'guide') body = `<div class="guide">${mdLite(w.guide)}</div>`;
-    else if (tab === 'chars') body = charsHtml(rec, '플레이하면서 만난 인물이 여기에 모여요.');
-    else if (tab === 'album') body = albumHtml(rec, '응답에 나온 그림이 여기에 모여요.');
-    else body = quotesHtml(rec, '대사창의 ☆를 누르면 마음에 드는 대사를 모을 수 있어요.', w.id);
-    modal(`<div class="info-head"><div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
-        <div class="info-head-in">${thumbHtml(w, 'info-poster')}<div><h3>${esc(w.name)}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
-          <div class="hero-btns"><button class="btn white" data-act="play" data-id="${esc(w.id)}">${I.play} ${S.settings.workUrls[w.id] ? '이어하기' : '플레이'}</button>
-          ${S.settings.workUrls[w.id] ? `<button class="btn glass" data-act="play-fresh" data-id="${esc(w.id)}">처음부터 (작품 페이지)</button>` : ''}</div></div></div>
-        <button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
-      <nav class="tabs">${tabs.map(([k, l]) => `<button class="${k === tab ? 'on' : ''}" data-act="info-tab" data-id="${esc(w.id)}" data-tab="${k}">${l}</button>`).join('')}</nav>
-      <div class="body">${body}</div>`, true);
-  }
-
-  // ---------- 소통: 소식 · 커뮤니티 · 신고 · 건의 · 공략 제보 ----------
-  function sentHistory() { try { return JSON.parse(localStorage.getItem('crion.sent') || '[]'); } catch (e) { return []; } }
-  function pushSent(item) { const h = sentHistory().concat(item).slice(-50); try { localStorage.setItem('crion.sent', JSON.stringify(h)); } catch (e) { /* 저장 안 됨 */ } }
-  const hookFor = (kind) => { const r = S.cat.report || {}; return (r.webhooks && r.webhooks[kind]) || r.webhook || ''; };
-
-  function formHtml(kind, opt) {
-    opt = opt || {};
-    const works = S.works.map(w => `<option ${opt.work === w.name ? 'selected' : ''}>${esc(w.name)}</option>`).join('');
-    const workSel = (req) => `<label class="f"><span>작품${req ? '' : ' (선택)'}</span><select id="fWork" class="field">${req ? '' : '<option value="">작품과 상관없음</option>'}${works}</select></label>`;
-    const nick = `<label class="f"><span>닉네임 (선택 · 답장이나 공략 출처 표시용)</span><input id="fNick" class="field" maxlength="30" value="${esc(localStorage.getItem('crion.nick') || '')}"></label>`;
-    let body = '';
-    if (kind === 'bug') {
-      body = `${workSel(false)}
-        <label class="f"><span>무슨 문제가 있었나요?</span><textarea id="fBody" class="field" rows="4" placeholder="예) 응답에 다른 글씨가 섞여 나와요 / 보내기를 눌러도 안 가요"></textarea></label>
-        <label class="f"><span>어떻게 하다가 생겼나요? (선택)</span><input id="fSteps" class="field" placeholder="예) 작품 열고 첫 대사 보냈을 때"></label>
-        ${opt.diag ? `<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (대화 내용 일부가 들어갈 수 있어요)</label>` : ''}`;
-    } else if (kind === 'idea') {
-      body = `<label class="f"><span>한 줄 요약</span><input id="fTitle" class="field" maxlength="80" placeholder="예) 대사창 글씨체를 바꾸고 싶어요"></label>
-        <label class="f"><span>자세히</span><textarea id="fBody" class="field" rows="5"></textarea></label>${workSel(false)}`;
-    } else {
-      body = `${workSel(true)}
-        <label class="f"><span>공략·팁</span><textarea id="fBody" class="field" rows="5" placeholder="다른 플레이어에게 도움이 될 팁을 적어 주세요. 좋은 공략은 작품 공략에 실려요."></textarea></label>`;
-    }
-    const ready = CM.isWebhook(hookFor(kind));
-    return `<div class="form" data-kind="${kind}">${body}${nick}
-      <div class="form-foot">${ready ? '<span class="muted">히리온에게 바로 전달돼요</span>' : '<span class="muted warn-text">받을 곳이 아직 준비 중이에요. 버튼을 누르면 내용이 복사돼요.</span>'}
-        <button class="btn primary" data-act="form-send" data-kind="${kind}">${ready ? '보내기' : '내용 복사'}</button></div></div>`;
-  }
-
-  function communityHtml() {
-    const L = S.cat.links || {};
-    const links = [
-      L.discord && ['디스코드', '플레이어들과 이야기하고 소식 받기', L.discord],
-      L.openchat && ['오픈채팅', '카카오톡 오픈채팅방', L.openchat],
-      ...((L.other || []).map(o => o && o.url && [o.label || '바로가기', o.desc || '', o.url]))
-    ].filter(Boolean);
-    const news = (S.cat.news || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-    const hist = sentHistory().slice().reverse().slice(0, 8);
-    const kinds = [['bug', '오류 신고'], ['idea', '건의'], ['tip', '공략 제보']];
-    return `<main class="home"><div class="home-in comm">
-      <div class="hello"><div><h1>소통</h1><p>소식을 보고, 문제나 의견을 히리온에게 바로 보낼 수 있어요.</p></div></div>
-      <div class="comm-grid">
-        <section>
-          <div class="section-h"><h2>소식</h2></div>
-          ${S.notice ? `<div class="news hot"><b>공지</b><p>${esc(S.notice.text)}</p></div>` : ''}
-          ${news.length ? news.map(n => `<article class="news">
-              <div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
-              ${n.text ? `<p>${esc(n.text)}</p>` : ''}
-              ${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}
-            </article>`).join('') : (!S.notice ? '<p class="muted">아직 소식이 없어요.</p>' : '')}
-          <div class="section-h"><h2>커뮤니티</h2></div>
-          ${links.length ? `<div class="links">${links.map(([t, d, u]) => `<button class="link-card" data-act="open-link" data-url="${esc(u)}"><b>${esc(t)}</b><span>${esc(d)}</span><i>→</i></button>`).join('')}</div>`
-            : '<p class="muted">커뮤니티가 곧 열려요.</p>'}
-        </section>
-        <section>
-          <div class="section-h"><h2>보내기</h2></div>
-          <div class="send-box">
-            <nav class="tabs">${kinds.map(([k, l]) => `<button class="${S.form.kind === k ? 'on' : ''}" data-act="form-kind" data-kind="${k}">${l}</button>`).join('')}</nav>
-            <div class="body">${formHtml(S.form.kind, { diag: false })}</div>
-          </div>
-          ${hist.length ? `<div class="section-h"><h2>내가 보낸 것</h2></div><div class="hist">${hist.map(h => `<div><b>${esc((CM.KINDS[h.kind] || {}).label || '')}</b><span>${esc(h.title || '')}</span><small>${ago(h.at)}${h.copied ? ' · 복사만 함' : ''}</small></div>`).join('')}</div>` : ''}
-        </section>
-      </div>
-    </div></main>`;
-  }
-
-  function openReport() {
-    const w = S.room && S.room.work;
-    S.diagText = '';
-    const v = wv();
-    if (v) { S.waitDiag = true; v.send('crion:diag'); }
-    modal(`<header><h3>문제 신고</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
-      <div class="body">${formHtml('bug', { work: w && w.name, diag: !!v })}</div>`);
-  }
-
-  async function sendForm(kind) {
-    const v = (id) => { const el = $('#' + id); return el ? el.value.trim() : ''; };
-    const f = { work: v('fWork'), title: v('fTitle'), body: v('fBody'), steps: v('fSteps'), nick: v('fNick') };
-    if (!f.body) { toast('내용을 적어 주세요'); return; }
-    if (kind === 'bug' && !f.title) f.title = f.body.split('\n')[0].slice(0, 60);
-    if (kind === 'tip' && !f.title) f.title = (f.work ? f.work + ' 공략: ' : '') + f.body.slice(0, 40);
-    try { localStorage.setItem('crion.nick', f.nick); } catch (e) { /* 무시 */ }
-    const ctx = { app: S.info.version, engine: S.info.engineVersion, os: S.info.platform };
-    const hook = hookFor(kind);
-    const hist = sentHistory();
-    if (!CM.isWebhook(hook)) {
-      copy(CM.asText(kind, f, ctx), '내용을 복사했어요. 커뮤니티나 히리온에게 붙여서 보내 주세요');
-      pushSent({ kind, title: f.title, work: f.work, at: Date.now(), copied: true });
-      return finishForm();
-    }
-    const lim = CM.allowed(hist);
-    if (!lim.ok) { toast(lim.why); return; }
-    const attach = ($('#fDiag') && $('#fDiag').checked && S.diagText) ? { text: S.diagText, name: 'crion-diag.txt' } : null;
-    const btn = document.querySelector('[data-act=form-send]');
-    if (btn) { btn.disabled = true; btn.textContent = '보내는 중…'; }
-    try {
-      await CM.send(hook, CM.buildPayload(kind, f, ctx), attach);
-      pushSent({ kind, title: f.title, work: f.work, at: Date.now() });
-      toast('보냈어요. 고마워요!');
-      finishForm();
-    } catch (e) {
-      toast('보내지 못했어요. 인터넷 연결을 확인해 주세요');
-      if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
-    }
-  }
-  function finishForm() {
-    if ($('#layer').innerHTML) closeModal();
-    if (S.view === 'community') render();
-  }
-
-  // ---------- 크랙 로그인 화면 ----------
-  function loginHtml() {
-    return `<div class="login">
-      <div class="hint"><b>크랙 로그인</b><span>여기서 한 번 로그인해 두면 모든 작품에서 계속 로그인돼 있어요.</span>
-        <button class="btn primary sm" data-act="login-done">로그인 완료</button></div>
-      <webview id="crack" src="${esc(S.info.crackOrigin)}" partition="persist:crack" allowpopups></webview></div>`;
-  }
-
-  // ---------- 플레이 화면 ----------
-  function newRoom(work, fresh) {
-    const rec = store.get(work.id);
-    return {
-      work, url: (!fresh && S.settings.workUrls[work.id]) || work.url || S.creatorUrl || S.info.crackOrigin,
-      tab: 'status', baseStatus: null, curBg: rec.lastBg || null, turnStartBg: rec.lastBg || null,
-      orig: true, autoOrig: true, side: true,
-      turn: null,        // { key, segs, beats, frames, status, choices, done, live }
-      idx: 0, typed: true, follow: false,
-      status: rec.lastStatus || null, waiting: false, hasInput: false,
-      log: loadLog(work.id), typing: null
-    };
-  }
-
-  const logKey = (id) => 'crion.log.' + id;
-  function loadLog(id) { try { return JSON.parse(localStorage.getItem(logKey(id)) || '[]'); } catch (e) { return []; } }
-  function saveLog() {
-    const r = S.room;
-    if (!r) return;
-    try { localStorage.setItem(logKey(r.work.id), JSON.stringify(r.log.slice(-120))); } catch (e) { /* 저장 안 됨 */ }
-  }
-
-  function roomHtml() {
-    const r = S.room;
-    const w = r.work;
-    return `<div class="room ${r.orig ? 'orig-on' : ''} ${r.side ? '' : 'side-off'}" id="room">
-      <section class="stage-wrap">
-        <div class="stage" id="stage">
-          <div class="bg thumbbg" id="bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
-          <div class="backdrop" id="bdA"></div><div class="backdrop" id="bdB"></div>
-          <div class="scene" id="scene"></div>
-          <div class="person off" id="person"></div>
-          <div class="vign"></div>
-          <div class="cover" id="cover"><div class="in">
-            <div class="poster">${w.thumb ? `<img src="${esc(w.thumb)}" alt="">` : ''}</div>
-            <h2>${esc(w.name)}</h2><p id="coverText">크랙 화면을 불러오는 중이에요…</p><div class="cover-actions" id="coverActions"></div></div></div>
-          <div class="wait hidden" id="wait"></div>
-          <div class="choices" id="choices"></div>
-          <div class="dlg hidden" id="dlg" tabindex="0">
-            <div class="name hidden" id="dlgName"></div>
-            <div class="text" id="dlgText"></div>
-            <div class="foot"><span class="pos" id="dlgPos"></span><span id="dlgLive"></span>
-              <span class="nav"><button data-act="star" id="starBtn" title="별표 대사 모으기">${I.star}</button><button data-act="prev">◀ 이전</button><button data-act="first">처음부터</button><button data-act="next">다음 ▶</button></span></div>
-          </div>
-        </div>
-        <div class="orig"><div class="hint" id="origHint">${r.autoOrig ? '크랙에 로그인하고 대화를 시작해 주세요. 대화창이 열리면 게임 화면으로 바뀌어요.' : '크랙 원본 화면이에요.'}
-          <button class="btn sm" data-act="to-game">게임 화면으로</button></div>
-          <webview id="crack" src="${esc(r.url)}" partition="persist:crack" allowpopups></webview></div>
-      </section>
-      <aside class="side" id="side"></aside>
-      <div class="inbar">
-        <div class="tools">
-          <button class="icon-btn" data-act="regen" title="다시 생성">${I.redo}</button>
-          <button class="icon-btn" data-act="log" title="지난 대화">${I.log}</button>
-          ${w.guide ? `<button class="icon-btn" data-act="guide" title="공략">${I.book}</button>` : ''}
-          <button class="icon-btn" data-act="to-orig" title="크랙 원본 화면">${I.web}</button>
-          <button class="icon-btn" data-act="report-here" title="문제 신고 (지금 화면 정보 첨부)">${I.flag}</button>
-        </div>
-        <div class="quick" id="quick"></div>
-        <textarea id="msg" rows="1" placeholder="행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈"></textarea>
-        <button class="btn ghost" data-act="continue" title="이어서 진행">계속</button>
-        <button class="send" data-act="send" id="sendBtn">${I.send}보내기</button>
-      </div>
-    </div>`;
-  }
-
-  // 상태창 칸 이름(숫자 뺀 글자)과 첫 숫자 → 지난 턴과 비교
-  const statusKey = (t) => String(t).replace(/-?\d+(?:[.,]\d+)?/g, '#').replace(/\s+/g, ' ').trim();
-  function firstNum(c) {
-    if (c.max) return c.cur;
-    const m = /(-?\d+(?:\.\d+)?)/.exec(String(c.text).replace(/,(?=\d{3})/g, ''));
-    return m ? Number(m[1]) : null;
-  }
-  function statusNums(st) {
-    const out = {};
-    if (!st || !st.rows) return out;
-    for (const row of st.rows) for (const c of row) { const n = firstNum(c); if (n != null) out[statusKey(c.text)] = n; }
-    return out;
-  }
-
-  function sideHtml() {
-    const r = S.room;
-    const w = r.work;
-    const st = r.status;
-    let stHtml = '<p class="muted">응답에 상태창이 있으면 여기에 정리돼요.</p>';
-    if (st && st.rows) {
-      const base = statusNums(r.baseStatus);
-      const delta = (c) => {
-        const k = statusKey(c.text);
-        const now = firstNum(c);
-        if (now == null || !(k in base) || base[k] === now) return '';
-        const d = Math.round((now - base[k]) * 10) / 10;
-        return `<em class="delta ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</em>`;
-      };
-      stHtml = st.rows.map(row => `<div class="srow">${row.map(c => {
-        if (c.max) {
-          const p = Math.max(0, Math.min(100, Math.round(c.cur / c.max * 100)));
-          const cls = p <= 30 ? 'low' : p <= 60 ? 'mid' : 'hi';
-          return `<div class="chip g">${esc(c.text)}${delta(c)}<div class="bar"><i class="${cls}" style="width:${p}%"></i></div></div>`;
-        }
-        return `<span class="chip">${esc(c.text)}${delta(c)}</span>`;
-      }).join('')}</div>`).join('');
-    }
-    const rec = store.get(w.id);
-    const tabs = [['status', '상태'], ['chars', '인물'], ['album', '앨범'], ['quotes', '명대사']];
-    let body = '';
-    if (r.tab === 'chars') body = charsHtml(rec, '대사를 한 인물이 여기에 모여요.');
-    else if (r.tab === 'album') body = albumHtml(rec, '응답에 나온 그림이 여기에 모여요.');
-    else if (r.tab === 'quotes') body = quotesHtml(rec, '대사창의 ☆를 누르면 여기에 모여요.', w.id);
-    else body = `<div class="panel"><h4>상태<span class="right">${st ? `<button class="btn ghost sm" data-act="copy-status">복사</button>` : ''}</span></h4>${stHtml}</div>
-      <div class="panel"><h4>이번 작품 기록</h4><div class="muted">${rec.turns ? `${rec.turns}턴 · ${fmtTime(rec.playMs)} · 인물 ${Object.keys(rec.chars).length}명 · 그림 ${rec.album.length}장` : '첫 플레이예요. 기록이 여기에 쌓여요.'}</div></div>
-      <div class="panel"><h4>조작</h4><div class="muted">화면 클릭 · Space · → 다음<br>← 이전 · 1~6 선택지 · F 몰입 모드</div></div>`;
-    return `<div class="side-in">
-      <button class="work-head" data-act="info" data-id="${esc(w.id)}">${thumbHtml(w, 'mini')}<div><b>${esc(w.name)}</b><span>${esc(w.genre || '작품 정보 보기')}</span></div></button>
-      <nav class="tabs small">${tabs.map(([k, l]) => `<button class="${k === r.tab ? 'on' : ''}" data-act="side-tab" data-tab="${k}">${l}</button>`).join('')}</nav>
-      ${body}
-    </div>`;
-  }
-
-  // ---------- 무대 그리기 ----------
-  function setOrig(on, auto) {
-    const r = S.room;
-    if (!r) return;
-    r.orig = on;
-    if (auto !== undefined) r.autoOrig = auto;
-    const room = $('#room');
-    if (room) room.classList.toggle('orig-on', on);
-    const hint = $('#origHint');
-    if (hint) hint.firstChild.nodeValue = r.autoOrig ? '크랙에 로그인하고 대화를 시작해 주세요. 대화창이 열리면 게임 화면으로 바뀌어요. ' : '크랙 원본 화면이에요. ';
-    if (!on) setTimeout(() => { const m = $('#msg'); if (m) m.focus(); }, 50);
-  }
-
-  function showCover(text, actions) {
-    const c = $('#cover');
-    if (!c) return;
-    c.classList.toggle('hidden', !text);
-    if (text) $('#coverText').textContent = text;
-    const box = $('#coverActions');
-    if (box) {
-      const acts = actions || [];
-      // 이어하기를 먼저, 그다음 새로 시작
-      acts.sort((a, b) => (a.kind === 'continue' ? 0 : 1) - (b.kind === 'continue' ? 0 : 1));
-      box.innerHTML = acts.map((a, i) => `<button class="btn ${i === 0 ? 'primary big' : 'big light'}" data-act="start" data-id="${a.id}">${esc(a.label)}</button>`).join('')
-        + (acts.length ? '<button class="btn ghost big light" data-act="to-orig">크랙 화면 보기</button>' : '');
-    }
-  }
-
-  let typeTimer = null;
-  function setBackdrop(src) {
-    const a = $('#bdA'), b = $('#bdB');
-    if (!a || !b) return;
-    const cur = a.classList.contains('on') ? a : b.classList.contains('on') ? b : null;
-    if ((cur ? cur.dataset.src : '') === (src || '')) return;
-    if (!src) { if (cur) cur.classList.remove('on'); return; }
-    const next = cur === a ? b : a;
-    next.dataset.src = src;
-    next.style.backgroundImage = cssUrl(src);
-    const img = new Image();
-    const show = () => { next.classList.add('on'); if (cur) cur.classList.remove('on'); };
-    img.onload = show; img.onerror = show; img.src = src;
-  }
-
-  function drawBeat() {
-    const r = S.room;
-    if (!r || !r.turn) return;
-    const t = r.turn;
-    const n = t.beats.length;
-    if (!n) return;
-    r.idx = Math.max(0, Math.min(r.idx, n - 1));
-    const b = t.beats[r.idx];
-    const f = t.frames[r.idx] || {};
-    showCover('');
-    // 그림: 배경·인물 구분 없이, 응답에 나온 그림을 한 장씩 순서대로 화면에 꽉 차게. 다음 그림이 나올 때까지 유지
-    setBackdrop(f.img ? f.img.src : '');
-    const scene = $('#scene');
-    const cgSrc = '';
-    if (scene.dataset.src !== cgSrc) {
-      scene.dataset.src = cgSrc;
-      scene.innerHTML = cgSrc ? `<img src="${esc(cgSrc)}" alt="">` : '';
-    }
-    const person = $('#person');
-    const pSrc = '';
-    if (person.dataset.src !== pSrc) {
-      person.dataset.src = pSrc;
-      if (pSrc) { person.innerHTML = `<img src="${esc(pSrc)}" alt="">`; person.classList.remove('off'); }
-      else person.classList.add('off');
-    }
-    // 대사창
-    const dlg = $('#dlg');
-    dlg.classList.remove('hidden');
-    dlg.classList.toggle('say', b.kind === 'say');
-    dlg.classList.toggle('narr', b.kind !== 'say');
-    const name = $('#dlgName');
-    name.classList.toggle('hidden', !b.who);
-    name.textContent = b.who || '';
-    $('#dlgPos').textContent = `${r.idx + 1} / ${n}`;
-    const sb = $('#starBtn');
-    if (sb) sb.classList.toggle('on', !!b.text && store.hasQuote(r.work.id, { who: b.who, text: b.text }));
-    $('#dlgLive').innerHTML = !t.done ? '<span class="live"><i></i>쓰는 중</span>' : '';
-    const el = $('#dlgText');
-    clearInterval(typeTimer);
-    const speed = SPEED[S.settings.textSpeed] != null ? SPEED[S.settings.textSpeed] : 24;
-    const full = b.text;
-    if (r.follow || !speed || r.typed) {
-      el.textContent = full;
-      r.typed = true;
-      onTyped();
-    } else {
-      let i = 0;
-      el.textContent = '';
-      typeTimer = setInterval(() => {
-        i += 2;
-        el.textContent = full.slice(0, i);
-        if (i >= full.length) { clearInterval(typeTimer); r.typed = true; onTyped(); }
-      }, speed);
-    }
-    drawChoices();
-  }
-
-  function onTyped() {
-    const el = $('#dlgText');
-    const r = S.room;
-    if (!el || !r || !r.turn) return;
-    const pos = $('#dlgPos');
-    if (pos && r.idx < r.turn.beats.length - 1 && !pos.querySelector('.more')) pos.insertAdjacentHTML('beforeend', '<span class="more"></span>');
-    drawChoices();
-    // 자동 진행: 다 쓴 응답에서, 글 길이만큼 기다렸다가 다음 장면
-    clearTimeout(autoTimer);
-    if (P.auto && r.turn.done && !r.follow && r.idx < r.turn.beats.length - 1 && !$('#layer').innerHTML) {
-      const len = (r.turn.beats[r.idx].text || '').length;
-      autoTimer = setTimeout(() => { if (S.room === r) step(1); }, Math.min(7000, 1400 + len * 45));
-    }
-  }
-  let autoTimer = null;
-
-  function drawChoices() {
-    const r = S.room;
-    const box = $('#choices');
-    if (!box || !r) return;
-    const t = r.turn;
-    const show = t && t.done && t.choices.length && r.idx >= t.beats.length - 1 && r.typed && !r.waiting;
-    box.innerHTML = show ? t.choices.map((c, i) => `<button class="choice" data-act="choose" data-i="${i}"><span class="k">${i + 1}</span>${esc(c)}</button>`).join('') : '';
-  }
-
-  function step(d) {
-    const r = S.room;
-    if (!r || !r.turn || isWaiting()) return;
-    clearTimeout(autoTimer);
-    if (d > 0 && !r.typed) {            // 타자 중이면 먼저 끝까지 보여 준다
-      clearInterval(typeTimer);
-      $('#dlgText').textContent = r.turn.beats[r.idx].text;
-      r.typed = true; onTyped();
-      return;
-    }
-    const n = r.turn.beats.length;
-    const next = Math.max(0, Math.min(n - 1, r.idx + d));
-    if (next === r.idx) return;
-    r.idx = next;
-    r.typed = d < 0;
-    r.follow = !r.turn.done && next === n - 1;
-    drawBeat();
-  }
-
-  // ---------- 크랙에서 온 소식 ----------
-  function onReply(d) {
-    const r = S.room;
-    if (!r || !d.input) return;          // 입력창이 없는 화면(작품 소개 등)의 글은 응답이 아니다
-    const parsed = R.parse(d.segs || [], { max: 150 });
-    const isNew = !r.turn || r.turn.key !== d.key;
-    if (isNew && !parsed.beats.length && !parsed.status) return;
-    if (isNew) {
-      const live = r.waiting || r.expectLive;
-      if (r.turn && r.turn.beats && r.turn.beats.length) r.prevLast = r.turn.beats[r.turn.beats.length - 1];
-      r.baseStatus = r.status;            // 이번 응답 전 상태 (▲▼ 비교용)
-      clearTimeout(r.slowTimer);
-      r.turn = { key: d.key, live, done: false };
-      r.waiting = false;
-      r.expectLive = false;
-      r.idx = 0;
-      r.follow = false;
-      r.typed = false;
-      r.turnStartBg = r.curBg;              // 이 응답은 지금 배경에서 시작
-      if (r.autoOrig && r.orig) setOrig(false, false);
-    }
-    const t = r.turn;
-    const wasAtEnd = r.idx >= (t.beats ? t.beats.length - 1 : 0);
-    t.segs = d.segs;
-    t.beats = parsed.beats.length ? parsed.beats : [{ kind: 'narr', who: null, text: '…' }];
-    t.frames = R.stageFrames(t.beats, t.live ? r.turnStartBg : (r.curBg || null));
-    t.choices = parsed.choices;
-    t.done = !!d.done;
-    if (parsed.status) { r.status = parsed.status; renderSide(); }
-    void wasAtEnd;
-    // 쓰는 중: 글은 숨기고 기다림 화면만 (다 쓰면 처음부터 읽기)
-    if (t.live && !t.done) {
-      const chars = (d.segs || []).filter(x => x.t === 'text').reduce((a, x) => a + x.s.replace(/\s+/g, '').length, 0);
-      const imgs = (d.segs || []).filter(x => x.t === 'img');
-      showWaiting({ chars, scenes: parsed.beats.length, imgs: imgs.length, img: imgs.length ? imgs[imgs.length - 1].src : '' });
-      return;
-    }
-    if (d.done) {
-      hideWaiting();
-      const lastBg = t.frames.length ? t.frames[t.frames.length - 1].img : null;
-      if (lastBg && (!r.curBg || r.curBg.src !== lastBg.src)) {
-        r.curBg = lastBg;                          // 새 배경이 나올 때까지 유지 (다음에 열어도)
-        const rec = store.get(r.work.id); rec.lastBg = { src: lastBg.src, w: lastBg.w || 0, h: lastBg.h || 0 }; store.save(r.work.id);
-      }
-      r.idx = 0;
-      r.typed = false;
-      r.follow = false;
-      if (r.recordedKey !== d.key && t.live) {          // 이번 플레이에서 새로 받은 응답만 센다
-        r.recordedKey = d.key;
-        store.recordTurn(r.work.id, t.beats, t.frames);
-        if (r.status) { store.get(r.work.id).lastStatus = r.status; store.save(r.work.id); }
-        renderSide();
-      }
-      const text = (d.segs || []).filter(s => s.t === 'text').map(s => s.s).join('').trim();
-      const last = r.log[r.log.length - 1];
-      if (text && !(last && last.key === d.key)) { r.log.push({ who: 'ai', key: d.key, text, at: Date.now() }); }
-      else if (last && last.key === d.key) last.text = text;
-      saveLog();
-      setSending(false);
-    }
-    drawBeat();
-  }
-
-  // ---------- 쓰는 중 기다림 화면 ----------
-  let waitTimer = null, waitIdx = 0;
-  function waitCards() {
-    const r = S.room;
-    const rec = store.get(r.work.id);
-    const cards = [];
-    if (r.prevLast && r.prevLast.text) cards.push(['지난 장면', (r.prevLast.who ? r.prevLast.who + ' · ' : '') + r.prevLast.text, '']);
-    rec.quotes.slice(-6).reverse().forEach(q => cards.push(['내가 모은 명대사', (q.who ? q.who + ' · ' : '') + '“' + q.text + '”', '']));
-    Object.entries(rec.chars).sort((a, b) => b[1].lines - a[1].lines).slice(0, 4)
-      .forEach(([n, c]) => cards.push(['함께하는 인물', `${n} · 지금까지 대사 ${c.lines}번${c.last ? '\n“' + c.last + '”' : ''}`, c.img || '']));
-    String(r.work.guide || '').split('\n').map(l => l.replace(/^[-*•#\s]+/, '').replace(/\*\*/g, '').trim()).filter(l => l.length > 6).slice(0, 6)
-      .forEach(l => cards.push(['공략 팁', l, '']));
-    [['알고 계셨나요?', 'F 키를 누르면 몰입 모드로 크게 볼 수 있어요.'], ['알고 계셨나요?', '대사창의 ☆를 누르면 마음에 드는 대사를 모을 수 있어요.'],
-      ['알고 계셨나요?', '입력창 위 + 로 자주 쓰는 문장을 등록해 두면 한 번에 보낼 수 있어요.'], ['알고 계셨나요?', '옆 패널의 앨범에는 응답에 나온 그림이 모여요.']]
-      .forEach(([a, b]) => cards.push([a, b, '']));
-    return cards;
-  }
-  function avgReplyLen() {
-    const L = (S.room.log || []).filter(x => x.who === 'ai' && x.text).slice(-8).map(x => x.text.replace(/\s+/g, '').length);
-    return L.length ? Math.max(300, L.reduce((a, b) => a + b, 0) / L.length) : 900;
-  }
-  function rotateCard() {
-    const el = $('#waitCard');
-    const r = S.room;
-    if (!el || !r) return;
-    const cards = waitCards();
-    const c = cards[waitIdx % cards.length];
-    waitIdx++;
-    el.classList.remove('in');
-    setTimeout(() => {
-      el.innerHTML = `${c[2] ? `<img src="${esc(c[2])}" alt="">` : ''}<div><small>${esc(c[0])}</small><p>${esc(c[1])}</p></div>`;
-      el.classList.add('in');
-    }, 220);
-  }
-  function showWaiting(info) {
-    const r = S.room;
-    const el = $('#wait');
-    if (!r || !el) return;
-    if (el.classList.contains('hidden')) {
-      el.innerHTML = `<div class="wait-card" id="waitCard"></div>
-        <div class="wait-box"><div class="quill" aria-hidden="true"><i></i><i></i><i></i></div>
-          <div class="wait-text"><b id="waitTitle">이야기를 쓰는 중이에요</b><span id="waitSub">크랙이 응답을 준비하고 있어요</span></div>
-          <div class="wait-bar"><i id="waitBar"></i></div></div>`;
-      el.classList.remove('hidden');
-      $('#stage').classList.add('waiting');
-      $('#dlg').classList.add('hidden');
-      $('#choices').innerHTML = '';
-      showCover('');
-      waitIdx = Math.floor(Math.random() * 3);
-      rotateCard();
-      clearInterval(waitTimer);
-      waitTimer = setInterval(rotateCard, 5200);
-    }
-    const sub = $('#waitSub'), bar = $('#waitBar');
-    if (info && info.chars) {
-      const pct = Math.min(96, Math.round(info.chars / avgReplyLen() * 100));
-      sub.textContent = `${info.chars.toLocaleString('ko-KR')}자 · 장면 ${info.scenes}개${info.imgs ? ` · 그림 ${info.imgs}장` : ''} 받는 중`;
-      bar.parentElement.classList.remove('indet');
-      bar.style.width = Math.max(6, pct) + '%';
-      // 새 그림이 오면 배경을 살짝 바꿔 미리 분위기만 보여 준다
-      if (info.img && !S.room.curBg) { const bg = $('#bg'); if (bg && bg.dataset.tease !== info.img) { bg.dataset.tease = info.img; bg.classList.remove('thumbbg'); bg.style.backgroundImage = cssUrl(info.img); } }
-    } else {
-      bar.parentElement.classList.add('indet');
-    }
-  }
-  function hideWaiting() {
-    clearInterval(waitTimer);
-    waitTimer = null;
-    const el = $('#wait');
-    if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
-    const st = $('#stage');
-    if (st) st.classList.remove('waiting');
-  }
-  const isWaiting = () => { const el = $('#wait'); return !!(el && !el.classList.contains('hidden')); };
-
-  function onState(d) {
-    const r = S.room;
-    if (!r) return;
-    r.hasInput = !!d.input;
-    if (!d.page && d.input) d.page = 'chat';
-    if (d.page) {
-      const was = r.page;
-      r.page = d.page;
-      if (d.page === 'detail' && !r.turn) {
-        // 작품 소개 페이지: 크랙의 '이어하기/대화 시작' 버튼을 CRION 화면에 그대로 보여 준다
-        setOrig(false, false);
-        showCover(d.actions && d.actions.length ? '이어서 하거나 새로 시작해 주세요.' : '작품 페이지예요.', d.actions || []);
-      } else if (d.page === 'chat') {
-        if (was !== 'chat' && (d.url || r.url)) {
-          const urls = Object.assign({}, S.settings.workUrls, { [r.work.id]: d.url || r.url });
-          save({ workUrls: urls });            // 다음엔 이 대화방으로 바로
-        }
-      } else if (d.page === 'other' && !r.turn && r.autoOrig !== false) {
-        setOrig(true, true);                   // 로그인 등: 크랙 화면 그대로
-      }
-      updateSendable();
-    }
-    if (d.waiting) {
-      r.waiting = true;
-      if (!r.orig) { $('#dlgLive') && ($('#dlgLive').innerHTML = '<span class="live"><i></i>응답 기다리는 중</span>'); }
-      drawChoices();
-    }
-    if (r.hasInput && (r.autoOrig || r.page === 'chat') && !r.turn && (r.orig || !$('#cover').classList.contains('hidden'))) {
-      // 대화창은 열렸는데 아직 응답이 없을 때: 게임 화면으로 넘어가 첫 입력을 기다린다
-      setOrig(false, false);
-      showCover(getLearned() ? '이어서 진행해 보세요. 아래 입력창에 쓰고 보내면 돼요.'
-        : '아래 입력창에 첫 행동을 보내 주세요. 첫 응답을 받으면서 이 작품 화면을 맞춰요. (지난 대화는 크랙 원본 화면 버튼으로 볼 수 있어요)');
-    }
-  }
-
-  function onUrl(d) {
-    const r = S.room;
-    if (!r || !d.url) return;
-    r.url = d.url;          // 이어하기 주소는 채팅 화면으로 확인됐을 때만 저장한다 (onState)
-  }
-
-  // 채팅 화면일 때만 보낼 수 있다 (작품 소개 페이지의 댓글 칸 등에 들어가지 않게)
-  function updateSendable() {
-    const r = S.room;
-    const ok = !!(r && r.page === 'chat');
-    const m = $('#msg');
-    if (m) m.placeholder = ok ? '행동이나 대사를 입력하세요 · Enter 보내기, Shift+Enter 줄바꿈' : '대화를 시작하면 여기서 입력할 수 있어요';
-    const b = $('#sendBtn');
-    if (b && !ok) b.disabled = true;
-    else if (b && ok && !sendGuard) b.disabled = false;
-  }
-
-  // ---------- 보내기 ----------
-  let sendGuard = null;
-  function setSending(on) {
-    const b = $('#sendBtn');
-    if (b) b.disabled = !!on;
-    clearTimeout(sendGuard);
-    sendGuard = null;
-    if (on) sendGuard = setTimeout(() => { sendGuard = null; setSending(false); }, 8000);
-  }
-  function wv() { return $('#crack'); }
-
-  function sendText(text) {
-    const r = S.room;
-    text = String(text || '').trim();
-    if (!r || !text) return;
-    if (r.page !== 'chat') { toast('아직 대화 화면이 아니에요. 이어하기나 새로 시작을 먼저 눌러 주세요'); return; }
-    const v = wv();
-    if (!v) return;
-    if ($('#sendBtn') && $('#sendBtn').disabled) return;
-    setSending(true);
-    r.expectLive = true;
-    clearTimeout(r.slowTimer);
-    r.slowTimer = setTimeout(() => {
-      if (S.room !== r || !r.expectLive) return;
-      const live = $('#dlgLive');
-      if (live) live.innerHTML = '<span class="live slow"><i></i>응답이 늦어요 · <button data-act="to-orig">크랙 화면 확인</button></span>';
-      const ws = $('#waitTitle');
-      if (ws) ws.innerHTML = '응답이 늦어지고 있어요 <button class="link light" data-act="to-orig">크랙 화면 확인</button>';
-      toast('응답이 늦어요. 크랙 화면에 안내 창(크래커 부족, 점검 등)이 떴는지 확인해 주세요', 5000);
-    }, 25000);
-    r.log.push({ who: 'me', text, at: Date.now() });
-    saveLog();
-    v.send('crion:send', { text });
-    showWaiting(null);
-    const m = $('#msg');
-    if (m) { m.value = ''; autosize(m); }
-    $('#choices').innerHTML = '';
-  }
-
-  function onSent(d) {
-    if (!d.ok) {
-      setSending(false);
-      hideWaiting();
-      if (S.room && S.room.turn) drawBeat();
-      toast('크랙 입력창을 찾지 못했어요. 원본 화면에서 대화를 열어 주세요.');
-      setOrig(true);
-      return;
-    }
-    if (S.room) {
-      S.room.waiting = true;
-      const live = $('#dlgLive');
-      if (live) live.innerHTML = '<span class="live"><i></i>응답 기다리는 중</span>';
-    }
-  }
-
-  function drawQuick() {
-    const box = $('#quick');
-    const r = S.room;
-    if (!box || !r) return;
-    const list = store.get(r.work.id).quick || [];
-    box.innerHTML = list.map((q, i) => `<button class="qchip" data-act="quick" data-i="${i}" title="보내기">${esc(q)}</button>`).join('')
-      + `<button class="qchip add" data-act="quick-edit" title="자주 쓰는 문장 등록">${I.plus}${list.length ? '' : ' 단축 문장'}</button>`;
-  }
-  function openQuickEdit() {
-    const r = S.room;
-    const list = store.get(r.work.id).quick || [];
-    modal(`<header><h3>단축 문장</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body">
-      <p class="muted">이 작품에서 자주 보내는 말을 한 줄에 하나씩 적어 두세요(최대 8개). 입력창 위 버튼을 누르면 한 번 보내져요.</p>
-      <textarea id="quickText" rows="6" class="field" placeholder="주변을 살핀다&#10;상태창을 확인한다&#10;잠시 쉰다">${esc(list.join('\n'))}</textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" data-act="quick-save">저장</button></div></div>`);
-  }
-
-  // 작품 BGM: 관리 페이지에서 올린 곡을 반복 재생
-  function startBgm() {
-    if (!bgm) return;
-    const w = S.room && S.room.work;
-    if (!w || !w.bgm) { bgm.stop(); return; }
-    bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100);
-    bgm.play(w.bgm);
-  }
-
-  function autosize(t) { t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
-
-  // 크랙 응답 상자 모양: 첫 응답에서 배우고 기억해 둔다 (작품이 달라도 크랙 화면은 같다)
-  function getLearned() { try { return JSON.parse(localStorage.getItem('crion.learned3') || 'null'); } catch (e) { return null; } }
-  function setLearned(v) { try { localStorage.setItem('crion.learned3', JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } }
-
-  // ---------- 그리기 ----------
-  function render() {
-    const app = $('#app');
-    if (S.view === 'login') {
-      app.innerHTML = topHtml() + loginHtml();
-      bindWebview();
-    } else if (S.view === 'room' && S.room) {
-      app.innerHTML = topHtml() + roomHtml();
-      renderSide();
-      bindWebview();
-      updateSendable();
-      drawQuick();
-      if (S.room.curBg) setBackdrop(S.room.curBg.src);
-      if (S.room.turn) drawBeat();
-      startBgm();
-    } else if (S.view === 'community') {
-      app.innerHTML = topHtml() + communityHtml();
-    } else {
-      app.innerHTML = topHtml() + homeHtml();
-    }
-  }
-  function renderTop() { const t = $('.top'); if (t) t.outerHTML = topHtml(); }
-  function renderSide() { const s = $('#side'); if (s && S.room) s.innerHTML = sideHtml(); }
-  function renderHome() { if (S.view === 'home') render(); }
-
-  function bindWebview() {
-    const v = wv();
-    if (!v) return;
-    v.addEventListener('dom-ready', () => {
-      v.send('crion:config', { play: S.view === 'room', rules: window.CRACK_RULES || {}, learned: getLearned() });
-    });
-    v.addEventListener('did-fail-load', (e) => { if (e.errorCode !== -3) showCover('크랙에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.'); });
-    v.addEventListener('ipc-message', (e) => {
-      const d = e.args && e.args[0];
-      switch (e.channel) {
-        case 'crion:reply': onReply(d); break;
-        case 'crion:state': onState(d); break;
-        case 'crion:url': onUrl(d); break;
-        case 'crion:sent': onSent(d); break;
-        case 'crion:acted': if (!d.ok) { hideWaiting(); if (S.room && S.room.turn) drawBeat(); } if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
-        case 'crion:diag':
-          if (S.waitDiag) { S.waitDiag = false; S.diagText = diagText(d); }
-          else copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.');
-          break;
-        case 'crion:clicked': if (!d.ok) { toast('크랙 버튼을 찾지 못했어요. 크랙 화면에서 눌러 주세요'); setOrig(true, false); } else showCover('여는 중이에요…'); break;
-        case 'crion:learned': if (d && d.tag) setLearned(d); break;
-        default: break;
-      }
-    });
-  }
-
-  function diagText(d) {
-    return ['[CRION 화면 진단]', `앱 ${S.info.version} / 엔진 ${S.info.engineVersion} / ${S.info.platform}`,
-      `작품: ${S.room ? S.room.work.name : '-'}`, `주소: ${d.url}`, `입력창: ${d.input}`, `보내기: ${d.send}`,
-      `목록: ${d.list} (메시지 ${d.messages}개)`, '--- 마지막 메시지 2개 구조 ---', d.lastTwo,
-      '--- 마지막 메시지 조각 ---', JSON.stringify(d.segs).slice(0, 3000)].join('\n');
-  }
-
-  function setImmersive(on) {
-    const a = $('#app');
-    if (!a) return;
-    a.classList.toggle('immersive', on);
-    try {
-      if (on && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-      if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    } catch (e) { /* 전체 화면 안 됨 */ }
-    if (on) toast('몰입 모드 · F 또는 Esc로 나가기');
-  }
-  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) $('#app').classList.remove('immersive'); });
-
-  // 공략: 간단한 표기(# 제목, - 목록, **굵게**)만 그린다
+  // ---------- 작품 정보 ----------
   function mdLite(t) {
     const inline = (x) => esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     let html = '', list = false;
@@ -1006,227 +238,512 @@
     }
     return html + (list ? '</ul>' : '');
   }
-  function openGuide() {
-    const w = S.room && S.room.work;
-    if (!w || !w.guide) return;
-    modal(`<header><h3>${esc(w.name)} 공략</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body guide">${mdLite(w.guide)}</div>`, true);
+  function openInfo(id) {
+    const w = workById(id);
+    if (!w) return;
+    const rec = store.get(w.id);
+    const pk = packFor(w);
+    modal(`<div class="info-head"><div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
+        <div class="info-head-in"><div class="info-poster">${thumbInner(w)}</div><div><h3>${esc(w.name)}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
+          <div class="hero-btns">${playBtns(w, false)}</div></div></div>
+        <button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
+      <div class="body">
+        ${w.desc ? `<p class="lead">${esc(w.desc)}</p>` : ''}
+        <dl class="kv">
+          <dt>플레이 방식</dt><dd>${pk ? `전용 플레이팩 있음 · <button class="link" data-act="pack" data-id="${esc(pk.id)}">스토어에서 보기</button>` : '크랙 화면 그대로 (전용 플레이팩 준비 전)'}</dd>
+          <dt>내 기록</dt><dd>${rec.lastAt ? `${rec.opens || 1}번 열어 봄 · ${fmtTime(rec.playMs)} · 마지막 ${ago(rec.lastAt)}` : '아직 플레이 전'}</dd>
+          ${hasCont(w) ? `<dt>이어하기</dt><dd>마지막 대화 기억 중 · <button class="link" data-act="forget-cont" data-id="${esc(w.id)}">잊기</button></dd>` : ''}
+        </dl>
+        ${w.guide ? `<h4 class="sub-h">공략</h4><div class="guide">${mdLite(w.guide)}</div>` : ''}
+      </div>`, true);
+  }
+
+  // ---------- 스토어 ----------
+  function packCard(p) {
+    const w = (p.workId && workById(p.workId)) || S.works.find(x => p.workUrl && x.url && PK.forWork([p], x));
+    const st = installed.needsUpdate(p) ? ['update', '업데이트'] : installed.has(p.id) ? ['on', '설치됨'] : ['', '받기'];
+    return `<div class="pcard">
+      <button class="pcover" data-act="pack" data-id="${esc(p.id)}">${p.cover ? `<img src="${esc(p.cover)}" alt="" loading="lazy">` : `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(p.name)}, #2a1f1c)">${esc(p.name.slice(0, 1))}</div>`}</button>
+      <div class="pmeta"><button class="name" data-act="pack" data-id="${esc(p.id)}">${esc(p.name)}</button>
+        <span>${esc(w ? w.name : p.summary)}</span>
+        <div class="ptags">${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
+      <button class="btn sm ${st[0] === 'on' ? '' : 'primary'}" data-act="${st[0] === 'on' ? 'pack' : 'pack-install'}" data-id="${esc(p.id)}">${st[0] === 'on' ? I.check : I.down}${st[1]}</button>
+    </div>`;
+  }
+  function storeHtml() {
+    const list = PK.filter(S.packs, { tab: S.storeTab, q: S.storeQ }, installed);
+    const nInst = S.packs.filter(p => installed.has(p.id)).length;
+    const nUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
+    const tabs = [['all', `전체 ${S.packs.length}`], ['installed', `설치됨 ${nInst}`], ['update', `업데이트 ${nUpd}`]];
+    let body;
+    if (S.packsState === 'loading') body = '<div class="empty"><span class="spin"></span><b>스토어를 여는 중이에요</b></div>';
+    else if (S.packsState === 'err' || S.packsState === 'off') body = '<div class="empty"><b>스토어에 연결하지 못했어요</b><span>인터넷 연결을 확인하고 다시 눌러 주세요.</span><button class="btn" data-act="store-reload">다시 시도</button></div>';
+    else if (!S.packs.length) body = `<div class="empty big">
+        <div class="empty-art" aria-hidden="true"><i></i><i></i><i></i></div>
+        <b>첫 플레이팩 준비 중</b>
+        <span>작품마다 어울리는 전용 화면을 만들고 있어요. 준비되면 여기에 올라오고, 커뮤니티 소식으로도 알려 드릴게요.<br>그동안 모든 작품은 크랙 화면 그대로 플레이할 수 있어요.</span>
+        <div class="row"><button class="btn primary" data-act="go" data-v="home">${I.play}작품 플레이하러 가기</button><button class="btn" data-act="go" data-v="community">소식 보기</button></div></div>`;
+    else if (!list.length) body = `<div class="empty"><b>${S.storeTab === 'installed' ? '설치한 플레이팩이 없어요' : S.storeTab === 'update' ? '모두 최신이에요' : '찾는 플레이팩이 없어요'}</b></div>`;
+    else body = `<div class="pgrid">${list.map(packCard).join('')}</div>`;
+    return `<main class="page"><div class="page-in">
+      ${pageHead('스토어', '작품 전용 플레이 화면(플레이팩)을 둘러보고 받을 수 있어요.', `<label class="search">${I.search}<input id="storeQ" placeholder="플레이팩 찾기" value="${esc(S.storeQ)}"></label>`)}
+      <div class="explain">
+        <div><i>${I.store}</i><b>플레이팩이란?</b><span>작품에 맞춘 상태창·대사창·연출이 들어 있는 전용 화면이에요.</span></div>
+        <div><i>${I.eye}</i><b>미리 보고 받기</b><span>받기 전에 화면 미리보기로 어떻게 생겼는지 볼 수 있어요.</span></div>
+        <div><i>${I.reload}</i><b>언제든 되돌리기</b><span>지우면 그 작품은 다시 크랙 화면 그대로 열려요.</span></div>
+      </div>
+      <nav class="tabs">${tabs.map(([k, l]) => `<button class="${S.storeTab === k ? 'on' : ''}" data-act="store-tab" data-v="${k}">${l}</button>`).join('')}</nav>
+      ${body}
+    </div></main>`;
+  }
+  function openPack(id) {
+    const p = S.packs.find(x => x.id === id);
+    if (!p) return;
+    const w = (p.workId && workById(p.workId)) || S.works.find(x => PK.forWork([p], x));
+    const ok = PK.compatible(p, S.info.engineVersion);
+    const inst = installed.has(p.id);
+    const btn = !ok ? '<button class="btn big" disabled>앱 업데이트 후 받을 수 있어요</button>'
+      : installed.needsUpdate(p) ? `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}업데이트</button>`
+        : inst ? `<button class="btn big" data-act="pack-remove" data-id="${esc(p.id)}">${I.trash}지우기</button>`
+          : `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}받기</button>`;
+    modal(`<div class="pack-head">${p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
+      <div class="body">
+        <div class="pack-title"><div><h3>${esc(p.name)}</h3><span>${esc(p.author)} · v${esc(p.version)}${p.bytes ? ' · ' + (p.bytes / 1048576).toFixed(1) + 'MB' : ''}${w ? ' · ' + esc(w.name) : ''}</span></div>
+          <div class="row">${p.ui ? `<button class="btn big" data-act="pack-preview" data-id="${esc(p.id)}">${I.eye}화면 미리보기</button>` : ''}${btn}</div></div>
+        ${p.previews.length ? `<div class="shots">${p.previews.map(s => `<button data-act="view-img" data-src="${esc(s)}"><img src="${esc(s)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
+        ${p.summary ? `<p class="lead">${esc(p.summary)}</p>` : ''}
+        ${p.desc ? `<div class="guide">${mdLite(p.desc)}</div>` : ''}
+        ${w && w.url ? `<div class="row end"><button class="btn" data-act="play" data-id="${esc(w.id)}">${I.play}이 작품 플레이</button></div>` : ''}
+      </div>`, true);
+  }
+  function openPackPreview(id) {
+    const p = S.packs.find(x => x.id === id);
+    if (!p || !p.ui) return;
+    modal(`<header><h3>${esc(p.name)} · 화면 미리보기</h3><span class="muted sm">예시 장면이에요. 실제 대화는 보내지지 않아요.</span><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="preview-frame"><iframe src="${esc(p.ui)}${p.ui.includes('?') ? '&' : '?'}preview=1" sandbox="allow-scripts" referrerpolicy="no-referrer" title="미리보기"></iframe></div>`, 'xl');
+  }
+
+  // ---------- 커뮤니티 ----------
+  function sentHistory() { try { return JSON.parse(lsGet('crion.sent') || '[]'); } catch (e) { return []; } }
+  function pushSent(item) { lsSet('crion.sent', JSON.stringify(sentHistory().concat(item).slice(-50))); }
+  const hookFor = (kind) => { const r = S.cat.report || {}; return (r.webhooks && r.webhooks[kind]) || r.webhook || ''; };
+  function formHtml(kind, opt) {
+    opt = opt || {};
+    const works = S.works.map(w => `<option ${opt.work === w.name ? 'selected' : ''}>${esc(w.name)}</option>`).join('');
+    const workSel = (req) => `<label class="f"><span>작품${req ? '' : ' (선택)'}</span><select id="fWork" class="field">${req ? '' : '<option value="">작품과 상관없음</option>'}${works}</select></label>`;
+    const nick = `<label class="f"><span>닉네임 (선택 · 답장이나 공략 출처 표시용)</span><input id="fNick" class="field" maxlength="30" value="${esc(lsGet('crion.nick') || '')}"></label>`;
+    let body = '';
+    if (kind === 'bug') {
+      body = `${workSel(false)}
+        <label class="f"><span>무슨 문제가 있었나요?</span><textarea id="fBody" class="field" rows="4" placeholder="예) 작품이 안 열려요 / 이어하기가 다른 대화로 가요"></textarea></label>
+        <label class="f"><span>어떻게 하다가 생겼나요? (선택)</span><input id="fSteps" class="field" placeholder="예) 작품 열고 바로"></label>
+        ${opt.diag ? '<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (주소·화면 크기만 들어가요)</label>' : ''}`;
+    } else if (kind === 'idea') {
+      body = `<label class="f"><span>한 줄 요약</span><input id="fTitle" class="field" maxlength="80" placeholder="예) 이런 플레이팩이 있으면 좋겠어요"></label>
+        <label class="f"><span>자세히</span><textarea id="fBody" class="field" rows="5"></textarea></label>${workSel(false)}`;
+    } else {
+      body = `${workSel(true)}<label class="f"><span>공략·팁</span><textarea id="fBody" class="field" rows="5" placeholder="다른 플레이어에게 도움이 될 팁을 적어 주세요. 좋은 공략은 작품 공략에 실려요."></textarea></label>`;
+    }
+    const ready = CM.isWebhook(hookFor(kind));
+    return `<div class="form" data-kind="${kind}">${body}${nick}
+      <div class="form-foot">${ready ? '<span class="muted">히리온에게 바로 전달돼요</span>' : '<span class="muted warn-text">받을 곳이 아직 준비 중이에요. 버튼을 누르면 내용이 복사돼요.</span>'}
+        <button class="btn primary" data-act="form-send" data-kind="${kind}">${ready ? '보내기' : '내용 복사'}</button></div></div>`;
+  }
+  function communityHtml() {
+    const L = S.cat.links || {};
+    const links = [
+      L.discord && ['디스코드', '플레이어들과 이야기하고 소식 받기', L.discord],
+      L.openchat && ['오픈채팅', '카카오톡 오픈채팅방', L.openchat],
+      ...((L.other || []).map(o => o && o.url && [o.label || '바로가기', o.desc || '', o.url]))
+    ].filter(Boolean);
+    const news = (S.cat.news || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const hist = sentHistory().slice().reverse().slice(0, 20);
+    const tabs = [['news', '소식'], ['links', '커뮤니티'], ['send', '신고 · 건의 · 공략'], ['sent', `보낸 것 ${hist.length || ''}`]];
+    let body = '';
+    if (S.commTab === 'news') {
+      body = (S.notice ? `<div class="news hot"><b>공지</b><p>${esc(S.notice.text)}</p></div>` : '')
+        + (news.length ? news.map(n => `<article class="news"><div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
+            ${n.text ? `<p>${esc(n.text)}</p>` : ''}${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}</article>`).join('')
+          : (!S.notice ? '<div class="empty"><b>아직 소식이 없어요</b><span>새 작품, 플레이팩, 업데이트 소식이 여기에 올라와요.</span></div>' : ''));
+    } else if (S.commTab === 'links') {
+      body = links.length ? `<div class="links">${links.map(([t, d, u]) => `<button class="link-card" data-act="open-link" data-url="${esc(u)}"><b>${esc(t)}</b><span>${esc(d)}</span><i>${I.ext}</i></button>`).join('')}</div>`
+        : '<div class="empty"><b>커뮤니티가 곧 열려요</b><span>디스코드·오픈채팅이 생기면 여기에서 바로 들어갈 수 있어요.</span></div>';
+    } else if (S.commTab === 'send') {
+      const kinds = [['bug', '오류 신고'], ['idea', '건의'], ['tip', '공략 제보']];
+      body = `<div class="send-box"><div class="seg">${kinds.map(([k, l]) => `<button class="${S.form.kind === k ? 'on' : ''}" data-act="form-kind" data-kind="${k}">${l}</button>`).join('')}</div>
+        ${formHtml(S.form.kind, {})}</div>`;
+    } else {
+      body = hist.length ? `<div class="hist">${hist.map(h => `<div><b>${esc((CM.KINDS[h.kind] || {}).label || '')}</b><span>${esc(h.title || '')}</span><small>${ago(h.at)}${h.copied ? ' · 복사만 함' : ''}</small></div>`).join('')}</div>`
+        : '<div class="empty"><b>아직 보낸 것이 없어요</b></div>';
+    }
+    return `<main class="page"><div class="page-in narrow">
+      ${pageHead('커뮤니티', '소식을 보고, 문제나 의견을 히리온에게 바로 보낼 수 있어요.')}
+      <nav class="tabs">${tabs.map(([k, l]) => `<button class="${S.commTab === k ? 'on' : ''}" data-act="comm-tab" data-v="${k}">${l}</button>`).join('')}</nav>
+      <div class="tab-body">${body}</div>
+    </div></main>`;
+  }
+  async function sendForm(kind) {
+    const v = (id) => { const el = $('#' + id); return el ? el.value.trim() : ''; };
+    const f = { work: v('fWork'), title: v('fTitle'), body: v('fBody'), steps: v('fSteps'), nick: v('fNick') };
+    if (!f.body) { toast('내용을 적어 주세요'); return; }
+    if (kind === 'bug' && !f.title) f.title = f.body.split('\n')[0].slice(0, 60);
+    if (kind === 'tip' && !f.title) f.title = (f.work ? f.work + ' 공략: ' : '') + f.body.slice(0, 40);
+    lsSet('crion.nick', f.nick);
+    const ctx = { app: S.info.version, engine: S.info.engineVersion, os: S.info.platform };
+    const hook = hookFor(kind);
+    if (!CM.isWebhook(hook)) {
+      copy(CM.asText(kind, f, ctx), '내용을 복사했어요. 커뮤니티나 히리온에게 붙여서 보내 주세요');
+      pushSent({ kind, title: f.title, work: f.work, at: Date.now(), copied: true });
+      return finishForm();
+    }
+    const lim = CM.allowed(sentHistory());
+    if (!lim.ok) { toast(lim.why); return; }
+    const attach = ($('#fDiag') && $('#fDiag').checked && S.diagText) ? { text: S.diagText, name: 'crion-diag.txt' } : null;
+    const btn = document.querySelector('[data-act=form-send]');
+    if (btn) { btn.disabled = true; btn.textContent = '보내는 중…'; }
+    try {
+      await CM.send(hook, CM.buildPayload(kind, f, ctx), attach);
+      pushSent({ kind, title: f.title, work: f.work, at: Date.now() });
+      toast('보냈어요. 고마워요!');
+      finishForm();
+    } catch (e) {
+      toast('보내지 못했어요. 인터넷 연결을 확인해 주세요');
+      if (btn) { btn.disabled = false; btn.textContent = '보내기'; }
+    }
+  }
+  function finishForm() { if ($('#layer').innerHTML) closeModal(); if (S.view === 'community') render(); }
+
+  // ---------- 내 기록 ----------
+  function recordsHtml() {
+    const ids = S.works.map(w => w.id);
+    const t = store.totals(ids);
+    const list = S.works.map(w => ({ w, r: store.get(w.id) })).filter(x => x.r.lastAt || x.r.playMs).sort((a, b) => b.r.lastAt - a.r.lastAt);
+    const stats = [['플레이한 작품', t.played + '개'], ['함께한 시간', fmtTime(t.playMs)], ['작품을 연 횟수', (t.opens || 0) + '번'], ['플레이팩', S.packs.filter(p => installed.has(p.id)).length + '개']];
+    return `<main class="page"><div class="page-in narrow">
+      ${pageHead('내 기록', '이 컴퓨터에서 플레이한 기록이에요.')}
+      <div class="stats">${stats.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+      <div class="section-h"><h2>작품별</h2></div>
+      ${list.length ? `<div class="rec-list">${list.map(({ w, r }) => `<div class="rec">
+          <div class="mini">${thumbInner(w)}</div>
+          <div class="rec-t"><b>${esc(w.name)}</b><span>마지막 ${ago(r.lastAt)} · ${fmtTime(r.playMs)} · ${r.opens || 1}번${hasCont(w) ? ' · 이어하기 가능' : ''}</span>
+            <div class="bar"><i style="width:${t.playMs ? Math.max(3, Math.round(r.playMs / t.playMs * 100)) : 0}%"></i></div></div>
+          <div class="row">${playBtns(w, false)}</div></div>`).join('')}</div>`
+        : '<div class="empty"><b>아직 기록이 없어요</b><span>작품을 플레이하면 시간과 이어하기 정보가 여기에 쌓여요.</span><button class="btn primary" data-act="go" data-v="home">작품 보러 가기</button></div>'}
+      <p class="muted note-line">기록은 이 컴퓨터에만 저장돼요. 나중에 CRION 계정이 생기면 다른 기기에서도 이어지게 할 예정이에요.</p>
+    </div></main>`;
+  }
+
+  // ---------- 설정 ----------
+  const pseg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="pref" data-k="${key}" data-v="${v}" class="${String(P[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
+  const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="set" data-k="${key}" data-v="${v}" class="${String(S.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
+  const row = (title, sub, ctrl) => `<div class="set"><div class="lbl"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</div><div class="ctrl">${ctrl}</div></div>`;
+  function settingsHtml() {
+    const i = S.info;
+    const vol = S.settings.volume == null ? 60 : S.settings.volume;
+    const nCont = Object.keys(S.settings.workUrls || {}).length;
+    return `<main class="page"><div class="page-in narrow">
+      ${pageHead('설정', '')}
+      <section class="set-group"><h3>플레이</h3>
+        ${row('작품을 열 때', '이어하기: 마지막으로 보던 대화로 · 처음 화면: 항상 작품 페이지부터', pseg('openMode', [['continue', '이어하기'], ['page', '처음 화면']]))}
+        ${row('배경 음악', '작품에 음악이 있으면 플레이할 때 틀어 줘요', pseg('bgmAuto', [[true, '켜기'], [false, '끄기']]))}
+        ${row('음량', '', `<input type="range" min="0" max="100" step="5" value="${vol}" id="vol"><output id="volOut">${vol}</output>`)}
+        ${row('이어하기 기억', nCont ? `${nCont}개 작품의 마지막 대화를 기억하고 있어요` : '아직 기억한 대화가 없어요', `<button class="btn sm" data-act="forget-all" ${nCont ? '' : 'disabled'}>모두 잊기</button>`)}
+      </section>
+      <section class="set-group"><h3>화면</h3>
+        ${row('시작 애니메이션', '앱을 켤 때 로고 화면', pseg('splash', [[true, '켜기'], [false, '끄기']]))}
+        ${row('왼쪽 메뉴', '', pseg('navSmall', [[false, '넓게'], [true, '아이콘만']]))}
+      </section>
+      <section class="set-group"><h3>크랙 계정</h3>
+        ${row('크랙 로그인', '한 번 로그인하면 모든 작품에서 유지돼요', `<button class="btn sm" data-act="go" data-v="login">${I.user}로그인 화면 열기</button>`)}
+      </section>
+      <section class="set-group"><h3>업데이트</h3>
+        ${row('자동 업데이트', '새 화면·작품 목록을 알아서 받아요', seg('autoUpdate', [['true', '켜기'], ['false', '끄기']]))}
+        ${row('버전', `앱 ${esc(i.version)} · 화면 ${esc(i.engineVersion)}${i.engineSource === 'update' ? ' (업데이트됨)' : ''}`, `<button class="btn sm" data-act="check-update">지금 확인</button>${S.update && S.update.type === 'engine' ? '<button class="btn sm primary" data-act="relaunch">다시 시작해서 적용</button>' : ''}`)}
+      </section>
+      <section class="set-group"><h3>도움말</h3>
+        ${row('사용법 다시 보기', '처음 켰을 때 나온 안내', '<button class="btn sm" data-act="tutorial">사용법 보기</button>')}
+        ${row('문제가 있나요?', '커뮤니티에서 바로 신고할 수 있어요', '<button class="btn sm" data-act="go-report">오류 신고</button>')}
+        ${row('데이터 폴더', '설정·업데이트 파일이 있는 곳', '<button class="btn sm ghost" data-act="open-folder">열기</button>')}
+      </section>
+      <p class="muted note-line">CRION · 히리온의 크랙 작품 플레이어</p>
+    </div></main>`;
+  }
+
+  // ---------- 크랙 로그인 ----------
+  function loginHtml() {
+    return `<main class="page flush"><div class="login">
+      <div class="hint">${I.user}<div><b>크랙 로그인</b><span>여기서 한 번 로그인해 두면 모든 작품에서 계속 로그인돼 있어요.</span></div>
+        <button class="btn primary" data-act="login-done">로그인 완료</button></div>
+      <webview id="crack" src="${esc(S.info.crackOrigin)}" partition="persist:crack" allowpopups></webview></div></main>`;
+  }
+
+  // ---------- 플레이 = 크랙 화면 그대로 ----------
+  function playHtml() {
+    const p = S.play;
+    const w = p.work;
+    return `<div class="play" id="play">
+      <header class="pbar">
+        <button class="btn ghost" data-act="leave">${I.back}나가기</button>
+        <div class="pwork"><div class="mini">${thumbInner(w)}</div><b>${esc(w.name)}</b><span class="badge">크랙 화면</span></div>
+        <div class="ptools">
+          <button class="icon-btn" data-act="wv-back" title="뒤로">${I.back}</button>
+          <button class="icon-btn" data-act="wv-reload" title="새로고침">${I.reload}</button>
+          <button class="icon-btn" data-act="wv-page" title="작품 페이지로">${I.page}</button>
+          <span class="sep"></span>
+          ${w.guide ? `<button class="icon-btn ${p.guide ? 'on' : ''}" data-act="guide" title="공략">${I.book}</button>` : ''}
+          ${w.bgm && bgm ? `<button class="icon-btn" data-act="music" id="musicBtn" title="배경 음악">${bgm.paused || !bgm.src ? I.mute : I.music}</button>` : ''}
+          <button class="icon-btn" data-act="report" title="문제 신고">${I.flag}</button>
+          <button class="icon-btn" data-act="fullscreen" title="전체 화면 (F11)">${I.full}</button>
+        </div>
+        <div class="pload" id="pload"><i></i></div>
+      </header>
+      <div class="pbody">
+        <div class="pview">
+          <webview id="crack" src="${esc(p.url)}" partition="persist:crack" allowpopups></webview>
+          <div class="pwait" id="pwait"><img src="icon.png" alt=""><b>크랙 화면을 여는 중이에요</b><span>${esc(w.name)}</span></div>
+        </div>
+        ${w.guide ? `<aside class="pguide ${p.guide ? '' : 'hidden'}" id="pguide"><div class="pguide-h"><b>공략</b><button class="icon-btn sm" data-act="guide">${I.x}</button></div><div class="guide">${mdLite(w.guide)}</div></aside>` : ''}
+      </div>
+    </div>`;
+  }
+  function openWork(id, fresh) {
+    const w = workById(id);
+    if (!w || !w.url) return;
+    closeModal();
+    const saved = (S.settings.workUrls || {})[w.id];
+    const useSaved = !fresh && saved && P.openMode === 'continue';
+    S.play = { work: w, url: useSaved ? saved : w.url, guide: false, startedAt: Date.now() };
+    S.view = 'play';
+    store.recordOpen(w.id);
+    save({ recent: [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8) });
+    render();
+    if (w.bgm && bgm && P.bgmAuto) { bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100); bgm.play(w.bgm); setTimeout(updMusicBtn, 50); }
+  }
+  function updMusicBtn() { const b = $('#musicBtn'); if (b) b.innerHTML = bgm.paused || !bgm.src ? I.mute : I.music; }
+  function leavePlay() {
+    if (bgm) bgm.stop();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    S.play = null;
+    go('home');
+  }
+  const wv = () => $('#crack');
+  function bindWebview() {
+    const v = wv();
+    if (!v) return;
+    const bar = $('#pload'), cover = $('#pwait');
+    v.addEventListener('did-start-loading', () => { if (bar) bar.classList.add('on'); });
+    v.addEventListener('did-stop-loading', () => { if (bar) bar.classList.remove('on'); if (cover) cover.classList.add('gone'); });
+    v.addEventListener('did-fail-load', (e) => {
+      if (e.errorCode === -3 || !e.isMainFrame) return;
+      if (cover) { cover.classList.remove('gone'); cover.innerHTML = `<img src="icon.png" alt=""><b>크랙에 연결하지 못했어요</b><span>인터넷 연결을 확인해 주세요.</span><button class="btn primary" data-act="wv-reload">다시 시도</button>`; }
+    });
+    v.addEventListener('ipc-message', (e) => {
+      const d = e.args && e.args[0];
+      if (e.channel === 'crion:url' && d && S.play) {
+        S.play.cur = d.url;
+        // 대화 화면이 열렸을 때만 이어하기 주소로 기억 (작품 소개·로그인 화면은 기억하지 않는다)
+        if (d.chat && d.url && (S.settings.workUrls || {})[S.play.work.id] !== d.url) save({ workUrls: Object.assign({}, S.settings.workUrls, { [S.play.work.id]: d.url }) });
+      } else if (e.channel === 'crion:diag' && d) {
+        const t = ['[CRION 화면 진단]', `앱 ${S.info.version} / 화면 ${S.info.engineVersion} / ${S.info.platform}`, `작품: ${S.play ? S.play.work.name : '-'}`,
+          `주소: ${d.url}`, `제목: ${d.title}`, `대화 화면: ${d.chat ? '예' : '아니오'}`, `크기: ${d.size}`, '입력칸: ' + (d.inputs || []).join(' / ')].join('\n');
+        if (S.waitDiag) { S.waitDiag = false; S.diagText = t; } else copy(t, '화면 진단을 복사했어요');
+      }
+    });
+  }
+  function openReport() {
+    S.diagText = '';
+    const v = wv();
+    if (v && S.view === 'play') { S.waitDiag = true; try { v.send('crion:diag'); } catch (e) { /* 아직 안 열림 */ } }
+    modal(`<header><h3>문제 신고</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body">${formHtml('bug', { work: S.play && S.play.work.name, diag: S.view === 'play' })}</div>`);
   }
 
   // ---------- 모달 ----------
-  function modal(html, wide) {
-    $('#layer').innerHTML = `<div class="scrim" data-act="close-modal"><div class="modal ${wide ? 'wide' : ''}" role="dialog">${html}</div></div>`;
+  function modal(html, size) {
+    $('#layer').innerHTML = `<div class="scrim" data-act="close-modal"><div class="modal ${size === true ? 'wide' : size || ''}" role="dialog">${html}</div></div>`;
   }
   const closeModal = () => { $('#layer').innerHTML = ''; };
-  const pseg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="pref" data-k="${key}" data-v="${v}" class="${String(P[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
-  const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-act="set" data-k="${key}" data-v="${v}" class="${String(S.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
 
-  function openSettings() {
-    const i = S.info;
-    modal(`<header><h3>설정</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body">
-      <div class="set"><div class="lbl"><b>글자 나오는 속도</b><span>지난 장면을 다시 볼 때</span></div>${seg('textSpeed', [['slow', '느리게'], ['normal', '보통'], ['fast', '빠르게'], ['instant', '바로']])}</div>
-      <div class="set"><div class="lbl"><b>글자 크기</b><span>대사창</span></div>${pseg('font', [['s', '작게'], ['m', '보통'], ['l', '크게']])}</div>
-      <div class="set"><div class="lbl"><b>자동 진행</b><span>응답을 다 받으면 장면을 저절로 넘김</span></div>${pseg('auto', [[false, '끄기'], [true, '켜기']])}</div>
-      <div class="set"><div class="lbl"><b>대사창</b><span>배경 그림이 잘 보이게 옅게, 글이 잘 보이게 진하게</span></div>${pseg('dlg', [['soft', '옅게'], ['normal', '보통'], ['strong', '진하게']])}</div>
-      <div class="set"><div class="lbl"><b>선택지를 누르면</b><span>바로 보내거나 입력창에만 넣기</span></div>${seg('choiceSend', [['true', '바로 보내기'], ['false', '입력창에 넣기']])}</div>
-      <div class="set"><div class="lbl"><b>자동 업데이트</b><span>화면 엔진·작품 목록</span></div>${seg('autoUpdate', [['true', '켜기'], ['false', '끄기']])}</div>
-      <div class="set"><div class="lbl"><b>작품 목록</b><span>${S.syncedAt ? '마지막 ' + new Date(S.syncedAt).toLocaleString('ko-KR') : '아직 안 읽음'}</span></div>
-        <button class="btn sm" data-act="sync">${I.sync}새로고침</button><button class="btn sm" data-act="sync-diag">목록 진단 복사</button></div>
-      <div class="set"><div class="lbl"><b>문제 보고</b><span>플레이 중 화면이 이상하면 진단을 복사해서 보내 주세요</span></div>
-        <button class="btn sm" data-act="diag" ${S.room ? '' : 'disabled'}>화면 진단 복사</button></div>
-      <div class="set"><div class="lbl"><b>업데이트</b><span>앱 ${esc(i.version)} · 화면 엔진 ${esc(i.engineVersion)}${i.engineSource === 'update' ? ' (업데이트됨)' : ''}</span></div>
-        <button class="btn sm" data-act="check-update">지금 확인</button><button class="btn sm ghost" data-act="open-folder">데이터 폴더</button></div>
-    </div>`);
+  // ---------- 처음 사용법 (튜토리얼) ----------
+  const TUT = [
+    { k: 'home', t: 'CRION에 오신 걸 환영해요', d: '히리온의 크랙 작품을 한곳에서 고르고 바로 플레이하는 앱이에요. 30초면 다 알려 드릴게요.', art: 'logo' },
+    { k: 'login', t: '먼저 크랙에 로그인', d: '왼쪽 아래 <b>크랙 로그인</b>에서 한 번만 로그인하면 돼요. 앱을 껐다 켜도 로그인이 유지돼요.' },
+    { k: 'home', t: '작품을 누르면 바로 플레이', d: '<b>홈</b>에서 작품을 누르면 크랙 화면이 그대로 열려요. 보던 대화는 기억해 뒀다가 다음에 <b>이어하기</b>로 바로 열어 드려요.' },
+    { k: 'store', t: '스토어에서 전용 화면 받기', d: '작품마다 어울리는 전용 플레이 화면(<b>플레이팩</b>)이 <b>스토어</b>에 올라와요. 미리 보고 받을 수 있어요.' },
+    { k: 'community', t: '소식 · 신고 · 건의', d: '<b>커뮤니티</b>에서 새 소식을 보고, 문제나 의견을 히리온에게 바로 보낼 수 있어요. 플레이 중엔 위쪽 깃발 버튼으로도 신고돼요.' },
+    { k: 'settings', t: '내 기록과 설정', d: '<b>내 기록</b>에는 작품별 플레이 시간이, <b>설정</b>에는 음악·이어하기·업데이트가 있어요. 사용법은 설정에서 다시 볼 수 있어요.' }
+  ];
+  let tutI = -1;
+  function showTut(i) {
+    tutI = i;
+    const s = TUT[i];
+    document.querySelectorAll('.nav [data-tut]').forEach(el => el.classList.toggle('tut-hl', i > 0 && el.dataset.tut === s.k));
+    const last = i === TUT.length - 1;
+    $('#tut').innerHTML = `<div class="tut-scrim"></div><div class="tut-card" role="dialog">
+      <div class="tut-art">${s.art === 'logo' ? '<img src="logo.png" alt="CRION">' : `<i>${{ login: I.user, home: I.home, store: I.store, community: I.comm, settings: I.gear }[s.k]}</i>`}</div>
+      <h3>${s.t}</h3><p>${s.d}</p>
+      <div class="tut-dots">${TUT.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="tut-btns">${i ? '<button class="btn ghost" data-act="tut-prev">이전</button>' : '<button class="btn ghost" data-act="tut-end">건너뛰기</button>'}
+        ${last ? `<button class="btn" data-act="tut-end">둘러보기</button><button class="btn primary" data-act="tut-login">${I.user}크랙 로그인하기</button>` : '<button class="btn primary" data-act="tut-next">다음</button>'}</div>
+    </div>`;
+    $('#tut').classList.add('on');
+  }
+  function endTut() {
+    tutI = -1;
+    $('#tut').classList.remove('on');
+    $('#tut').innerHTML = '';
+    document.querySelectorAll('.tut-hl').forEach(el => el.classList.remove('tut-hl'));
+    lsSet('crion.tut4', '1');
   }
 
-  function openLog() {
-    const r = S.room;
-    if (!r) return;
-    const items = r.log.slice(-80).reverse();
-    modal(`<header><h3>지난 대화</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body">
-      ${items.length ? items.map(x => `<div class="log-item ${x.who === 'me' ? 'me' : ''}"><small>${x.who === 'me' ? '나' : esc(r.work.name)} · ${new Date(x.at).toLocaleString('ko-KR')}</small>${esc(x.text)}</div>`).join('') : '<p class="muted">아직 기록이 없어요.</p>'}
-    </div>`, true);
+  // ---------- 그리기 ----------
+  function render() {
+    const app = $('#app');
+    app.classList.toggle('playing', S.view === 'play');
+    let main = '';
+    if (S.view === 'play' && S.play) { app.innerHTML = playHtml(); bindWebview(); return; }
+    if (S.view === 'login') main = loginHtml();
+    else if (S.view === 'store') main = storeHtml();
+    else if (S.view === 'community') main = communityHtml();
+    else if (S.view === 'records') main = recordsHtml();
+    else if (S.view === 'settings') main = settingsHtml();
+    else main = homeHtml();
+    app.innerHTML = navHtml() + main;
+    if (S.view === 'login') bindWebview();
+    if (tutI >= 0) showTut(tutI);
+  }
+  function go(view) {
+    if (S.view === 'play' && view !== 'play') { if (bgm) bgm.stop(); S.play = null; }
+    S.view = view;
+    if (view === 'community' && S.commTab === 'news') markNewsSeen();
+    render();
+    const pg = $('.page'); if (pg) pg.scrollTop = 0;
+    if (view === 'store' && S.packsState !== 'loading') loadPacks().then(() => { if (S.view === 'store') render(); });
+  }
+  const refresh = () => { if (S.view !== 'play' && S.view !== 'login') render(); };
+
+  function setFull(on) {
+    try {
+      if (on && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) { /* 전체 화면 안 됨 */ }
   }
 
   // ---------- 동작 ----------
-  async function openWork(id, fresh) {
-    const w = workById(id);
-    if (!w) return;
-    S.work = w;
-    S.room = newRoom(w, fresh);
-    S.view = 'room';
-    const recent = [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8);
-    save({ recent });
-    render();
-  }
-
-  async function doSync(diag, quiet) {
-    if (S.syncing) return;
-    const before = S.works.length;
-    S.syncing = true;
-    renderHome();
-    const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
-    S.syncing = false;
-    if (r && r.ok && Array.isArray(r.sample) && r.sample.length) {
-      let list = r.sample.slice();
-      if ((r.count || 0) > list.length) {
-        // 앱 본체는 40개까지만 넘겨준다 → 본체 목록(같은 추출 결과)에서 나머지를 되찾는다
-        const fresh = await api.getWorks().catch(() => null);
-        const have = new Set(list.map(x => window.CrionCatalog.normUrl(x.url)));
-        for (const w of (fresh && fresh.works) || []) {
-          if (!w.url || have.has(window.CrionCatalog.normUrl(w.url))) continue;
-          if (w.auto) { list.push({ url: w.url, title: w.name, thumb: w.thumb || '', text: '' }); have.add(window.CrionCatalog.normUrl(w.url)); }
-        }
-      }
-      try { localStorage.setItem('crion.profile2', JSON.stringify({ at: new Date().toISOString(), works: list })); } catch (e) { /* 저장 안 됨 */ }
-    }
-    await loadWorks();
-    renderHome();
-    if (diag) {
-      const s0 = (r.sample || [])[0] || {};
-      copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개 · 방식 ${s0._method || '-'}`, `기록: ${s0._log || '-'}`,
-        ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}${x.sec ? ' | 구역: ' + x.sec : ''}`),
-        '--- 소개 글 ---', ...(r.sample || []).map(x => `# ${x.title}\n${(x.text || '').replace(/\s+/g, ' ').slice(0, 220)}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
-    } else if (!quiet) toast(r.ok ? `작가 프로필에서 작품 ${r.count}개를 찾아 목록에 넣었어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
-    else if (r.ok && S.works.length > before) toast(`새 작품 ${S.works.length - before}개가 추가됐어요`);
-  }
-  // 작가 프로필을 자동으로 다시 읽기: 앱을 켤 때마다, 그리고 홈에 있을 때 1시간마다
-  function autoSync() {
-    const last = S.syncedAt ? Date.parse(S.syncedAt) : 0;
-    if (Date.now() - last > 20 * 60 * 1000 && S.view !== 'room') doSync(false, true);
-  }
-
   document.addEventListener('click', async (e) => {
     const el = e.target.closest('[data-act]');
-    if (!el) {
-      if (e.target.closest('#dlg') && !window.getSelection().toString()) step(1);
-      return;
-    }
+    if (!el) return;
     const act = el.dataset.act;
     if (act === 'close-modal' && el.classList.contains('scrim') && e.target !== el) return;
+    const id = el.dataset.id;
     switch (act) {
-      case 'home': S.view = 'home'; S.room = null; S.work = null; if (bgm) bgm.stop(); render(); break;
-      case 'login': if (bgm) bgm.stop(); S.view = 'login'; S.room = null; S.work = null; render(); break;
-      case 'login-done': S.view = 'home'; await save({ onboarded: true }); render(); doSync(false); break;
-      case 'play': closeModal(); openWork(el.dataset.id); break;
-      case 'play-fresh': closeModal(); openWork(el.dataset.id, true); break;
-      case 'info': openInfo(el.dataset.id); break;
-      case 'info-tab': openInfo(el.dataset.id, el.dataset.tab); break;
-      case 'side-tab': S.room.tab = el.dataset.tab; renderSide(); break;
-      case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
-      case 'star': {
-        const r = S.room;
-        const b = r && r.turn && r.turn.beats[r.idx];
-        if (!b || !b.text) break;
-        const on = store.toggleQuote(r.work.id, { who: b.who, text: b.text });
-        el.classList.toggle('on', on);
-        toast(on ? '명대사에 모았어요' : '별표를 뺐어요');
-        if (r.tab === 'quotes') renderSide();
-        break;
-      }
-      case 'unquote': {
-        store.toggleQuote(el.dataset.w, { who: el.dataset.who, text: el.dataset.text });
-        if (S.room) renderSide();
-        if ($('#layer').innerHTML) openInfo(el.dataset.w, 'quotes');
-        break;
-      }
-      case 'quick': { const q = (store.get(S.room.work.id).quick || [])[Number(el.dataset.i)]; if (q) sendText(q); break; }
-      case 'quick-edit': openQuickEdit(); break;
-      case 'quick-save': store.setQuick(S.room.work.id, $('#quickText').value.split('\n')); closeModal(); drawQuick(); break;
-      case 'music': if (bgm) { bgm.toggle(); renderTop(); } break;
-      case 'settings': openSettings(); break;
+      case 'go': closeModal(); go(el.dataset.v); break;
+      case 'nav-fold': savePref('navSmall', !P.navSmall); render(); break;
+      case 'play': openWork(id); break;
+      case 'play-fresh': openWork(id, true); break;
+      case 'info': openInfo(id); break;
+      case 'leave': leavePlay(); break;
+      case 'login-done': await save({ onboarded: true }); toast('로그인했어요. 이제 작품을 골라 보세요'); go('home'); break;
       case 'close-modal': closeModal(); break;
-      case 'sync': doSync(false); break;
-      case 'sync-diag': doSync(true); break;
-      case 'diag': { const v = wv(); if (v) v.send('crion:diag'); closeModal(); break; }
-      case 'check-update': { const r = await api.checkUpdates(); toast(r.skipped === 'no-registry' ? '업데이트 주소가 없어요' : r.error ? '확인 실패: ' + r.error : r.engine ? '새 화면 엔진을 받았어요. 다시 시작하면 적용돼요' : '최신 상태예요'); break; }
-      case 'open-folder': api.openFolder(); break;
-      case 'set': {
-        let v = el.dataset.v;
-        if (v === 'true' || v === 'false') v = v === 'true';
-        await save({ [el.dataset.k]: v });
-        el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
-        break;
-      }
-      case 'toggle-side': S.room.side = !S.room.side; $('#room').classList.toggle('side-off', !S.room.side); break;
-      case 'to-orig': setOrig(true, false); break;
-      case 'to-game': setOrig(false, false); break;
-      case 'send': sendText($('#msg').value); break;
-      case 'continue': sendText('계속'); break;
-      case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); showWaiting(null); } break; }
-      case 'log': openLog(); break;
-      case 'community': if (bgm) bgm.stop(); S.view = 'community'; S.room = null; S.work = null; render(); loadNotice().then(() => { if (S.view === 'community') render(); }); break;
+      case 'close-notice': if (S.notice) lsSet(noticeId(S.notice), '1'); refresh(); break;
+      case 'open-link': if (el.dataset.url) api.openExternal(el.dataset.url); break;
+      case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
+      case 'forget-cont': { const u = Object.assign({}, S.settings.workUrls); delete u[id]; await save({ workUrls: u }); openInfo(id); refresh(); break; }
+      case 'forget-all': await save({ workUrls: {} }); toast('이어하기 기억을 지웠어요'); render(); break;
+      // 플레이 화면
+      case 'wv-back': { const v = wv(); if (v && v.canGoBack()) v.goBack(); break; }
+      case 'wv-reload': { const v = wv(); if (v) v.reload(); break; }
+      case 'wv-page': { const v = wv(); if (v && S.play) v.loadURL(S.play.work.url); break; }
+      case 'guide': if (S.play) { S.play.guide = !S.play.guide; const g = $('#pguide'); if (g) g.classList.toggle('hidden', !S.play.guide); document.querySelectorAll('[data-act=guide].icon-btn').forEach(b => b.classList.toggle('on', S.play.guide)); } break;
+      case 'music': if (bgm && S.play) { if (!bgm.src) { bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100); bgm.paused = false; bgm.play(S.play.work.bgm); } else bgm.toggle(); updMusicBtn(); } break;
+      case 'fullscreen': setFull(!document.fullscreenElement); break;
+      case 'report': openReport(); break;
+      case 'go-report': S.commTab = 'send'; S.form.kind = 'bug'; go('community'); break;
+      // 스토어
+      case 'store-tab': S.storeTab = el.dataset.v; render(); break;
+      case 'store-reload': S.packsState = 'loading'; render(); await loadPacks(); render(); break;
+      case 'pack': openPack(id); break;
+      case 'pack-preview': openPackPreview(id); break;
+      case 'pack-install': { const p = S.packs.find(x => x.id === id); if (!p) break; installed.install(p); toast(`${p.name}을(를) 받았어요`); if ($('#layer').innerHTML) openPack(id); refresh(); break; }
+      case 'pack-remove': { installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
+      // 커뮤니티
+      case 'comm-tab': S.commTab = el.dataset.v; if (S.commTab === 'news') markNewsSeen(); render(); break;
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
       case 'form-send': sendForm(el.dataset.kind); break;
-      case 'report-here': openReport(); break;
-      case 'start': { const v = wv(); if (v) v.send('crion:click', Number(el.dataset.id)); break; }
-      case 'guide': openGuide(); break;
-      case 'immersive': setImmersive(!$('#app').classList.contains('immersive')); break;
-      case 'pref': {
-        let v = el.dataset.v;
-        if (v === 'true' || v === 'false') v = v === 'true';
-        savePref(el.dataset.k, v);
-        el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));
+      // 설정
+      case 'pref': { let v = el.dataset.v; if (v === 'true' || v === 'false') v = v === 'true'; savePref(el.dataset.k, v); render(); break; }
+      case 'set': { let v = el.dataset.v; if (v === 'true' || v === 'false') v = v === 'true'; await save({ [el.dataset.k]: v }); render(); break; }
+      case 'check-update': {
+        el.disabled = true;
+        const r = await api.checkUpdates();
+        el.disabled = false;
+        toast(r.skipped === 'no-registry' ? '업데이트 주소가 없어요' : r.error ? '확인하지 못했어요: ' + r.error : r.engine && r.engine.state === 'ready' ? '새 버전을 받았어요. 다시 시작하면 적용돼요' : r.engine && r.engine.state === 'shell-old' ? '새 설치 파일이 필요해요' : '최신 상태예요');
         break;
       }
-      case 'prev': step(-1); break;
-      case 'next': step(1); break;
-      case 'first': if (S.room && S.room.turn && !isWaiting()) { S.room.idx = 0; S.room.typed = false; S.room.follow = false; drawBeat(); } break;
-      case 'choose': {
-        const t = S.room && S.room.turn;
-        const c = t && t.choices[Number(el.dataset.i)];
-        if (!c) break;
-        if (S.settings.choiceSend === false) { const m = $('#msg'); m.value = c; autosize(m); m.focus(); }
-        else sendText(c);
-        break;
-      }
-      case 'close-notice': try { localStorage.setItem(noticeId(S.notice), '1'); } catch (e2) { /* 무시 */ } renderHome(); break;
-      case 'open-link': api.openExternal(el.dataset.url); break;
-      case 'copy-status': if (S.room && S.room.status) copy(S.room.status.text); break;
+      case 'relaunch': api.relaunch(); break;
+      case 'open-folder': api.openFolder(); break;
+      case 'tutorial': showTut(0); break;
+      case 'tut-next': showTut(Math.min(TUT.length - 1, tutI + 1)); break;
+      case 'tut-prev': showTut(Math.max(0, tutI - 1)); break;
+      case 'tut-end': endTut(); break;
+      case 'tut-login': endTut(); go('login'); break;
       default: break;
     }
   });
 
-  document.addEventListener('input', (e) => { if (e.target.id === 'msg') autosize(e.target); });
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'homeQ') { S.homeQ = e.target.value; const g = $('#homeGrid'); if (g) g.innerHTML = gridHtml(); }
+    else if (e.target.id === 'storeQ') { S.storeQ = e.target.value; const pos = e.target.selectionStart; render(); const i = $('#storeQ'); if (i) { i.focus(); i.setSelectionRange(pos, pos); } }
+    else if (e.target.id === 'vol') { const v = Number(e.target.value); $('#volOut').textContent = v; if (bgm) bgm.setVolume(v / 100); clearTimeout(volTimer); volTimer = setTimeout(() => save({ volume: v }), 300); }
+  });
+  let volTimer = null;
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if ($('#layer').innerHTML) closeModal();
-      else if ($('#app').classList.contains('immersive')) setImmersive(false);
+      if (tutI >= 0) endTut();
+      else if ($('#layer').innerHTML) closeModal();
+      else if (document.fullscreenElement) setFull(false);
       return;
     }
-    const inText = /^(TEXTAREA|INPUT)$/.test(e.target.tagName);
-    if (e.target.id === 'msg' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendText(e.target.value); return; }
-    if (inText || !S.room || S.room.orig || $('#layer').innerHTML) return;
-    if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); step(1); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
-    else if (e.key === 'f' || e.key === 'F' || e.key === 'F11') { e.preventDefault(); setImmersive(!$('#app').classList.contains('immersive')); }
-    else if (/^[1-6]$/.test(e.key)) { const b = document.querySelector(`.choice[data-i="${Number(e.key) - 1}"]`); if (b) b.click(); }
+    if (e.key === 'F11' && S.view === 'play') { e.preventDefault(); setFull(!document.fullscreenElement); }
+    if (tutI >= 0 && (e.key === 'ArrowRight' || e.key === 'Enter')) { e.preventDefault(); if (tutI < TUT.length - 1) showTut(tutI + 1); else endTut(); }
+    if (tutI >= 0 && e.key === 'ArrowLeft') { e.preventDefault(); showTut(Math.max(0, tutI - 1)); }
   });
+  document.addEventListener('fullscreenchange', () => { const a = $('#app'); if (a) a.classList.toggle('full', !!document.fullscreenElement); });
 
   // ---------- 시작 ----------
+  function hideSplash() {
+    const sp = $('#splash');
+    if (!sp) return;
+    const wait = P.splash ? Math.max(0, 1500 - (Date.now() - BOOT_AT)) : 0;
+    setTimeout(() => {
+      sp.classList.add('out');
+      setTimeout(() => { sp.remove(); if (!lsGet('crion.tut4')) showTut(0); }, P.splash ? 450 : 0);
+    }, wait);
+  }
+  if (!P.splash) { const sp = $('#splash'); if (sp) sp.classList.add('quick'); }
+
   api.onUpdate((ev) => {
-    if (ev.type === 'catalog') Promise.all([loadWorks(), loadNotice()]).then(renderHome);
-    else if (ev.type === 'engine-ready') toast('새 화면이 준비됐어요. 앱을 다시 시작하면 적용돼요', 5000);
-    else if (ev.type === 'shell-old') toast('새 버전 설치 파일이 필요해요. 설정 > 업데이트를 확인해 주세요', 6000);
+    if (ev.type === 'catalog') loadCatalog().then(refresh);
+    else if (ev.type === 'engine-ready') { S.update = { type: 'engine', version: ev.version }; refresh(); toast('새 버전이 준비됐어요. 왼쪽 아래를 눌러 다시 시작하면 적용돼요', 5000); }
+    else if (ev.type === 'shell-old') { S.update = { type: 'shell', url: ev.url || '' }; refresh(); }
   });
 
   (async function boot() {
     S.info = await api.info();
     S.settings = await api.getSettings();
-    if (S.settings.choiceSend === undefined) S.settings.choiceSend = true;
-    await loadWorks();
-    applyPrefs();
+    if (!S.settings.workUrls) S.settings.workUrls = {};
+    await Promise.all([loadCatalog(), loadPacks()]);
+    if (!S.works.length) await loadShellWorks();
     render();
     api.engineReady();
-    loadNotice().then(renderHome);
-    autoSync();
-    setInterval(autoSync, 60 * 60 * 1000);
-    setInterval(() => loadNotice().then(renderHome), 30 * 60 * 1000);
-  })();
+    hideSplash();
+    setInterval(() => loadCatalog().then(refresh), 30 * 60 * 1000);
+  })().catch((err) => { console.error(err); hideSplash(); });
 
-  // 플레이 시간: 플레이 화면이 열려 있고 창을 보고 있을 때만 센다
-  setInterval(() => { if (S.view === 'room' && S.room && document.hasFocus()) store.addTime(S.room.work.id, 30000); }, 30000);
+  // 플레이 시간: 플레이 화면이 열려 있고 창이 보일 때만 센다
+  setInterval(() => { if (S.view === 'play' && S.play && document.visibilityState === 'visible') store.addTime(S.play.work.id, 30000); }, 30000);
 
   // 시험용
-  window.__crion = { S, onReply, onState, render, step, rebuild: rebuildWorks };
+  window.__crion = { S, render, go, showTut, endTut };
 })();

@@ -1,6 +1,6 @@
 // 브라우저에서 화면만 점검하기 위한 가짜 window.crion (Electron 없이)
 (function () {
-  const settings = { onboarded: true, volume: 60, textSpeed: 'fast', choiceSend: true, autoUpdate: true, workUrls: {}, recent: ['w1'], registryUrl: '' };
+  const settings = { onboarded: !/first/.test(location.search), volume: 60, textSpeed: 'fast', choiceSend: true, autoUpdate: true, workUrls: {}, recent: ['w1'], registryUrl: 'https://reg.test/CRION/index.json' };
   const works = [
     { id: 'w1', name: '아포칼립스 안전지대의 관리자', genre: '좀비 생존 운영', url: 'https://crack.wrtn.ai/detail/a', thumb: 'img/t1.png', featured: true, desc: '좀비가 들끓는 도시, 마지막 안전지대의 관리자가 된 당신. 생존자를 받아들이고 식량과 방어를 꾸려 큰 밤을 버텨 내세요.', guide: '# 시작 팁\n- 첫날은 **식량**부터 확보하세요\n- 밤에는 바리케이드를 점검\n\n# 생존자\n세라는 의무실, 카일은 정찰 담당이에요.' },
     { id: 'w2', name: '마법소녀의 최종보스', genre: '샌드박스', url: 'https://crack.wrtn.ai/detail/b', thumb: 'img/t2.png', bgm: 'https://example.invalid/bgm.mp3' },
@@ -9,7 +9,7 @@
     { id: 'w5', name: '평가혜', genre: '캐릭터챗', url: 'https://crack.wrtn.ai/detail/e', thumb: '', auto: true }
   ];
   window.crion = {
-    info: async () => ({ version: '0.3.0', engineVersion: '0.3.0', engineSource: 'bundled', crackOrigin: 'https://crack.wrtn.ai', platform: 'darwin', updatesEnabled: true, links: {} }),
+    info: async () => ({ registryUrl: 'https://reg.test/CRION/index.json', version: '0.3.0', engineVersion: '0.3.0', engineSource: 'bundled', crackOrigin: 'https://crack.wrtn.ai', platform: 'darwin', updatesEnabled: true, links: {} }),
     engineReady: async () => true,
     getSettings: async () => JSON.parse(JSON.stringify(settings)),
     setSettings: async (p) => { Object.assign(settings, p); return JSON.parse(JSON.stringify(settings)); },

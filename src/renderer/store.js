@@ -5,7 +5,7 @@
   const MAX_ALBUM = 150, MAX_QUOTES = 200, MAX_CHARS = 60;
 
   function blank() {
-    return { turns: 0, playMs: 0, firstAt: 0, lastAt: 0, chars: {}, album: [], quotes: [], quick: null };
+    return { turns: 0, opens: 0, playMs: 0, firstAt: 0, lastAt: 0, chars: {}, album: [], quotes: [], quick: null };
   }
 
   function WorkStore(storage) {
@@ -55,6 +55,17 @@
     return r;
   };
 
+  // 작품을 열 때마다: 횟수와 마지막 플레이 시각
+  WorkStore.prototype.recordOpen = function (id, now) {
+    const r = this.get(id);
+    now = now || Date.now();
+    r.opens = (r.opens || 0) + 1;
+    if (!r.firstAt) r.firstAt = now;
+    r.lastAt = now;
+    this.save(id);
+    return r;
+  };
+
   WorkStore.prototype.addTime = function (id, ms) {
     if (!(ms > 0) || ms > 30 * 60 * 1000) return;   // 자리 비운 시간은 빼려고 한 번에 30분까지만
     this.get(id).playMs += ms;
@@ -80,13 +91,13 @@
 
   // 모든 작품 합계 (홈의 '내 기록')
   WorkStore.prototype.totals = function (ids) {
-    let turns = 0, playMs = 0, played = 0, quotes = 0, album = 0;
+    let turns = 0, playMs = 0, played = 0, quotes = 0, album = 0, opens = 0;
     for (const id of ids) {
       const r = this.get(id);
-      turns += r.turns; playMs += r.playMs; quotes += r.quotes.length; album += r.album.length;
-      if (r.turns) played++;
+      turns += r.turns; playMs += r.playMs; quotes += r.quotes.length; album += r.album.length; opens += r.opens || 0;
+      if (r.turns || r.opens || r.playMs) played++;
     }
-    return { turns, playMs, played, quotes, album };
+    return { turns, playMs, played, quotes, album, opens };
   };
 
   function fmtTime(ms) {
