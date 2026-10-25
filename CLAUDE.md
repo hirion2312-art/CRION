@@ -11,6 +11,7 @@
   - `packstore.js` 팩 파일 받기·IndexedDB 저장·blob 주소 / `packrun.js` 팩 실행기(runner `academy` = 소환수 아카데미 학생 수첩) / `pk-academy.js` 응답 해석(시험 `test/academy.test.js`) / `pk-academy.css`
   - `packs.js` 스토어 목록·설치 상태 (시험: `test/packs.test.js`), `store.js` 내 기록 (시험: `test/store.test.js`)
   - `dev.js` 개발자 모드(설정 > 개발자 로그인, Ctrl+Shift+D): GitHub 열쇠를 비밀번호로 암호화해 그 컴퓨터에만 저장, 앱에서 작품 추가·수정·숨기기·삭제·순서 → `config/works.json`·`config/thumbs/`에 바로 커밋 (시험: `test/dev.test.js`, `test/ui/run_dev.py`)
+  - `cloud.js` 서버(Supabase) 연결(익명 로그인·신고·게시판·관리자 로그인) 시험 `test/cloud.test.js` / `board.js` 게시판·보낸 것·관리자 신고함 화면(시험 `test/ui/run_cloud.py`). 서버 설계도 `supabase/schema.sql`, 만드는 순서 `supabase/README.md`. 주소·키는 `config/app.json`의 `cloud`(비어 있으면 기능 꺼짐 → 디스코드 웹후크로만 전송)
   - `catalog-extract.js` 빈 결과만 돌려줌(작가 프로필 자동 수집 중단 — 남의 작품을 섞어 와서). 작품 목록은 관리 페이지만
 - `packs/<id>/` 플레이팩 (형식: `packs/README.md`). 첫 팩 `hirion.summoner-academy` (화면 시험: `python3 test/ui/run_pack.py`)
 - `config/works.json` 작품 목록·공지 (히리온은 관리 페이지 `site/admin.html`로 고친다)

@@ -62,6 +62,7 @@
   const installed = new PK.Installed(ls);
   const bgm = window.CrionBgm ? new window.CrionBgm() : null;
   const CM = window.CrionCommunity;
+  const cloud = new window.CrionCloud.Cloud(null, { storage: (() => { try { return localStorage; } catch (e) { return null; } })() });
 
   const S = {
     info: null, settings: null, works: [], creatorUrl: '',
@@ -107,6 +108,7 @@
       const c = await res.json();
       const n = c && c.notice;
       S.notice = n && n.on !== false && n.text ? n : null;
+      cloud.setConfig(c && c.cloud);
       S.cat = { links: (c && c.links) || {}, news: (c && Array.isArray(c.news)) ? c.news : [], report: (c && c.report) || {} };
       if (c && Array.isArray(c.works)) setCatalog(c);
       return true;
@@ -138,7 +140,7 @@
     const packUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
     return `<nav class="nav ${P.navSmall ? 'small' : ''}">
       <div class="nav-brand"><img class="wordmark" src="logo.png" alt="CRION"><img class="mark" src="icon.png" alt="CRION"></div>
-      <div class="nav-list">${NAV.concat(S.dev.repo ? [['dev', '작품 관리', I.key]] : []).map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}</button>`).join('')}</div>
+      <div class="nav-list">${NAV.concat(S.dev.repo ? [['dev', '작품 관리', I.key], ['inbox', '신고함', I.comm]] : []).map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}${k === 'inbox' && BD.newCount() ? `<em>${BD.newCount()}</em>` : ''}</button>`).join('')}</div>
       <div class="nav-foot">
         ${upd ? `<button class="nav-upd" data-act="${upd.type === 'engine' ? 'relaunch' : 'open-link'}" data-url="${esc(upd.url || '')}">${I.spark}<span>${upd.type === 'engine' ? '새 버전 준비됨<small>눌러서 다시 시작</small>' : '새 설치 파일이 나왔어요<small>눌러서 받기</small>'}</span></button>` : ''}
         ${S.dev.repo ? `<button class="nav-dev" data-act="dev-lock" title="개발자 잠그기">${I.lock}<span>개발자 모드 · 잠그기</span></button>` : ''}
@@ -383,7 +385,7 @@
     } else {
       body = `${workSel(true)}<label class="f"><span>공략·팁</span><textarea id="fBody" class="field" rows="5" placeholder="다른 플레이어에게 도움이 될 팁을 적어 주세요. 좋은 공략은 작품 공략에 실려요."></textarea></label>`;
     }
-    const ready = CM.isWebhook(hookFor(kind));
+    const ready = cloud.enabled() || CM.isWebhook(hookFor(kind));
     return `<div class="form" data-kind="${kind}">${body}${nick}
       <div class="form-foot">${ready ? '<span class="muted">히리온에게 바로 전달돼요</span>' : '<span class="muted warn-text">받을 곳이 아직 준비 중이에요. 버튼을 누르면 내용이 복사돼요.</span>'}
         <button class="btn primary" data-act="form-send" data-kind="${kind}">${ready ? '보내기' : '내용 복사'}</button></div></div>`;
@@ -397,13 +399,15 @@
     ].filter(Boolean);
     const news = (S.cat.news || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     const hist = sentHistory().slice().reverse().slice(0, 20);
-    const tabs = [['news', '소식'], ['links', '커뮤니티'], ['send', '신고 · 건의 · 공략'], ['sent', `보낸 것 ${hist.length || ''}`]];
+    const tabs = [['news', '소식'], ['board', '게시판'], ['links', '디스코드·링크'], ['send', '신고 · 건의 · 공략'], ['sent', `보낸 것 ${hist.length || ''}`]];
     let body = '';
     if (S.commTab === 'news') {
       body = (S.notice ? `<div class="news hot"><b>공지</b><p>${esc(S.notice.text)}</p></div>` : '')
         + (news.length ? news.map(n => `<article class="news"><div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
             ${n.text ? `<p>${esc(n.text)}</p>` : ''}${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}</article>`).join('')
           : (!S.notice ? '<div class="empty"><b>아직 소식이 없어요</b><span>새 작품, 플레이팩, 업데이트 소식이 여기에 올라와요.</span></div>' : ''));
+    } else if (S.commTab === 'board') {
+      body = BD.boardHtml();
     } else if (S.commTab === 'links') {
       body = links.length ? `<div class="links">${links.map(([t, d, u]) => `<button class="link-card" data-act="open-link" data-url="${esc(u)}"><b>${esc(t)}</b><span>${esc(d)}</span><i>${I.ext}</i></button>`).join('')}</div>`
         : '<div class="empty"><b>커뮤니티가 곧 열려요</b><span>디스코드·오픈채팅이 생기면 여기에서 바로 들어갈 수 있어요.</span></div>';
@@ -411,6 +415,8 @@
       const kinds = [['bug', '오류 신고'], ['idea', '건의'], ['tip', '공략 제보']];
       body = `<div class="send-box"><div class="seg">${kinds.map(([k, l]) => `<button class="${S.form.kind === k ? 'on' : ''}" data-act="form-kind" data-kind="${k}">${l}</button>`).join('')}</div>
         ${formHtml(S.form.kind, {})}</div>`;
+    } else if (cloud.enabled()) {
+      body = BD.myHtml(hist);
     } else {
       body = hist.length ? `<div class="hist">${hist.map(h => `<div><b>${esc((CM.KINDS[h.kind] || {}).label || '')}</b><span>${esc(h.title || '')}</span><small>${ago(h.at)}${h.copied ? ' · 복사만 함' : ''}</small></div>`).join('')}</div>`
         : '<div class="empty"><b>아직 보낸 것이 없어요</b></div>';
@@ -430,6 +436,24 @@
     lsSet('crion.nick', f.nick);
     const ctx = { app: S.info.version, engine: S.info.engineVersion, os: S.info.platform };
     const hook = hookFor(kind);
+    if (cloud.enabled()) {
+      const lim0 = CM.allowed(sentHistory());
+      if (!lim0.ok) { toast(lim0.why); return; }
+      const btn0 = document.querySelector('[data-act=form-send]');
+      if (btn0) { btn0.disabled = true; btn0.textContent = '보내는 중…'; }
+      try {
+        await cloud.submitReport(kind, f, ctx, ($('#fDiag') && $('#fDiag').checked && S.diagText) ? S.diagText : '');
+        if (CM.isWebhook(hook)) CM.send(hook, CM.buildPayload(kind, f, ctx), null).catch(() => {});  // 디스코드 알림은 덤
+        pushSent({ kind, title: f.title, work: f.work, at: Date.now() });
+        BD.resetMy();
+        toast('보냈어요. 고마워요!');
+        finishForm();
+      } catch (e) {
+        toast(/잠시 뒤/.test(e.message) ? e.message : '보내지 못했어요. 인터넷 연결을 확인해 주세요');
+        if (btn0) { btn0.disabled = false; btn0.textContent = '보내기'; }
+      }
+      return;
+    }
     if (!CM.isWebhook(hook)) {
       copy(CM.asText(kind, f, ctx), '내용을 복사했어요. 커뮤니티나 히리온에게 붙여서 보내 주세요');
       pushSent({ kind, title: f.title, work: f.work, at: Date.now(), copied: true });
@@ -858,6 +882,7 @@
     $('#layer').innerHTML = `<div class="scrim" data-act="close-modal"><div class="modal ${size === true ? 'wide' : size || ''}" role="dialog">${html}</div></div>`;
   }
   const closeModal = () => { $('#layer').innerHTML = ''; };
+  const BD = window.CrionBoard.create({ S, cloud, esc, ago, modal, closeModal, toast, render, lsGet, lsSet, I, copy });
 
   // ---------- 처음 사용법 (튜토리얼) ----------
   const TUT = [
@@ -903,6 +928,7 @@
     else if (S.view === 'records') main = recordsHtml();
     else if (S.view === 'settings') main = settingsHtml();
     else if (S.view === 'dev' && S.dev.repo) main = devHtml();
+    else if (S.view === 'inbox' && S.dev.repo) main = BD.inboxHtml();
     else main = homeHtml();
     app.innerHTML = navHtml() + main;
     if (S.view === 'login') bindWebview();
@@ -910,6 +936,7 @@
   }
   function go(view) {
     if (S.view === 'play' && view !== 'play') { if (runner) { runner.destroy(); runner = null; } if (bgm) bgm.stop(); S.play = null; }
+    if (view !== S.view) BD.reset();
     S.view = view;
     if (view === 'community' && S.commTab === 'news') markNewsSeen();
     render();
@@ -1001,7 +1028,7 @@
       case 'dev-hide': { const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.toggleHide(data, id); return null; }, `${w && S.dev.data.hidden.includes(w.url) ? '보이기' : '숨기기'} ${w ? w.name : id}`).catch(() => {}); break; }
       case 'dev-del': devConfirmDel(id); break;
       case 'dev-del-ok': { closeModal(); const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.remove(data, id); return null; }, `삭제 ${w ? w.name : id}`); break; }
-      default: break;
+      default: BD.act(act, el); break;
     }
   });
 

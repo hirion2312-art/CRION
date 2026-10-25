@@ -11,6 +11,7 @@ on:
       - 'src/renderer/**'
       - 'scripts/make-registry.js'
       - 'config/works.json'
+      - 'config/app.json'
       - 'config/thumbs/**'
       - 'config/bgm/**'
       - 'site/**'

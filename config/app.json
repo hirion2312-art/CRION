@@ -3,6 +3,7 @@
   "registryUrl": "https://hirion2312-art.github.io/CRION/index.json",
   "pubkey": "",
   "downloadUrl": "https://github.com/hirion2312-art/CRION/releases/latest",
+  "cloud": { "url": "", "anonKey": "" },
   "creatorUrl": "https://share.crack.wrtn.ai/le3go2",
   "links": {
     "community": "",
