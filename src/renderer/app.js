@@ -5,7 +5,8 @@
   const R = window.CrionReply;
   const $ = (s, r) => (r || document).querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const cssUrl = (u) => `url("${String(u).replace(/["\\\n]/g, '')}")`;
+  // 속성 안(style="…")에서도 깨지지 않게 작은따옴표로 감싼다
+  const cssUrl = (u) => `url('${String(u).replace(/['"\\\n<>]/g, (c) => encodeURIComponent(c))}')`;
 
   const svg = (d, w) => `<svg width="${w || 18}" height="${w || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const I = {
@@ -139,8 +140,8 @@
     if (!w) return '';
     const rec = store.get(w.id);
     const label = S.settings.workUrls[w.id] ? '이어하기' : '플레이';
-    return `<section class="hero" ${w.thumb ? `style="--hero:${cssUrl(w.thumb)}"` : ''}>
-      <div class="hero-bg"></div>
+    return `<section class="hero">
+      <div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
       <div class="hero-in">
         <div class="hero-poster">${thumbInner(w)}</div>
         <div class="hero-text">
@@ -240,7 +241,7 @@
     else if (tab === 'chars') body = charsHtml(rec, '플레이하면서 만난 인물이 여기에 모여요.');
     else if (tab === 'album') body = albumHtml(rec, '응답에 나온 그림이 여기에 모여요.');
     else body = quotesHtml(rec, '대사창의 ☆를 누르면 마음에 드는 대사를 모을 수 있어요.', w.id);
-    modal(`<div class="info-head" ${w.thumb ? `style="--hero:${cssUrl(w.thumb)}"` : ''}><div class="hero-bg"></div>
+    modal(`<div class="info-head"><div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
         <div class="info-head-in">${thumbHtml(w, 'info-poster')}<div><h3>${esc(w.name)}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
           <div class="hero-btns"><button class="btn white" data-act="play" data-id="${esc(w.id)}">${I.play} ${S.settings.workUrls[w.id] ? '이어하기' : '플레이'}</button>
           ${S.settings.workUrls[w.id] ? `<button class="btn glass" data-act="play-fresh" data-id="${esc(w.id)}">처음부터 (작품 페이지)</button>` : ''}</div></div></div>
@@ -402,6 +403,7 @@
           <div class="cover" id="cover"><div class="in">
             <div class="poster">${w.thumb ? `<img src="${esc(w.thumb)}" alt="">` : ''}</div>
             <h2>${esc(w.name)}</h2><p id="coverText">크랙 화면을 불러오는 중이에요…</p><div class="cover-actions" id="coverActions"></div></div></div>
+          <div class="wait hidden" id="wait"></div>
           <div class="choices" id="choices"></div>
           <div class="dlg hidden" id="dlg" tabindex="0">
             <div class="name hidden" id="dlgName"></div>
@@ -601,7 +603,7 @@
 
   function step(d) {
     const r = S.room;
-    if (!r || !r.turn) return;
+    if (!r || !r.turn || isWaiting()) return;
     clearTimeout(autoTimer);
     if (d > 0 && !r.typed) {            // 타자 중이면 먼저 끝까지 보여 준다
       clearInterval(typeTimer);
@@ -627,13 +629,14 @@
     if (isNew && !parsed.beats.length && !parsed.status) return;
     if (isNew) {
       const live = r.waiting || r.expectLive;
+      if (r.turn && r.turn.beats && r.turn.beats.length) r.prevLast = r.turn.beats[r.turn.beats.length - 1];
       r.baseStatus = r.status;            // 이번 응답 전 상태 (▲▼ 비교용)
       clearTimeout(r.slowTimer);
       r.turn = { key: d.key, live, done: false };
       r.waiting = false;
       r.expectLive = false;
-      r.idx = live ? 0 : 0;
-      r.follow = live;
+      r.idx = 0;
+      r.follow = false;
       r.typed = false;
       if (r.autoOrig && r.orig) setOrig(false, false);
     }
@@ -645,8 +648,18 @@
     t.choices = parsed.choices;
     t.done = !!d.done;
     if (parsed.status) { r.status = parsed.status; renderSide(); }
-    if (r.follow && wasAtEnd) { r.idx = t.beats.length - 1; r.typed = true; }
+    void wasAtEnd;
+    // 쓰는 중: 글은 숨기고 기다림 화면만 (다 쓰면 처음부터 읽기)
+    if (t.live && !t.done) {
+      const chars = (d.segs || []).filter(x => x.t === 'text').reduce((a, x) => a + x.s.replace(/\s+/g, '').length, 0);
+      const imgs = (d.segs || []).filter(x => x.t === 'img');
+      showWaiting({ chars, scenes: parsed.beats.length, imgs: imgs.length, img: imgs.length ? imgs[imgs.length - 1].src : '' });
+      return;
+    }
     if (d.done) {
+      hideWaiting();
+      r.idx = 0;
+      r.typed = false;
       r.follow = false;
       if (r.recordedKey !== d.key && t.live) {          // 이번 플레이에서 새로 받은 응답만 센다
         r.recordedKey = d.key;
@@ -663,6 +676,81 @@
     }
     drawBeat();
   }
+
+  // ---------- 쓰는 중 기다림 화면 ----------
+  let waitTimer = null, waitIdx = 0;
+  function waitCards() {
+    const r = S.room;
+    const rec = store.get(r.work.id);
+    const cards = [];
+    if (r.prevLast && r.prevLast.text) cards.push(['지난 장면', (r.prevLast.who ? r.prevLast.who + ' · ' : '') + r.prevLast.text, '']);
+    rec.quotes.slice(-6).reverse().forEach(q => cards.push(['내가 모은 명대사', (q.who ? q.who + ' · ' : '') + '“' + q.text + '”', '']));
+    Object.entries(rec.chars).sort((a, b) => b[1].lines - a[1].lines).slice(0, 4)
+      .forEach(([n, c]) => cards.push(['함께하는 인물', `${n} · 지금까지 대사 ${c.lines}번${c.last ? '\n“' + c.last + '”' : ''}`, c.img || '']));
+    String(r.work.guide || '').split('\n').map(l => l.replace(/^[-*•#\s]+/, '').replace(/\*\*/g, '').trim()).filter(l => l.length > 6).slice(0, 6)
+      .forEach(l => cards.push(['공략 팁', l, '']));
+    [['알고 계셨나요?', 'F 키를 누르면 몰입 모드로 크게 볼 수 있어요.'], ['알고 계셨나요?', '대사창의 ☆를 누르면 마음에 드는 대사를 모을 수 있어요.'],
+      ['알고 계셨나요?', '입력창 위 + 로 자주 쓰는 문장을 등록해 두면 한 번에 보낼 수 있어요.'], ['알고 계셨나요?', '옆 패널의 앨범에는 응답에 나온 그림이 모여요.']]
+      .forEach(([a, b]) => cards.push([a, b, '']));
+    return cards;
+  }
+  function avgReplyLen() {
+    const L = (S.room.log || []).filter(x => x.who === 'ai' && x.text).slice(-8).map(x => x.text.replace(/\s+/g, '').length);
+    return L.length ? Math.max(300, L.reduce((a, b) => a + b, 0) / L.length) : 900;
+  }
+  function rotateCard() {
+    const el = $('#waitCard');
+    const r = S.room;
+    if (!el || !r) return;
+    const cards = waitCards();
+    const c = cards[waitIdx % cards.length];
+    waitIdx++;
+    el.classList.remove('in');
+    setTimeout(() => {
+      el.innerHTML = `${c[2] ? `<img src="${esc(c[2])}" alt="">` : ''}<div><small>${esc(c[0])}</small><p>${esc(c[1])}</p></div>`;
+      el.classList.add('in');
+    }, 220);
+  }
+  function showWaiting(info) {
+    const r = S.room;
+    const el = $('#wait');
+    if (!r || !el) return;
+    if (el.classList.contains('hidden')) {
+      el.innerHTML = `<div class="wait-card" id="waitCard"></div>
+        <div class="wait-box"><div class="quill" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="wait-text"><b id="waitTitle">이야기를 쓰는 중이에요</b><span id="waitSub">크랙이 응답을 준비하고 있어요</span></div>
+          <div class="wait-bar"><i id="waitBar"></i></div></div>`;
+      el.classList.remove('hidden');
+      $('#stage').classList.add('waiting');
+      $('#dlg').classList.add('hidden');
+      $('#choices').innerHTML = '';
+      showCover('');
+      waitIdx = Math.floor(Math.random() * 3);
+      rotateCard();
+      clearInterval(waitTimer);
+      waitTimer = setInterval(rotateCard, 5200);
+    }
+    const sub = $('#waitSub'), bar = $('#waitBar');
+    if (info && info.chars) {
+      const pct = Math.min(96, Math.round(info.chars / avgReplyLen() * 100));
+      sub.textContent = `${info.chars.toLocaleString('ko-KR')}자 · 장면 ${info.scenes}개${info.imgs ? ` · 그림 ${info.imgs}장` : ''} 받는 중`;
+      bar.parentElement.classList.remove('indet');
+      bar.style.width = Math.max(6, pct) + '%';
+      // 새 그림이 오면 배경을 살짝 바꿔 미리 분위기만 보여 준다
+      if (info.img) { const bg = $('#bg'); if (bg && bg.dataset.tease !== info.img) { bg.dataset.tease = info.img; bg.classList.remove('thumbbg'); bg.style.backgroundImage = cssUrl(info.img); } }
+    } else {
+      bar.parentElement.classList.add('indet');
+    }
+  }
+  function hideWaiting() {
+    clearInterval(waitTimer);
+    waitTimer = null;
+    const el = $('#wait');
+    if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+    const st = $('#stage');
+    if (st) st.classList.remove('waiting');
+  }
+  const isWaiting = () => { const el = $('#wait'); return !!(el && !el.classList.contains('hidden')); };
 
   function onState(d) {
     const r = S.room;
@@ -742,11 +830,14 @@
       if (S.room !== r || !r.expectLive) return;
       const live = $('#dlgLive');
       if (live) live.innerHTML = '<span class="live slow"><i></i>응답이 늦어요 · <button data-act="to-orig">크랙 화면 확인</button></span>';
+      const ws = $('#waitTitle');
+      if (ws) ws.innerHTML = '응답이 늦어지고 있어요 <button class="link light" data-act="to-orig">크랙 화면 확인</button>';
       toast('응답이 늦어요. 크랙 화면에 안내 창(크래커 부족, 점검 등)이 떴는지 확인해 주세요', 5000);
     }, 25000);
     r.log.push({ who: 'me', text, at: Date.now() });
     saveLog();
     v.send('crion:send', { text });
+    showWaiting(null);
     const m = $('#msg');
     if (m) { m.value = ''; autosize(m); }
     $('#choices').innerHTML = '';
@@ -755,6 +846,8 @@
   function onSent(d) {
     if (!d.ok) {
       setSending(false);
+      hideWaiting();
+      if (S.room && S.room.turn) drawBeat();
       toast('크랙 입력창을 찾지 못했어요. 원본 화면에서 대화를 열어 주세요.');
       setOrig(true);
       return;
@@ -836,7 +929,7 @@
         case 'crion:state': onState(d); break;
         case 'crion:url': onUrl(d); break;
         case 'crion:sent': onSent(d); break;
-        case 'crion:acted': if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
+        case 'crion:acted': if (!d.ok) { hideWaiting(); if (S.room && S.room.turn) drawBeat(); } if (!d.ok) toast('크랙에서 해당 버튼을 찾지 못했어요. 원본 화면에서 눌러 주세요.'); break;
         case 'crion:diag':
           if (S.waitDiag) { S.waitDiag = false; S.diagText = diagText(d); }
           else copy(diagText(d), '화면 진단을 복사했어요. 그대로 붙여서 보내 주세요.');
@@ -1007,7 +1100,7 @@
       case 'to-game': setOrig(false, false); break;
       case 'send': sendText($('#msg').value); break;
       case 'continue': sendText('계속'); break;
-      case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); } break; }
+      case 'regen': { const v = wv(); if (v) { S.room.expectLive = true; v.send('crion:action', 'regen'); showWaiting(null); } break; }
       case 'log': openLog(); break;
       case 'community': if (bgm) bgm.stop(); S.view = 'community'; S.room = null; S.work = null; render(); loadNotice().then(() => { if (S.view === 'community') render(); }); break;
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
@@ -1025,7 +1118,7 @@
       }
       case 'prev': step(-1); break;
       case 'next': step(1); break;
-      case 'first': if (S.room && S.room.turn) { S.room.idx = 0; S.room.typed = false; S.room.follow = false; drawBeat(); } break;
+      case 'first': if (S.room && S.room.turn && !isWaiting()) { S.room.idx = 0; S.room.typed = false; S.room.follow = false; drawBeat(); } break;
       case 'choose': {
         const t = S.room && S.room.turn;
         const c = t && t.choices[Number(el.dataset.i)];
