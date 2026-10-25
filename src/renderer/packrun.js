@@ -420,6 +420,12 @@
         ${gauge(s.hp, s.hpMax, 'hp big')}
       </div>`;
     }
+    // 전투판은 대사창 바로 위에 붙인다 (그림 위쪽 얼굴을 가리지 않게)
+    function dockBattle() {
+      const box = stage.querySelector('.ak-battle'), dlg = stage.querySelector('.ak-dlg');
+      if (box && dlg) box.style.bottom = (dlg.offsetHeight + 26) + 'px';
+    }
+    try { new ResizeObserver(dockBattle).observe(stage.querySelector('.ak-dlg')); } catch (e) { /* 없음 */ }
     function renderBattle(fresh) {
       const box = stage.querySelector('.ak-battle');
       const b = R.battle;
@@ -438,6 +444,7 @@
       const head = b.title || b.turn || b.forecast ? `<div class="ak-bhead">${b.title ? `<b>⚔️ ${esc(b.title)}</b>` : ''}${b.turn ? `<span>${b.turn}턴째</span>` : ''}${b.forecast ? `<em>🔮 ${esc(b.forecast)}</em>` : ''}</div>` : '';
       const showA = dAlly ? Object.assign({}, b.ally, { hp: pv.ally.hp }) : b.ally;
       const showE = dFoe ? Object.assign({}, b.enemy, { hp: pv.enemy.hp }) : b.enemy;
+      dockBattle();
       box.innerHTML = head + `<div class="ak-bt-row">${sideHtml(showA, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(showE, 'foe')}</div>
         <div class="ak-blog" ${(b.log || []).length ? '' : 'hidden'}>${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : ''}${x.note ? `<span class="${/굉장/.test(x.note) ? 'good' : /별로/.test(x.note) ? 'weak' : ''}">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
         ${b.over ? `<div class="ak-bover">${b.enemy && b.enemy.hp <= 0 ? '승리!' : '쓰러졌다…'}</div>` : ''}`;
