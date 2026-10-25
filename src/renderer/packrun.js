@@ -28,14 +28,41 @@
     const res = (p) => !p ? '' : files.has(p) ? p : files.has('assets/' + p) ? 'assets/' + p : '';
     const url = (p) => { const r = res(p); return r ? files.url(r) : ''; };
     const has = (p) => !!res(p);
-    const KEY = 'crion.pk.' + o.pack.id;
-    const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } };
-    const M = Object.assign({ codex: {}, met: {}, badges: {}, placeImg: {}, log: [], status: null, prefs: {} }, load());
-    M.prefs = Object.assign({ speed: 'normal', auto: false, vol: 55, music: true, fx: true }, M.prefs);
+    // ---------- 세이브 ----------
+    //  작품마다 CRION에서 시작한 대화만 세이브로 남긴다. 세이브 = 크랙 대화 주소 + 이 팩의 기록(상태·도감·인물·배지·지난 대사)
+    //  '처음부터'는 늘 새 크랙 대화를 열고, '이어하기'는 고른 세이브의 대화만 연다 (크랙이 예전 대화를 열어도 읽지 않음)
+    const PK_ID = o.pack.id, WORK = (o.work && o.work.id) || 'work';
+    const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장 안 됨 */ } };
+    const SAVES_KEY = `crion.pk.${PK_ID}.saves.${WORK}`, PREF_KEY = `crion.pk.${PK_ID}.prefs`;
+    const memKey = (id) => `crion.pk.${PK_ID}.s.${id}`;
+    const normUrl = (u) => { try { const x = new URL(u); return (x.origin + x.pathname).replace(/\/$/, ''); } catch (e) { return String(u || ''); } };
+    let saves = lsGet(SAVES_KEY, []).filter(x => x && x.id);
+    const putSaves = () => lsSet(SAVES_KEY, saves);
+    const blankMem = () => ({ codex: {}, met: {}, badges: {}, log: [], status: null });
+    const M = blankMem();
+    M.prefs = Object.assign({ speed: 'normal', auto: false, vol: 55, music: true, fx: true }, lsGet(PREF_KEY, {}));
+    let saveId = null;
     let saveT = null;
-    const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { M.log = M.log.slice(-200); localStorage.setItem(KEY, JSON.stringify(M)); } catch (e) { /* 저장 안 됨 */ } }, 300); };
+    const save = () => {
+      clearTimeout(saveT);
+      saveT = setTimeout(() => {
+        lsSet(PREF_KEY, M.prefs);
+        if (!saveId) return;
+        M.log = M.log.slice(-200);
+        const { prefs, ...mem } = M;
+        lsSet(memKey(saveId), mem);
+      }, 300);
+    };
+    function useSave(id) {
+      saveId = id;
+      const mem = Object.assign(blankMem(), id ? lsGet(memKey(id), {}) : {});
+      Object.keys(blankMem()).forEach(k => { M[k] = mem[k]; });
+    }
+    const curSave = () => saves.find(x => x.id === saveId) || null;
 
     const R = {
+      mode: 'title', boundUrl: '', away: false, newFlow: null, curUrl: '',
       status: M.status, battle: null, beats: [], i: -1, typing: null, waiting: false, sentAt: 0, page: 'chat', actions: [],
       hints: [], slots: [null, null, null], speaker: null, place: M.status && M.status.place, bgKey: '', cgTimer: null,
       overlays: [], overlayOn: false, crisis: false, lastKey: '', streaming: '', flip: {}, modal: null, partnerFace: {}
@@ -116,7 +143,6 @@
       const names = [key].concat(Object.keys(alias).filter(k => key.includes(k)).map(k => alias[k]));
       for (const n of names) { if (R.crisis) cand.push(`bg/${n}_위기.webp`); if (tsuf) cand.push(`bg/${n}${tsuf}.webp`); cand.push(`bg/${n}.webp`); }
       for (const c of cand) if (has(c)) return url(c);
-      for (const n of names) if (M.placeImg[n]) return M.placeImg[n];
       return url(man.bgDefault || 'bg/hero.webp');
     }
     function tint(st) {
@@ -558,6 +584,13 @@
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
       M.log = M.log.concat(R.beats.map(b => ({ who: b.who || '', t: b.text }))).slice(-200);
+      const sv = curSave();
+      if (sv) {
+        const st = R.status || {}, pp = (st.partners || [])[0];
+        sv.last = Date.now();
+        sv.sum = { date: st.dateText || '', place: st.place || '', partner: pp ? pp.nick : '', lv: pp ? pp.lv : 0, base: pp ? pp.base : '', stage: pp ? pp.stage : 1, dex: Object.keys(M.codex).length, badges: Object.keys(M.badges).length };
+        putSaves();
+      }
       R.i = -1;
       $('#akChoices').innerHTML = '';
       renderHud();
@@ -579,7 +612,7 @@
       const ta = $('#akIn');
       const text = ta.value.trim();
       if (!text || R.waiting) return;
-      if (R.page !== 'chat') { o.toast('대화 화면이 열린 뒤에 보낼 수 있어요'); return; }
+      if (R.mode !== 'play' || R.away || R.page !== 'chat') { o.toast(R.away ? '이 세이브의 대화로 돌아온 뒤에 보낼 수 있어요' : '대화 화면이 열린 뒤에 보낼 수 있어요'); return; }
       R.waiting = true; R.sentAt = Date.now();
       M.log.push({ who: '나', t: text, me: true });
       o.send(text);
@@ -611,7 +644,21 @@
           <div class="row">${(R.actions || []).map(a => `<button class="ak-btn ${a.kind === 'continue' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button></div></div>`;
       } else if (kind === 'other') {
         b.hidden = false; b.className = 'ak-banner center';
-        b.innerHTML = `<div class="ak-gate"><b>대화 화면이 아니에요</b><span>크랙 화면에서 작품의 대화를 열어 주세요. (로그인·작품 페이지 등)</span><div class="row"><button class="ak-btn primary" data-ak="crack">크랙 화면 보기</button></div></div>`;
+        b.innerHTML = `<div class="ak-gate"><b>세이브의 대화가 열리지 않았어요</b><span>크랙에서 대화가 지워졌거나 로그인이 풀렸을 수 있어요.</span><div class="row"><button class="ak-btn primary" data-ak="back-save">다시 열기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+      } else if (kind === 'new') {
+        b.hidden = false; b.className = 'ak-banner center';
+        const acts = (R.actions || []).filter(a => a.kind === 'new');
+        b.innerHTML = `<div class="ak-gate"><b>새 대화를 여는 중이에요</b><span>${R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요. 시작 설정을 고르는 창이 나오면 크랙 화면에서 골라 주세요.' : '크랙 작품 화면을 여는 중이에요…'}</span>
+          <div class="row">${acts.map(a => `<button class="ak-btn ${a.kind === 'new' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+      } else if (kind === 'old') {
+        b.hidden = false; b.className = 'ak-banner center';
+        const acts = (R.actions || []).filter(a => a.kind === 'new');
+        b.innerHTML = `<div class="ak-gate"><b>크랙이 예전 대화를 열었어요</b><span>처음부터 하려면 새 대화를 시작해 주세요. 예전 대화는 읽지 않아요.</span>
+          <div class="row">${acts.map(a => `<button class="ak-btn primary" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn ${acts.length ? '' : 'primary'}" data-ak="crack">크랙 화면에서 새 대화 열기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+      } else if (kind === 'away') {
+        b.hidden = false; b.className = 'ak-banner center';
+        b.innerHTML = `<div class="ak-gate"><b>이 세이브의 대화가 아니에요</b><span>크랙 화면에서 다른 대화로 옮겨 갔어요. 이 대화는 읽지 않아요.</span>
+          <div class="row"><button class="ak-btn primary" data-ak="back-save">세이브 대화로 돌아가기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
       } else if (kind === 'slow') {
         b.hidden = false; b.className = 'ak-banner';
         b.innerHTML = `<span>응답을 아직 못 읽었어요. 크랙에서 답이 왔는지 확인해 보세요.</span><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button><button class="ak-btn" data-ak="unwait">닫기</button>`;
@@ -762,7 +809,12 @@
         case 'regen': o.action('regen'); R.waiting = true; R.sentAt = Date.now(); waitingUi(true); break;
         case 'fill': fill(t.dataset.fill); if (R.modal) $('#akLayer').innerHTML = ''; R.modal = null; break;
         case 'flip': R.flip[t.dataset.k] = !R.flip[t.dataset.k]; t.classList.toggle('flip'); break;
-        case 'click': o.click(t.dataset.id); banner(null); break;
+        case 'click': o.click(t.dataset.id); if (R.newFlow) { R.newFlow.clicked = true; R.newFlow.fromUrl = R.curUrl; banner('new'); } else banner(null); break;
+        case 'title': showTitle(); break;
+        case 'back-save': { const sv = curSave(); if (sv && sv.url) o.load(sv.url); break; }
+        case 't-new': startNew(); break;
+        case 't-cont': continueSave(t.dataset.id); break;
+        case 't-del': { const id = t.dataset.id; if (R.delAsk === id) { saves = saves.filter(x => x.id !== id); putSaves(); try { localStorage.removeItem(memKey(id)); } catch (err) { /* 없음 */ } R.delAsk = null; o.toast('세이브를 지웠어요 (크랙 대화는 그대로 남아요)'); } else { R.delAsk = id; } renderTitle(); break; }
         case 'crack': o.showCrack(true); break;
         case 'diag': o.diag(); break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); break;
@@ -798,15 +850,126 @@
     };
     document.addEventListener('keydown', onKey);
 
-    // ---------- 처음 화면 ----------
-    tint(R.status);
-    setBg(bgFor(R.status, null));
+    // ---------- 처음 화면 (타이틀 · 세이브 고르기) ----------
+    const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
+    const fmtMs = (ms) => { const m = Math.round((ms || 0) / 60000); return m < 60 ? m + '분' : Math.floor(m / 60) + '시간 ' + (m % 60) + '분'; };
+    function renderTitle() {
+      let box = el.querySelector('.ak-title');
+      if (!box) { box = document.createElement('div'); box.className = 'ak-title'; el.querySelector('.ak').appendChild(box); }
+      const list = saves.slice().sort((a, b) => (b.last || 0) - (a.last || 0));
+      box.innerHTML = `<div class="ak-title-bg" style="background-image:${cssUrl(url(man.bgDefault || 'bg/hero.webp'))}"></div>
+        <div class="ak-title-in">
+          <img class="ak-title-logo" src="${esc(url('ti/logo.webp'))}" alt="소환수 아카데미">
+          <div class="ak-title-btns">
+            <button class="ak-btn primary big" data-ak="t-new">✦ 처음부터 시작</button>
+            <span class="ak-muted">처음부터는 늘 크랙의 <b>새 대화</b>로 시작해요. 이어하기는 CRION에서 시작한 세이브만 보여요.</span>
+          </div>
+          <div class="ak-saves">
+            <h4>이어하기 <em>${list.length}</em></h4>
+            ${list.length ? list.map((sv, i) => {
+              const s2 = sv.sum || {};
+              const img = s2.base ? summonImg(s2.base, s2.stage || 1, '평상시') : '';
+              return `<div class="ak-save">
+                <div class="ak-save-img" style="background-image:${cssUrl(img)}">${img ? '' : '📖'}</div>
+                <div class="ak-save-meta"><b>${esc(s2.date || '프롤로그')}${s2.place ? ' · 📍' + esc(s2.place) : ''}</b>
+                  <span>${s2.partner ? esc(s2.partner) + ' Lv ' + (s2.lv || '-') + ' · ' : ''}도감 ${s2.dex || 0} · 배지 ${s2.badges || 0} · ${fmtMs(sv.playMs)} 플레이</span>
+                  <em>세이브 ${list.length - i} · ${sv.url ? '마지막 ' + ago(sv.last || sv.created) : '대화 연결 전'}</em></div>
+                <div class="ak-save-btns">${sv.url ? `<button class="ak-btn primary" data-ak="t-cont" data-id="${esc(sv.id)}">이어하기</button>` : ''}
+                  <button class="ak-btn ${R.delAsk === sv.id ? 'danger' : ''}" data-ak="t-del" data-id="${esc(sv.id)}">${R.delAsk === sv.id ? '한 번 더 누르면 삭제' : '지우기'}</button></div>
+              </div>`;
+            }).join('') : '<p class="ak-muted">아직 세이브가 없어요. 처음부터 시작해 보세요.</p>'}
+          </div>
+        </div>`;
+      box.hidden = false;
+    }
+    function resetScene() {
+      R.status = M.status; R.place = M.status && M.status.place; R.battle = null; R.beats = []; R.i = -1; R.hints = []; R.overlays = []; R.lastKey = ''; R.waiting = false; R.away = false; R.flip = {}; R.partnerFace = {};
+      $('#akLayer').innerHTML = ''; R.overlayOn = false; R.modal = null;
+      $('#akChoices').innerHTML = '';
+      renderBattle(false); setCrisis(false); tint(R.status); renderHud();
+      R.bgKey = ''; setBg(url(man.bgDefault || 'bg/hero.webp'), false);
+    }
+    function hideTitle() { const box = el.querySelector('.ak-title'); if (box) box.hidden = true; }
+    function showTitle() {
+      R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false);
+      bgmId = ''; playBgm(man.bgmTitle || 'title');
+      renderTitle();
+    }
+    function startNew() {
+      const id = 'sv' + Date.now().toString(36);
+      saves.push({ id, url: '', created: Date.now(), last: Date.now(), playMs: 0 });
+      putSaves();
+      useSave(id); save();
+      resetScene();
+      R.mode = 'binding'; R.newFlow = { clicked: false, fromUrl: '', at: Date.now() };
+      hideTitle();
+      stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">새 대화를 여는 중이에요…</span>';
+      banner('new');
+      bgmId = ''; playBgm(man.bgmTitle || 'title');
+      o.load(o.workUrl);
+    }
+    function continueSave(id) {
+      const sv = saves.find(x => x.id === id);
+      if (!sv || !sv.url) return;
+      useSave(id);
+      resetScene();
+      R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null;
+      hideTitle(); banner(null);
+      stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">지난 대화를 불러오는 중이에요…</span>';
+      bgmId = ''; playBgm(placeBgm(R.place));
+      o.load(sv.url);
+    }
+    // 새 대화 연결: CRION이 '새 대화'를 누른 뒤 열린 대화, 또는 글이 거의 없는(프롤로그뿐인) 대화만 새 세이브로 잡는다
+    function bindNew(st) {
+      const nf = R.newFlow;
+      if (!nf) return;
+      const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
+      if (st.page === 'detail') {
+        const a = (st.actions || []).find(x => x.kind === 'new');
+        if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
+        banner('new');
+        return;
+      }
+      if (st.page !== 'chat') { banner('new'); return; }
+      const u = normUrl(st.url || R.curUrl);
+      const fresh = !used.has(u) && ((nf.clicked && u !== normUrl(nf.fromUrl)) || (st.msgs != null && st.msgs >= 0 && st.msgs <= 2));
+      if (fresh) {
+        const sv = curSave();
+        if (sv) { sv.url = st.url || R.curUrl; sv.last = Date.now(); putSaves(); }
+        R.mode = 'play'; R.boundUrl = u; R.newFlow = null;
+        banner(null);
+        stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">새 이야기를 불러오는 중이에요…</span>';
+        o.rescan();
+        return;
+      }
+      // 크랙이 예전 대화를 열었다: 대화 화면의 '새 대화' 버튼을 한 번만 눌러 보고, 없으면 안내
+      const a = (st.actions || []).find(x => x.kind === 'new');
+      if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
+      if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
+      banner('old');
+    }
+    setInterval(() => { const sv = curSave(); if (sv && R.mode === 'play' && !R.away && document.visibilityState === 'visible' && !el.closest('.off')) { sv.playMs = (sv.playMs || 0) + 30000; putSaves(); } }, 30000);
+    tint(null);
+    setBg(url(man.bgDefault || 'bg/hero.webp'), false);
     renderHud();
-    playBgm(R.status ? placeBgm(R.place) : (man.bgmTitle || 'title'));
-    stage.querySelector('.ak-text').innerHTML = R.status ? '<span class="ak-muted">지난 대화를 불러오는 중이에요…</span>' : '<span class="ak-muted">크랙 대화가 열리면 이야기가 여기에 흘러요.</span>';
+    showTitle();
 
     return {
       onIpc(ch, d) {
+        if (ch === 'crion:url' && d) {
+          R.curUrl = d.url || '';
+          if (R.mode === 'play' && d.chat && R.boundUrl) { const away = normUrl(d.url) !== R.boundUrl; if (away !== R.away) { R.away = away; banner(away ? 'away' : null); if (!away) o.rescan(); } }
+          return;
+        }
+        if (ch === 'crion:reply' && R.mode !== 'play') return;
+        if (ch === 'crion:reply' && R.away) return;
+        if (ch === 'crion:state' && d && R.mode === 'binding') {
+          if (d.page) { R.page = d.page; R.actions = d.actions || []; }
+          if (d.url) R.curUrl = d.url;
+          bindNew(d);
+          return;
+        }
+        if (ch === 'crion:state' && d && R.mode === 'title') return;
         if (ch === 'crion:reply' && d) {
           if (!d.done) { if (R.waiting || d.key !== R.lastKey) { R.waiting = true; R.sentAt = R.sentAt || Date.now(); waitingUi(true, (d.segs || []).filter(s => s.t === 'text').map(s => s.s).join(' ').trim()); } return; }
           if (d.key === R.lastKey && !R.waiting) return;
@@ -816,8 +979,8 @@
         } else if (ch === 'crion:state' && d) {
           if (d.page) { R.page = d.page; R.actions = d.actions || []; }
           else if (d.input) R.page = 'chat';
-          if (R.page === 'detail' && R.actions.length) banner('detail');
-          else if (R.page === 'other') banner('other');
+          if (d.page === 'chat' && d.url && R.boundUrl) { const away = normUrl(d.url) !== R.boundUrl; if (away !== R.away) { R.away = away; banner(away ? 'away' : null); if (!away) { o.rescan(); } } if (away) return; }
+          if (R.page === 'detail' || R.page === 'other') banner('other');
           else if ($('#akBanner').querySelector('.ak-gate')) banner(null);
         } else if (ch === 'crion:sent' && d) {
           if (!d.ok) { R.waiting = false; waitingUi(false); o.toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
@@ -825,7 +988,7 @@
       },
       destroy() { document.removeEventListener('keydown', onKey); clearInterval(waitT); clearTimeout(autoT); clearInterval(R.typing && R.typing.t); if (bgm) bgm.stop(); save(); },
       demo(segsList) { handle(segsList); },
-      state: R, memory: M
+      state: R, memory: M, saves: () => saves
     };
   }
 

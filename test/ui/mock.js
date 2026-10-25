@@ -21,4 +21,7 @@
   };
   window.__sent = [];
   HTMLElement.prototype.send = function (ch, d) { window.__sent.push([ch, d]); }; // webview 흉내
+  window.__loads = [];
+  HTMLElement.prototype.loadURL = function (u) { window.__loads.push(u); };
+  HTMLElement.prototype.canGoBack = function () { return false; };
 })();

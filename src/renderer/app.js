@@ -763,7 +763,7 @@
     const useSaved = !fresh && saved && P.openMode === 'continue';
     const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
     const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && pk.runner === 'academy' && PK.compatible(pk, S.info.engineVersion) && window.CrionPackRun ? pk : null;
-    S.play = { work: w, url: useSaved ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false };
+    S.play = { work: w, url: useSaved && !usePack ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false };
     S.view = 'play';
     store.recordOpen(w.id);
     save({ recent: [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8) });
@@ -787,6 +787,9 @@
         send: (text) => { const v = wv(); if (v) v.send('crion:send', { text }); },
         action: (name) => { const v = wv(); if (v) v.send('crion:action', name); },
         click: (id) => { const v = wv(); if (v) v.send('crion:click', Number(id)); },
+        load: (u) => { const v = wv(); if (v && /^https:\/\//.test(String(u))) v.loadURL(u); },
+        workUrl: S.play.work.url,
+        rescan: () => { const v = wv(); let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } if (v) v.send('crion:config', { play: true, learned, rules: {} }); },
         toast, copy: (t) => copy(t, '복사했어요: ' + t.slice(0, 40)), openExternal: (u) => api.openExternal(u),
         showCrack: () => { const b = $('[data-act=pk-crack]'); if (b) b.click(); },
         diag: () => { const v = wv(); if (v) { S.waitDiag = false; v.send('crion:diag'); } },
@@ -824,7 +827,8 @@
     });
     v.addEventListener('ipc-message', (e) => {
       const d = e.args && e.args[0];
-      if (S.play && S.play.pack && /^crion:(reply|state|sent)$/.test(e.channel)) {
+      if (S.play && S.play.pack && /^crion:(reply|state|sent|url)$/.test(e.channel)) {
+        if (e.channel === 'crion:url' && d) S.play.cur = d.url;   // 플레이팩: 이어하기 주소는 팩 세이브가 따로 기억
         if (runner) runner.onIpc(e.channel, d); else (S.play.pendingIpc = S.play.pendingIpc || []).push([e.channel, d]);
         return;
       }

@@ -31,7 +31,7 @@ ipcRenderer.on('crion:config', (_e, c) => {
   rules = (c && c.rules) || {};
   learned = (c && c.learned && c.learned.tag) ? c.learned : null;
   active = !!(c && c.play);
-  lastSig = ''; lastKey = ''; doneSent = false;
+  lastSig = ''; lastKey = ''; doneSent = false; lastHas = null;
   schedule(60);
 });
 
@@ -76,29 +76,41 @@ const START_WORDS = [
   ['continue', /^(이어서\s*(대화|하기|플레이)?|이어하기|대화\s*이어(가기|하기)|계속\s*(하기|대화|플레이)|최근\s*대화)/],
   ['new', /^(새\s*(대화|채팅)(\s*시작)?|대화\s*시작(하기)?|채팅\s*시작(하기)?|시작하기|플레이(하기)?|대화하기|채팅하기|처음부터)/]
 ];
+// 대화 화면 안에서는 '새 대화' 계열 버튼만 찾는다 (CRION '처음부터'용)
+const NEW_ON_CHAT = [['new', /^(새\s*(대화|채팅)(\s*(시작|하기))?|새로\s*(시작|하기)|처음부터(\s*(시작|하기))?|대화\s*새로\s*시작)$/]];
 let actionEls = [];
-function pageActions() {
+function pageActions(onChat) {
   actionEls = [];
   const out = [];
   for (const b of qa('button, a[href], [role="button"]')) {
     if (!visible(b) || b.disabled) continue;
-    const t = (b.innerText || b.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ');
+    const t = (b.innerText || b.getAttribute('aria-label') || b.title || '').trim().replace(/\s+/g, ' ');
     if (!t || t.length > 16) continue;
-    for (const [kind, re] of START_WORDS) {
+    for (const [kind, re] of (onChat ? NEW_ON_CHAT : START_WORDS)) {
       if (re.test(t)) { out.push({ id: actionEls.length, kind, label: t }); actionEls.push(b); break; }
     }
   }
   return out.slice(0, 4);
 }
+let msgCount = { url: '', n: -1, at: 0 };
+function chatMsgs(input) {
+  // 대화 칸의 메시지 수 (새 대화인지 판단용) — 주소가 바뀌었거나 5초가 지났을 때만 다시 센다
+  if (msgCount.url === location.href && Date.now() - msgCount.at < 5000) return msgCount.n;
+  let n = -1;
+  try { n = (learned ? bySig(learned) : columnMessages(input)).length; } catch (e) { n = -1; }
+  msgCount = { url: location.href, n, at: Date.now() };
+  return n;
+}
 function pageKind() {
-  if (findInput()) return { page: 'chat', actions: [] };
+  const inp = findInput();
+  if (inp) return { page: 'chat', actions: pageActions(true), msgs: chatMsgs(inp) };
   const actions = pageActions();
   return { page: actions.length ? 'detail' : 'other', actions };
 }
 // 플레이어가 CRION에서 누른 '이어하기/새로 시작'을 크랙 버튼에 그대로 전달 (한 번 누름 = 한 번)
 ipcRenderer.on('crion:click', (_e, id) => {
   if (!active) return;
-  pageActions();
+  pageActions(!!findInput());
   const b = actionEls[Number(id)];
   if (b) b.click();
   send('crion:clicked', { ok: !!b });
@@ -500,8 +512,8 @@ function start() {
     }
     if (active) {
       const k = pageKind();
-      const sig = k.page + '|' + k.actions.map(a => a.label).join(',');
-      if (sig !== lastHas) { lastHas = sig; send('crion:state', { input: k.page === 'chat', page: k.page, actions: k.actions, url: location.href, poll: true }); }
+      const sig = k.page + '|' + k.actions.map(a => a.label).join(',') + '|' + location.href + '|' + (k.msgs == null ? '' : k.msgs);
+      if (sig !== lastHas) { lastHas = sig; send('crion:state', { input: k.page === 'chat', page: k.page, actions: k.actions, msgs: k.msgs, url: location.href, poll: true }); }
     }
   }, 1500);
 }
