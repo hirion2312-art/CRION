@@ -456,3 +456,9 @@ select.field { height: 42px; }
 .card .tag.adult { left: auto; right: 10px; top: auto; bottom: 10px; background: #e11d48; color: #fff; border-radius: 999px; min-width: 26px; text-align: center; font-weight: 800; }
 .adult-dot { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 999px; background: #e11d48; color: #fff; font-size: 13px; font-weight: 800; vertical-align: middle; }
 .dev-tags i.adult { background: #e11d48; color: #fff; }
+
+/* 플레이팩 안내 창 */
+.hint h3 { margin: 0 0 4px; font-size: 20px; }
+.hint-list { margin: 8px 0 12px; padding-left: 18px; line-height: 1.8; color: #444; font-size: 14px; }
+.hint .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted, #8a8a93); margin-bottom: 12px; }
+.hint .row.end { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

@@ -812,9 +812,29 @@
       </div>
     </div>`;
   }
-  function openWork(id, fresh) {
+  // 플레이팩이 있는데 아직 안 받은 작품을 열 때: 받을지, 그냥 크랙 화면으로 할지 안내
+  function packHint(w, pk, fresh) {
+    modal(`<div class="pack-head">${pk.cover ? `<img src="${esc(pk.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
+      <div class="body hint">
+        <h3>이 작품은 전용 플레이팩이 있어요</h3>
+        <p class="lead">${esc(pk.name)}${pk.bytes ? ` · ${(pk.bytes / 1048576).toFixed(1)}MB` : ''}</p>
+        <p>${esc(pk.summary || '크랙 화면 위에 게임 화면을 얹어 주는 꾸러미예요.')}</p>
+        <ul class="hint-list"><li>한 번 받아 두면 이 작품을 열 때마다 자동으로 적용돼요.</li><li>내 대화·진행은 그대로예요. 언제든 끄거나 지울 수 있어요.</li><li>받지 않아도 지금처럼 <b>크랙 화면 그대로</b> 플레이할 수 있어요.</li></ul>
+        <label class="chk"><input type="checkbox" id="hintNo"> 이 작품은 다시 묻지 않기</label>
+        <div class="row end">
+          ${pk.ui ? `<button class="btn" data-act="pack-preview" data-id="${esc(pk.id)}">${I.eye}미리보기</button>` : ''}
+          <button class="btn" data-act="hint-skip" data-id="${esc(w.id)}" data-fresh="${fresh ? '1' : ''}">플레이팩 없이 플레이</button>
+          <button class="btn primary" data-act="hint-install" data-id="${esc(pk.id)}">${I.down}플레이팩 받기</button>
+        </div>
+      </div>`, true);
+  }
+  function openWork(id, fresh, skipHint) {
     const w = workById(id);
     if (!w || !w.url) return;
+    if (!skipHint) {
+      const pk0 = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
+      if (pk0 && PK.compatible(pk0, S.info.engineVersion) && !installed.has(pk0.id) && lsGet('crion.nohint.' + pk0.id) !== '1') { packHint(w, pk0, fresh); return; }
+    }
     closeModal();
     const saved = (S.settings.workUrls || {})[w.id];
     const useSaved = !fresh && saved && P.openMode === 'continue';
@@ -1022,6 +1042,8 @@
       case 'pack': openPack(id); break;
       case 'pack-preview': openPackPreview(id); break;
       case 'pack-install': installPack(id); break;
+      case 'hint-install': installPack(id); break;
+      case 'hint-skip': { const no = $('#hintNo'); const w = workById(id); const pk = w && (packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id)); if (no && no.checked && pk) lsSet('crion.nohint.' + pk.id, '1'); openWork(id, !!el.dataset.fresh, true); break; }
       case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
       case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
       case 'pack-play': { const p = S.packs.find(x => x.id === id); const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
