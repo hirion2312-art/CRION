@@ -400,3 +400,11 @@ select.field { height: 42px; }
 .dev-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dev-thumb span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .dev-thumb b { font-size: 13px; } .dev-thumb small { font-size: 11px; color: var(--faint); }
+
+/* ---------- 플레이팩 ---------- */
+.badge.pk { background: #1d2448; color: #f1d58e; }
+.ptools .btn.sm.on { background: var(--accent-weak); border-color: var(--accent-line); color: var(--accent-ink); }
+.dl { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 12px; }
+.dl-bar { height: 10px; border-radius: 999px; background: #f0eef1; overflow: hidden; }
+.dl-bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .2s; }
+.dl span { font-size: 13px; color: var(--ink2); font-weight: 650; font-variant-numeric: tabular-nums; }

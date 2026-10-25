@@ -9,7 +9,7 @@
     { id: 'w5', name: '평가혜', genre: '캐릭터챗', url: 'https://crack.wrtn.ai/detail/e', thumb: '', auto: true }
   ];
   window.crion = {
-    info: async () => ({ registryUrl: 'https://reg.test/CRION/index.json', version: '0.3.0', engineVersion: '0.3.0', engineSource: 'bundled', crackOrigin: 'https://crack.wrtn.ai', platform: 'darwin', updatesEnabled: true, links: {} }),
+    info: async () => ({ registryUrl: 'https://reg.test/CRION/index.json', version: '0.3.0', engineVersion: window.__engineVersion || '0.3.0', engineSource: 'bundled', crackOrigin: 'https://crack.wrtn.ai', platform: 'darwin', updatesEnabled: true, links: {} }),
     engineReady: async () => true,
     getSettings: async () => JSON.parse(JSON.stringify(settings)),
     setSettings: async (p) => { Object.assign(settings, p); return JSON.parse(JSON.stringify(settings)); },

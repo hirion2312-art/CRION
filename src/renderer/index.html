@@ -2,10 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https:; frame-src https:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src https:">
 <title>CRION</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;700;900&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="pk-academy.css">
 </head>
 <body>
 <div id="splash" aria-hidden="true">
@@ -22,6 +24,9 @@
 <div id="toast"></div>
 <script src="store.js"></script>
 <script src="packs.js"></script>
+<script src="packstore.js"></script>
+<script src="pk-academy.js"></script>
+<script src="packrun.js"></script>
 <script src="community.js"></script>
 <script src="audio.js"></script>
 <script src="dev.js"></script>

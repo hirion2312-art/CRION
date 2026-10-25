@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소환수 아카데미 · 학생 수첩 미리보기</title>
+<style>
+  :root { --accent: #d9b25f; --bg: #0e1432; --text: #f2e9d4; --sub: #a3abcc; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(120% 90% at 30% 0%, #1b2557, var(--bg) 60%); color: var(--text); font-family: 'Noto Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; overflow: hidden; }
+  .wrap { height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 16px 18px; }
+  header { display: flex; align-items: center; gap: 14px; }
+  header img { height: 46px; }
+  header b { font-size: 17px; letter-spacing: .02em; }
+  header span { display: block; font-size: 12.5px; color: var(--sub); }
+  .stage { position: relative; min-height: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px rgba(217,178,95,.5), 0 18px 40px rgba(0,0,0,.45); background: #0a0f28; }
+  .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .6s ease; }
+  .stage img.on { opacity: 1; }
+  .cap { position: absolute; left: 14px; bottom: 14px; max-width: 70%; padding: 10px 14px; border-radius: 12px; background: rgba(247,240,222,.96); color: #1d2448; font-size: 13.5px; line-height: 1.6; box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+  .cap b { display: block; font-size: 15px; margin-bottom: 2px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  nav button { font: inherit; font-size: 13px; font-weight: 700; color: var(--text); padding: 7px 14px; border-radius: 999px; border: 0; cursor: pointer; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(217,178,95,.4); }
+  nav button.on { color: #1d2448; background: linear-gradient(180deg, #f1d58e, #d9b25f); box-shadow: none; }
+  .note { text-align: center; font-size: 12px; color: var(--sub); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="assets/ti/logo.webp" alt="소환수 아카데미"><div><b>학생 수첩 플레이팩</b><span>예시 장면이에요. 실제 플레이에서는 크랙 응답을 읽어 이렇게 보여 줘요.</span></div></header>
+  <div class="stage" id="stage"></div>
+  <div><nav id="nav"></nav><p class="note">선택지·전투 버튼은 입력창에 글만 채워요 · 보내기는 직접 · 언제든 크랙 화면으로 돌아갈 수 있어요</p></div>
+</div>
+<script>
+  var S = [
+    ['shot1.webp', '평상 장면', '배경 위에 말하는 사람 카드가 서고, 아래 대사창에 이야기가 한 문단씩 흘러요. 오른쪽은 학생증·파트너 카드·도감·배지가 담긴 학생 수첩.'],
+    ['shot2.webp', '전투', '아군·상대 카드와 HP, 상성(×1.5), 피해 숫자. 기술·방어·교체·상처약·계약석(포획 확률 추정)·도망 버튼이 입력창을 채워 줘요.'],
+    ['shot3.webp', '소환', '새 파트너가 나타나면 소환진 연출과 함께 카드가 열리고, 도감 코드를 바로 복사할 수 있어요.'],
+    ['shot4.webp', '도감 80칸', '계약·진화로 확인한 칸은 능력치·고유기·서식지까지, 목격만 한 칸은 실루엣으로 보여요.'],
+    ['shot5.webp', '진화', '빛 속에서 모습이 바뀌는 진화 연출.']
+  ];
+  var stage = document.getElementById('stage'), nav = document.getElementById('nav'), i = 0, t = null;
+  S.forEach(function (s, k) {
+    var im = new Image(); im.src = s[0]; im.alt = s[1]; stage.appendChild(im);
+    var b = document.createElement('button'); b.textContent = s[1]; b.onclick = function () { show(k, true); }; nav.appendChild(b);
+  });
+  var cap = document.createElement('div'); cap.className = 'cap'; stage.appendChild(cap);
+  function show(k, user) {
+    i = k;
+    [].forEach.call(stage.querySelectorAll('img'), function (im, j) { im.classList.toggle('on', j === k); });
+    [].forEach.call(nav.children, function (b, j) { b.classList.toggle('on', j === k); });
+    cap.innerHTML = '<b>' + S[k][1] + '</b>' + S[k][2];
+    clearTimeout(t);
+    t = setTimeout(function () { show((i + 1) % S.length); }, user ? 9000 : 5000);
+  }
+  show(0);
+</script>
+</body>
+</html>

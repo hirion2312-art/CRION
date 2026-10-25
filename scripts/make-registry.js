@@ -67,7 +67,7 @@ for (const id of fs.readdirSync(SRC)) {
   copyAll(dir, path.join(OUT, 'packs', id), d.files);
   // 스토어에 보일 소개 정보도 같이 싣는다 (형식: packs/README.md)
   const info = {};
-  for (const k of ['summary', 'desc', 'author', 'tags', 'workId', 'workUrl', 'cover', 'previews', 'ui', 'updated']) if (m[k] != null) info[k] = m[k];
+  for (const k of ['summary', 'desc', 'author', 'tags', 'workId', 'workUrl', 'workName', 'runner', 'cover', 'previews', 'ui', 'updated']) if (m[k] != null) info[k] = m[k];
   packs.push(Object.assign({ id, name: m.name, version: m.version, minEngine: m.minEngine || null }, info, { rev: d.rev, bytes: d.bytes, base: `${base}packs/${id}/`, files: d.files }));
   console.log(`팩 ${m.name} v${m.version} (파일 ${d.files.length}개, ${(d.bytes / 1048576).toFixed(1)}MB, rev ${d.rev})`);
 }

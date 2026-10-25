@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; }
+  .sidebar { width: 240px; flex: none; border-right: 1px solid #ddd; }
+  main { flex: 1; overflow-y: auto; padding: 20px; }
+  .hero { height: 300px; background: #ccd; }
+  .comments { margin-top: 20px; }
+  .comment-box { position: sticky; bottom: 0; background: #fff; padding: 10px 0; display: flex; gap: 8px; }
+  textarea { flex: 1; height: 40px; }
+</style></head>
+<body>
+<div class="sidebar"><p>최근 대화</p><p>다른 작품 세션</p></div>
+<main>
+  <div class="hero"></div>
+  <h1>돌아온 프로필 평가하는 평가혜</h1>
+  <p>당신의 프로필을 독하게 평가해 드립니다.</p>
+  <div><button id="cont" onclick="window.__clicked='continue'">이어서 대화하기</button> <button id="newc" onclick="window.__clicked='new'">새 대화</button> <button>공유</button></div>
+  <div style="height:300px"></div>
+  <section class="comments">
+    <h3>댓글 128</h3>
+    <div class="c">재밌어요!</div>
+    <div class="comment-box"><textarea placeholder="여기에 의견을 남겨 주세요"></textarea><button>등록</button></div>
+  </section>
+</main>
+</body></html>

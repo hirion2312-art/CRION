@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "id": "hirion.summoner-academy",
+  "name": "소환수 아카데미 · 학생 수첩",
+  "version": "1.0.0",
+  "runner": "academy",
+  "workId": "summoner-academy",
+  "workName": "소환수 아카데미",
+  "workUrl": "",
+  "summary": "학생증·파트너 카드·도감·배지 회랑이 담긴 에테르나 신입생의 학생 수첩 화면",
+  "desc": "# 들어 있는 것\n- **학생 수첩 HUD**: 학생증·돈·주머니·의뢰·다음 일정이 상태창에서 자동으로 채워져요\n- **파트너 카드**: 동행 소환수 3마리까지 HP·XP 게이지, 누르면 뒤집혀 능력치·기술 횟수\n- **전투 패널**: 아군·상대 카드, 상성 표시, 피해 숫자, 기술·방어·교체·상처약·계약석(포획 확률 추정)·도망 버튼\n- **소환·진화·배지 연출**: 새 파트너 등장, 빛 속의 진화, 배지 획득 장면\n- **도감 80칸**: 계약·진화로 확인한 칸은 능력치·고유기·서식지까지, 목격은 실루엣으로. 🔑 코드 복사\n- **인물록 22명 · 섬 지도 · 배지 회랑 · 상점 가격표**\n- **OST 9곡**: 장소마다 어울리는 곡이 자동으로 흘러요\n\n# 알아 두기\n- 선택지·전투 버튼은 입력창에 글만 채워요. 보내기는 직접 눌러 주세요.\n- 위쪽 **크랙 화면** 버튼으로 언제든 원래 화면을 볼 수 있어요. 팩을 끄면 크랙 화면 그대로 열려요.\n- 호감도·유대 같은 숨은 값은 보여 주지 않아요.",
+  "author": "히리온",
+  "tags": ["아카데미", "소환수", "수집", "배틀", "도감"],
+  "cover": "cover.webp",
+  "previews": ["shot1.webp", "shot2.webp", "shot3.webp", "shot4.webp", "shot5.webp"],
+  "ui": "ui.html",
+  "minEngine": "0.5.0",
+  "mode": "hybrid",
+  "identity": "이 작품의 플레이 화면은 에테르나 신입생의 「학생 수첩」처럼 보인다.",
+  "theme": {
+    "accent": "#d9b25f", "bg": "#0e1432", "text": "#f2e9d4", "textSub": "#a3abcc",
+    "fontBody": "Noto Sans KR", "fontTitle": "Black Han Sans", "fontDialogue": "Gowun Batang",
+    "elements": { "화": "#ff7a45", "수": "#4aa8ff", "풍": "#6fe0b5", "지": "#b08a5a", "빛": "#ffd86b", "어둠": "#8a6bd6", "무": "#c9ced9" }
+  },
+  "bgDefault": "assets/bg/hero.webp",
+  "bgAlias": { "소환의제단": "소환의제단", "제단": "소환의제단", "투기장": "대투기장", "식당": "학생식당", "교정": "밤의교정", "성역": "빛의성역", "전당": "명예의전당", "상점가": "시가지" },
+  "bgm": {
+    "title": "assets/bgm/title.mp3", "academy": "assets/bgm/academy.mp3", "opening": "assets/bgm/opening.mp3", "partner": "assets/bgm/partner.mp3",
+    "field": "assets/bgm/field.mp3", "field2": "assets/bgm/field2.mp3", "daily": "assets/bgm/daily.mp3", "rival": "assets/bgm/rival.mp3", "ending": "assets/bgm/ending.mp3"
+  },
+  "bgmTitle": "title",
+  "bgmDefault": "academy",
+  "battleBgm": "rival",
+  "bgmByLoc": {
+    "섬전경": "title", "소환의제단": "partner", "제단": "partner", "강의실": "academy", "기숙사": "daily", "학생식당": "daily", "식당": "daily",
+    "도서관": "academy", "대투기장": "rival", "시가지": "daily", "상점": "daily", "야생지대": "field", "화구": "field2", "호수": "field", "고원": "field2",
+    "협곡": "field", "묘원": "field2", "서고": "field2", "성당": "field", "밤의교정": "academy", "우물": "partner", "공방": "daily", "보건실": "daily",
+    "빛의성역": "ending", "명예의전당": "ending", "흑일": "rival"
+  },
+  "cg": {},
+  "log": "collapsed",
+  "fxMap": { "crisis": ["vignette_red", "heartbeat"], "blackday": ["vignette_dark", "shake"], "evolve": ["flash", "sparks"], "raid": ["glitch", "shake"], "super_effective": ["flash", "shake"], "weak": ["dim"], "capture_ok": ["sparks"] }
+}

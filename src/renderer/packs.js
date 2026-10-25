@@ -23,7 +23,11 @@
         tags: Array.isArray(p.tags) ? p.tags.map(String).slice(0, 6) : [],
         workId: p.workId ? String(p.workId) : '', workUrl: p.workUrl ? String(p.workUrl) : '',
         cover: at(p.cover), previews: (Array.isArray(p.previews) ? p.previews : []).map(at).filter(Boolean).slice(0, 8),
-        ui: at(p.ui), minEngine: p.minEngine || null, bytes: Number(p.bytes) || 0, updated: p.updated || ''
+        ui: at(p.ui), minEngine: p.minEngine || null, bytes: Number(p.bytes) || 0, updated: p.updated || '',
+        workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '',
+        base: String(p.base), rev: String(p.rev || ''),
+        files: (Array.isArray(p.files) ? p.files : []).filter(f => f && typeof f.path === 'string' && /^[0-9a-f]{64}$/.test(String(f.sha256 || '')) && !f.path.includes('..') && !/^[a-z]+:/i.test(f.path) && !f.path.startsWith('/'))
+          .map(f => ({ path: f.path, sha256: f.sha256, size: Number(f.size) || 0 }))
       };
     });
   }
@@ -36,7 +40,9 @@
   // 이 작품용 팩 (작품 id 또는 주소로 연결)
   function forWork(packs, work) {
     if (!work) return null;
-    return packs.find(p => (p.workId && p.workId === work.id) || (p.workUrl && work.url && sameUrl(p.workUrl, work.url))) || null;
+    const nm = (s) => String(s || '').replace(/\s+/g, '');
+    return packs.find(p => (p.workId && p.workId === work.id) || (p.workUrl && work.url && sameUrl(p.workUrl, work.url))) ||
+      packs.find(p => p.workName && work.name && nm(work.name).includes(nm(p.workName))) || null;
   }
 
   function Installed(storage) { this.s = storage || null; this.m = null; }
@@ -48,9 +54,11 @@
   Installed.prototype.save = function () { try { if (this.s) this.s.setItem(KEY, JSON.stringify(this.all())); } catch (e) { /* 저장 안 됨 */ } };
   Installed.prototype.has = function (id) { return !!this.all()[id]; };
   Installed.prototype.version = function (id) { const v = this.all()[id]; return v ? v.version : null; };
-  Installed.prototype.install = function (pack, now) { this.all()[pack.id] = { version: pack.version, at: now || Date.now(), on: true }; this.save(); };
+  Installed.prototype.install = function (pack, now) { const was = this.all()[pack.id]; this.all()[pack.id] = { version: pack.version, rev: pack.rev || '', at: now || Date.now(), on: was ? was.on !== false : true }; this.save(); };
   Installed.prototype.remove = function (id) { delete this.all()[id]; this.save(); };
-  Installed.prototype.needsUpdate = function (pack) { const v = this.version(pack.id); return !!v && cmpVer(pack.version, v) > 0; };
+  Installed.prototype.needsUpdate = function (pack) { const v = this.all()[pack.id]; if (!v) return false; return cmpVer(pack.version, v.version) > 0 || (!!pack.rev && !!v.rev && pack.rev !== v.rev); };
+  Installed.prototype.isOn = function (id) { const v = this.all()[id]; return !!v && v.on !== false; };
+  Installed.prototype.setOn = function (id, on) { const v = this.all()[id]; if (v) { v.on = !!on; this.save(); } };
 
   // 스토어 화면 거르기: 탭(all/installed/update) + 검색어
   function filter(packs, opt, inst) {

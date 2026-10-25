@@ -55,6 +55,33 @@ test('검색·탭', () => {
   assert.deepStrictEqual(P.filter(l, { tab: 'update' }, i).map(p => p.id), []);
 });
 
+const PS = require('../src/renderer/packstore');
+test('팩 파일 받기 계획: 바뀐 것만 받고 없어진 것은 지운다, 위험한 경로는 뺀다', () => {
+  const old = [{ path: 'a.webp', sha256: '1' }, { path: 'b.webp', sha256: '2' }, { path: 'gone.webp', sha256: '3' }];
+  const now = [{ path: 'a.webp', sha256: '1', size: 10 }, { path: 'b.webp', sha256: '9', size: 20 }, { path: 'c.webp', sha256: '4', size: 5 }, { path: '../x', sha256: '5', size: 1 }, { path: 'https://evil/x', sha256: '6', size: 1 }];
+  const p = PS.plan(old, now);
+  assert.deepStrictEqual(p.get.map(f => f.path), ['b.webp', 'c.webp']);
+  assert.deepStrictEqual(p.drop, ['gone.webp']);
+  assert.strictEqual(p.bytes, 25);
+  assert.strictEqual(PS.plan(null, now.slice(0, 1)).get.length, 1);
+});
+test('index.json 파일 목록·rev 를 싣고 이상한 경로는 뺀다, 작품 이름으로도 연결', () => {
+  const sha = 'a'.repeat(64);
+  const l = P.fromIndex({ packs: [{ id: 'sa', name: '학생 수첩', version: '1.0.0', base: 'https://x/packs/sa/', rev: 'r1', runner: 'academy', workName: '소환수 아카데미', files: [{ path: 'manifest.json', sha256: sha, size: 3 }, { path: '../evil', sha256: sha }, { path: 'x', sha256: 'zz' }] }] });
+  assert.deepStrictEqual(l[0].files.map(f => f.path), ['manifest.json']);
+  assert.strictEqual(l[0].rev, 'r1');
+  assert.strictEqual(P.forWork(l, { id: 'q', name: '소환수 아카데미 (베타)' }).id, 'sa');
+  const i = new P.Installed(mem());
+  i.install(l[0]);
+  assert.ok(i.isOn('sa'));
+  i.setOn('sa', false);
+  assert.ok(!i.isOn('sa'));
+  i.install(Object.assign({}, l[0], { rev: 'r2' }));
+  assert.ok(!i.isOn('sa'), '업데이트해도 끈 상태 유지');
+  assert.ok(!i.needsUpdate(Object.assign({}, l[0], { rev: 'r2' })));
+  assert.ok(i.needsUpdate(Object.assign({}, l[0], { rev: 'r3' })), '같은 버전이라도 파일이 바뀌면 업데이트');
+});
+
 let fail = 0;
 for (const [n, f] of t) {
   try { f(); console.log('  ✔ ' + n); } catch (e) { fail++; console.log('  ✘ ' + n + '\n    ' + e.message); }

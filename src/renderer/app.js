@@ -58,6 +58,7 @@
   const store = new window.CrionStore.WorkStore(ls);
   const { fmtTime, ago } = window.CrionStore;
   const PK = window.CrionPacks;
+  const PS = window.CrionPackStore;
   const installed = new PK.Installed(ls);
   const bgm = window.CrionBgm ? new window.CrionBgm() : null;
   const CM = window.CrionCommunity;
@@ -86,7 +87,7 @@
     const ph = `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(w.name)}, #2a1f1c)">${esc((w.name || '?').slice(0, 1))}</div>`;
     return ph + (w.thumb ? `<img src="${esc(w.thumb)}" alt="" loading="lazy" onerror="this.remove()">` : '');
   }
-  const workById = (id) => S.works.find(w => w.id === id);
+  const workById = (id) => S.works.find(w => w.id === id) || (S.packWorks || []).find(w => w.id === id);
   const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
   const packFor = (w) => PK.forWork(S.packs, w);
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
@@ -312,7 +313,7 @@
     const inst = installed.has(p.id);
     const btn = !ok ? '<button class="btn big" disabled>앱 업데이트 후 받을 수 있어요</button>'
       : installed.needsUpdate(p) ? `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}업데이트</button>`
-        : inst ? `<button class="btn big" data-act="pack-remove" data-id="${esc(p.id)}">${I.trash}지우기</button>`
+        : inst ? `<button class="btn big" data-act="pack-on" data-id="${esc(p.id)}" data-v="${installed.isOn(p.id) ? 'false' : 'true'}">${installed.isOn(p.id) ? '끄기' : '켜기'}</button><button class="btn big" data-act="pack-remove" data-id="${esc(p.id)}">${I.trash}지우기</button>`
           : `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}받기</button>`;
     modal(`<div class="pack-head">${p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
       <div class="body">
@@ -321,8 +322,38 @@
         ${p.previews.length ? `<div class="shots">${p.previews.map(s => `<button data-act="view-img" data-src="${esc(s)}"><img src="${esc(s)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
         ${p.summary ? `<p class="lead">${esc(p.summary)}</p>` : ''}
         ${p.desc ? `<div class="guide">${mdLite(p.desc)}</div>` : ''}
-        ${w && w.url ? `<div class="row end"><button class="btn" data-act="play" data-id="${esc(w.id)}">${I.play}이 작품 플레이</button></div>` : ''}
+        ${(w && w.url) || p.workUrl ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-play" data-id="${esc(p.id)}">${I.play}이 작품 플레이</button></div>` : '<p class="muted">연결된 크랙 작품 주소가 아직 없어요. 작품이 등록되면 바로 플레이할 수 있어요.</p>'}
       </div>`, true);
+  }
+  // 팩 파일 받기 (진행 막대) — 껍데기 변경 없이 화면 엔진에서 받아 이 컴퓨터(IndexedDB)에 저장
+  async function installPack(id) {
+    const p = S.packs.find(x => x.id === id);
+    if (!p || S.installing) return;
+    S.installing = id;
+    modal(`<header><h3>${esc(p.name)} 받는 중</h3></header><div class="body"><div class="dl"><div class="dl-bar"><i id="dlBar"></i></div><span id="dlTxt">준비 중…</span></div><p class="muted">처음 한 번만 받아요. 업데이트 때는 바뀐 파일만 받아요.</p></div>`);
+    try {
+      await PS.install(p, (pr) => {
+        const b = $('#dlBar'), t = $('#dlTxt');
+        if (b) b.style.width = Math.round(pr.done / pr.total * 100) + '%';
+        if (t) t.textContent = pr.count ? `${pr.files}/${pr.count}개 · ${(pr.done / 1048576).toFixed(1)}MB / ${(pr.total / 1048576).toFixed(1)}MB` : '바뀐 파일이 없어요';
+      });
+      installed.install(p);
+      toast(`${p.name}을(를) 받았어요`);
+    } catch (err) {
+      // 저장이 안 되는 컴퓨터: 온라인 재생으로 설치 표시 (플레이할 때 서버에서 바로 읽음)
+      if (String(err && err.message) === 'no-idb') { installed.install(p); toast('이 컴퓨터에 저장하지 못해 인터넷으로 재생해요'); }
+      else toast('받지 못했어요: ' + (err && err.message || err), 4000);
+    }
+    S.installing = null;
+    openPack(id);
+    refresh();
+  }
+  // 팩과 연결된 작품 (작품 목록 → 없으면 팩의 크랙 주소로 임시 작품)
+  function packWork(p) {
+    const w = (p.workId && workById(p.workId)) || S.works.find(x => PK.forWork([p], x));
+    if (w) return w;
+    if (p.workUrl) { const t = { id: 'pack:' + p.id, name: p.workName || p.name, url: p.workUrl, thumb: p.cover }; S.packWorks = (S.packWorks || []).filter(x => x.id !== t.id).concat(t); return t; }
+    return null;
   }
   function openPackPreview(id) {
     const p = S.packs.find(x => x.id === id);
@@ -700,14 +731,15 @@
     return `<div class="play" id="play">
       <header class="pbar">
         <button class="btn ghost" data-act="leave">${I.back}나가기</button>
-        <div class="pwork"><div class="mini">${thumbInner(w)}</div><b>${esc(w.name)}</b><span class="badge">크랙 화면</span></div>
+        <div class="pwork"><div class="mini">${thumbInner(w)}</div><b>${esc(w.name)}</b><span class="badge ${p.pack ? 'pk' : ''}">${p.pack ? '플레이팩' : '크랙 화면'}</span></div>
         <div class="ptools">
+          ${p.pack ? `<button class="btn sm ${p.crack ? 'on' : ''}" data-act="pk-crack" title="크랙 원본 화면과 바꿔 보기">${p.crack ? `${I.book}수첩 화면` : `${I.page}크랙 화면`}</button><span class="sep"></span>` : ''}
           <button class="icon-btn" data-act="wv-back" title="뒤로">${I.back}</button>
           <button class="icon-btn" data-act="wv-reload" title="새로고침">${I.reload}</button>
           <button class="icon-btn" data-act="wv-page" title="작품 페이지로">${I.page}</button>
           <span class="sep"></span>
           ${w.guide ? `<button class="icon-btn ${p.guide ? 'on' : ''}" data-act="guide" title="공략">${I.book}</button>` : ''}
-          ${w.bgm && bgm ? `<button class="icon-btn" data-act="music" id="musicBtn" title="배경 음악">${bgm.paused || !bgm.src ? I.mute : I.music}</button>` : ''}
+          ${w.bgm && bgm && !p.pack ? `<button class="icon-btn" data-act="music" id="musicBtn" title="배경 음악">${bgm.paused || !bgm.src ? I.mute : I.music}</button>` : ''}
           <button class="icon-btn" data-act="report" title="문제 신고">${I.flag}</button>
           <button class="icon-btn" data-act="fullscreen" title="전체 화면 (F11)">${I.full}</button>
         </div>
@@ -716,6 +748,7 @@
       <div class="pbody">
         <div class="pview">
           <webview id="crack" src="${esc(p.url)}" partition="persist:crack" allowpopups></webview>
+          ${p.pack ? `<div class="pk ${p.crack ? 'off' : ''}" id="pk"></div>` : ''}
           <div class="pwait" id="pwait"><img src="icon.png" alt=""><b>크랙 화면을 여는 중이에요</b><span>${esc(w.name)}</span></div>
         </div>
         ${w.guide ? `<aside class="pguide ${p.guide ? '' : 'hidden'}" id="pguide"><div class="pguide-h"><b>공략</b><button class="icon-btn sm" data-act="guide">${I.x}</button></div><div class="guide">${mdLite(w.guide)}</div></aside>` : ''}
@@ -728,15 +761,48 @@
     closeModal();
     const saved = (S.settings.workUrls || {})[w.id];
     const useSaved = !fresh && saved && P.openMode === 'continue';
-    S.play = { work: w, url: useSaved ? saved : w.url, guide: false, startedAt: Date.now() };
+    const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
+    const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && pk.runner === 'academy' && PK.compatible(pk, S.info.engineVersion) && window.CrionPackRun ? pk : null;
+    S.play = { work: w, url: useSaved ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false };
     S.view = 'play';
     store.recordOpen(w.id);
     save({ recent: [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8) });
     render();
+    if (usePack) { startPack(); return; }
     if (w.bgm && bgm && P.bgmAuto) { bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100); bgm.play(w.bgm); setTimeout(updMusicBtn, 50); }
+  }
+  // 플레이팩 실행
+  let runner = null;
+  async function startPack() {
+    const p = S.play && S.play.pack;
+    const box = $('#pk');
+    if (!p || !box) return;
+    try {
+      const files = await PS.open(p);
+      const manifest = await files.json('manifest.json');
+      const data = await files.json('data.json');
+      if (!S.play || S.play.pack !== p) return;
+      runner = window.CrionPackRun.start({
+        el: box, pack: p, files, manifest, data, work: S.play.work,
+        send: (text) => { const v = wv(); if (v) v.send('crion:send', { text }); },
+        action: (name) => { const v = wv(); if (v) v.send('crion:action', name); },
+        click: (id) => { const v = wv(); if (v) v.send('crion:click', Number(id)); },
+        toast, copy: (t) => copy(t, '복사했어요: ' + t.slice(0, 40)), openExternal: (u) => api.openExternal(u),
+        showCrack: () => { const b = $('[data-act=pk-crack]'); if (b) b.click(); },
+        diag: () => { const v = wv(); if (v) { S.waitDiag = false; v.send('crion:diag'); } },
+        packOff: () => { installed.setOn(p.id, false); toast('플레이팩을 껐어요. 다시 열면 크랙 화면이에요'); const id = S.play.work.id; leavePlay(); setTimeout(() => openWork(id), 50); }
+      });
+      window.__pk = runner;
+      if (S.play.pendingIpc) { S.play.pendingIpc.forEach(([c, d]) => runner.onIpc(c, d)); S.play.pendingIpc = null; }
+    } catch (err) {
+      console.error(err);
+      box.classList.add('off');
+      toast('플레이팩을 열지 못해 크랙 화면으로 보여 드려요', 4000);
+    }
   }
   function updMusicBtn() { const b = $('#musicBtn'); if (b) b.innerHTML = bgm.paused || !bgm.src ? I.mute : I.music; }
   function leavePlay() {
+    if (runner) { runner.destroy(); runner = null; }
     if (bgm) bgm.stop();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     S.play = null;
@@ -753,15 +819,24 @@
       if (e.errorCode === -3 || !e.isMainFrame) return;
       if (cover) { cover.classList.remove('gone'); cover.innerHTML = `<img src="icon.png" alt=""><b>크랙에 연결하지 못했어요</b><span>인터넷 연결을 확인해 주세요.</span><button class="btn primary" data-act="wv-reload">다시 시도</button>`; }
     });
+    v.addEventListener('dom-ready', () => {
+      if (S.play && S.play.pack) { let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } try { v.send('crion:config', { play: true, learned, rules: {} }); } catch (err) { /* 아직 */ } }
+    });
     v.addEventListener('ipc-message', (e) => {
       const d = e.args && e.args[0];
+      if (S.play && S.play.pack && /^crion:(reply|state|sent)$/.test(e.channel)) {
+        if (runner) runner.onIpc(e.channel, d); else (S.play.pendingIpc = S.play.pendingIpc || []).push([e.channel, d]);
+        return;
+      }
+      if (e.channel === 'crion:learned' && d) { lsSet('crion.learned', JSON.stringify(d)); return; }
       if (e.channel === 'crion:url' && d && S.play) {
         S.play.cur = d.url;
         // 대화 화면이 열렸을 때만 이어하기 주소로 기억 (작품 소개·로그인 화면은 기억하지 않는다)
         if (d.chat && d.url && (S.settings.workUrls || {})[S.play.work.id] !== d.url) save({ workUrls: Object.assign({}, S.settings.workUrls, { [S.play.work.id]: d.url }) });
       } else if (e.channel === 'crion:diag' && d) {
         const t = ['[CRION 화면 진단]', `앱 ${S.info.version} / 화면 ${S.info.engineVersion} / ${S.info.platform}`, `작품: ${S.play ? S.play.work.name : '-'}`,
-          `주소: ${d.url}`, `제목: ${d.title}`, `대화 화면: ${d.chat ? '예' : '아니오'}`, `크기: ${d.size}`, '입력칸: ' + (d.inputs || []).join(' / ')].join('\n');
+          `주소: ${d.url}`, `제목: ${d.title}`, `대화 화면: ${d.chat ? '예' : '아니오'}`, `크기: ${d.size}`, '입력칸: ' + (d.inputs || []).join(' / ')]
+          .concat(d.play ? [`플레이팩: 켜짐`, `입력창: ${d.input}`, `보내기 버튼: ${d.send}`, `대화 목록: ${d.list}`, `메시지 수: ${d.messages}`, `배운 모양: ${JSON.stringify(d.learned)}`, '--- 마지막 메시지 구조 ---', d.lastTwo || '(없음)'] : []).join('\n');
         if (S.waitDiag) { S.waitDiag = false; S.diagText = t; } else copy(t, '화면 진단을 복사했어요');
       }
     });
@@ -830,7 +905,7 @@
     if (tutI >= 0) showTut(tutI);
   }
   function go(view) {
-    if (S.view === 'play' && view !== 'play') { if (bgm) bgm.stop(); S.play = null; }
+    if (S.view === 'play' && view !== 'play') { if (runner) { runner.destroy(); runner = null; } if (bgm) bgm.stop(); S.play = null; }
     S.view = view;
     if (view === 'community' && S.commTab === 'news') markNewsSeen();
     render();
@@ -882,8 +957,11 @@
       case 'store-reload': S.packsState = 'loading'; render(); await loadPacks(); render(); break;
       case 'pack': openPack(id); break;
       case 'pack-preview': openPackPreview(id); break;
-      case 'pack-install': { const p = S.packs.find(x => x.id === id); if (!p) break; installed.install(p); toast(`${p.name}을(를) 받았어요`); if ($('#layer').innerHTML) openPack(id); refresh(); break; }
-      case 'pack-remove': { installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
+      case 'pack-install': installPack(id); break;
+      case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
+      case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
+      case 'pack-play': { const p = S.packs.find(x => x.id === id); const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
+      case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); el.classList.toggle('on', S.play.crack); el.innerHTML = S.play.crack ? `${I.book}수첩 화면` : `${I.page}크랙 화면`; } break;
       // 커뮤니티
       case 'comm-tab': S.commTab = el.dataset.v; if (S.commTab === 'news') markNewsSeen(); render(); break;
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
