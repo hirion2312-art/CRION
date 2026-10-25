@@ -1,7 +1,7 @@
 {
   "name": "crion",
   "productName": "CRION",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "히리온 작품 전용 크랙 클라이언트",
   "author": "히리온",
   "license": "UNLICENSED",
@@ -70,6 +70,7 @@
     },
     "dmg": {
       "artifactName": "CRION-mac-${arch}.${ext}"
-    }
+    },
+    "afterPack": "scripts/adhoc-sign.js"
   }
 }

@@ -73,5 +73,5 @@ jobs:
           body: |
             ## 설치
             - Windows: `CRION-Setup.exe` 를 받아 실행하면 자동 설치돼요. 파란 경고 창이 뜨면 **추가 정보 → 실행**.
-            - Mac: Apple 칩은 `CRION-mac-arm64.dmg`, Intel은 `CRION-mac-x64.dmg`.
+            - Mac: Apple 칩은 `CRION-mac-arm64.dmg`, Intel은 `CRION-mac-x64.dmg`. 처음 열 때 경고가 뜨면 앱을 우클릭 → 열기. "손상되었다"고 뜨면 터미널에 `xattr -cr /Applications/CRION.app`
           files: out/*
