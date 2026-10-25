@@ -101,7 +101,8 @@
       "name": "크랙대학교 XX학과",
       "genre": "캠퍼스 로맨스 코미디",
       "url": "https://share.crack.wrtn.ai/l02a94",
-      "thumb": "univ.webp"
+      "thumb": "univ.webp",
+      "adult": true
     },
     {
       "id": "pyeonggahye",
