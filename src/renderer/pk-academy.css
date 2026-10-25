@@ -427,3 +427,6 @@
 .ak-save-meta em { font-style: normal; font-size: 11.5px; color: #a5802e; font-weight: 800; }
 .ak-save-btns { display: flex; gap: 6px; }
 .ak-saves .ak-btn:not(.primary):not(.danger) { color: var(--ink); background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+/* 입학 등록 */
+.ak-reg-in { width: 100%; box-sizing: border-box; resize: vertical; min-height: 96px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(242,230,198,.45); background: rgba(8,10,30,.55); color: #f2ecdc; font: 13px/1.6 inherit; }
+.ak-reg-in:focus { outline: 2px solid var(--ak-accent); }

@@ -490,6 +490,23 @@
           <div class="ak-rv-btns">${code ? `<button class="ak-btn" data-ak="copy" data-text="${esc(code)}">🔑 ${esc(code)} 복사</button>` : ''}<button class="ak-btn primary" data-ak="ov-close">함께하기</button></div>
         </div>` };
     }
+    // 입학 등록: 프롤로그 뒤 — 입학 등록 사이트를 열고, 받은 '입학 등록 결과'를 붙여 넣어 한 번 보낸다
+    const REG_URL = man.registerUrl || 'https://hirion2312-art.github.io/hyerong.live.net/academy/';
+    function regOverlay() {
+      return { cls: 'summon altar reg', fx: ['sparks'], html: `
+        <div class="ak-altar-card">
+          <span class="ak-rv-top">🎓 에테르나 아카데미 · 입학 등록</span>
+          <b>먼저 입학 서류를 작성해 주세요</b>
+          <p>① 입학 등록 사이트에서 서류를 작성하고 <b>결과를 복사</b>해요.<br>② 복사한 <b>입학 등록 결과</b>를 아래에 붙여 넣고 보내면 첫 소환수를 만나러 가요.</p>
+          <button class="ak-btn primary" data-ak="reg-open">입학 등록 사이트 열기</button>
+          <textarea id="akReg" class="ak-reg-in" rows="5" placeholder="[에테르나 아카데미 | 입학 등록 결과] … 를 여기에 붙여 넣기 (Ctrl+V)"></textarea>
+          <div class="ak-altar-picks"><button class="ak-btn primary" data-ak="reg-send">입학 등록 결과 보내기</button></div>
+          <button class="ak-btn ghost" data-ak="ov-close">나중에 할게요</button>
+        </div>` };
+    }
+    function needReg() {
+      return !M.registered && !(R.status && R.status.partners && R.status.partners.length) && !(M.log || []).some(x => x.me && /입학\s*등록\s*결과/.test(x.t || ''));
+    }
     // 첫 파트너를 부르기 직전: 소환의 제단 장면 → 첫 행동을 입력창에 채워 주는 버튼 (보내기는 플레이어가)
     function altarOverlay() {
       const picks = (man.altarPicks || ['소환진에 조심스럽게 손을 올린다. "…부탁해. 와 줘."', '심호흡하고 마나를 힘껏 흘려 넣는다. "누구든 좋아. 같이 최강이 되자!"', '소환진에 손을 올리며 속으로 빈다. 따뜻한 불꽃 같은 아이였으면 좋겠다고.']);
@@ -579,7 +596,8 @@
       // 장면
       const noPartner = !(R.status && R.status.partners && R.status.partners.length);
       const allText = r.beats.map(b => b.text).join(' ');
-      if (noPartner && /소환진|소환의\s*제단|제단/.test(allText) && !R.overlays.some(x => x.cls && /summon/.test(x.cls))) queue(altarOverlay(), 'end');
+      if (needReg()) { if (!R.overlays.some(x => x.cls && /reg/.test(x.cls))) queue(regOverlay(), 'end'); }
+      else if (noPartner && /소환진|소환의\s*제단|제단/.test(allText) && !R.overlays.some(x => x.cls && /summon/.test(x.cls))) queue(altarOverlay(), 'end');
       R.hints = r.hints;
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
@@ -826,6 +844,15 @@
         case 'pack-off': o.packOff(); break;
         case 'ov-close': closeOverlay(); break;
         case 'altar': closeOverlay(); fill(t.dataset.fill); break;
+        case 'reg-open': o.openExternal(REG_URL); break;
+        case 'reg-send': {
+          const v = (($('#akReg') || {}).value || '').trim();
+          if (!v) { o.toast('사이트에서 복사한 입학 등록 결과를 붙여 넣어 주세요'); break; }
+          if (R.mode !== 'play' || R.away || R.page !== 'chat') { o.toast('대화 화면이 열린 뒤에 보낼 수 있어요'); break; }
+          M.registered = Date.now(); save();
+          closeOverlay(); $('#akIn').value = v; doSend();
+          break;
+        }
         case 'm-close': $('#akLayer').innerHTML = ''; R.modal = null; break;
         case 'dex-tab': dexTab = t.dataset.v; openModal('m-dex'); break;
         case 'dex-sel': dexSel = Number(t.dataset.no); openModal('m-dex'); break;
