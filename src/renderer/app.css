@@ -364,3 +364,10 @@ select.field { height: 40px; }
 @keyframes breathe { from { transform: scale(1.06); filter: blur(28px) saturate(1.1) brightness(.5); } to { transform: scale(1.14); filter: blur(22px) saturate(1.2) brightness(.62); } }
 .stage.waiting .scene, .stage.waiting .person { opacity: .25; }
 .link.light { color: #c7cbff; margin-left: 8px; font-size: 12.5px; }
+
+/* ===== 배경 그림: 뒤에 꽉 차게, 새 배경까지 유지 ===== */
+.backdrop { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity .9s ease; }
+.backdrop.on { opacity: 1; }
+.backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,18,.15) 0%, rgba(10,12,18,.05) 40%, rgba(10,12,18,.55) 100%); }
+.stage.waiting .backdrop.on { animation: breathe2 9s ease-in-out infinite alternate; }
+@keyframes breathe2 { from { transform: scale(1); filter: brightness(.8); } to { transform: scale(1.04); filter: brightness(.9); } }

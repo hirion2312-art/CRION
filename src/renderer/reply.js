@@ -199,36 +199,51 @@
     return { beats, status, choices };
   }
 
-  // 그림 분류: 세로로 긴 그림 = 인물, 가로 = 장면
-  function imgKind(img) {
+  // 그림 분류
+  //  - 배경(bg): 가로로 넓은 그림(가로/세로 1.3 이상) 또는 이름에 '배경·장소·풍경·bg'가 있는 그림
+  //  - 인물(person): 세로로 긴 그림 또는 이름에 이번 응답의 인물 이름이 있는 그림
+  //  - 삽화(cg): 그 밖의 정사각형 가까운 그림 — 그 장면에서만 가운데에 크게
+  const BG_WORD = /배경|장소|풍경|전경|background|\bbg\b|scene|place/i;
+  function imgKind(img, names) {
     if (!img) return null;
-    if (img.w && img.h) return img.h > img.w * 1.12 ? 'person' : 'scene';
-    return 'scene';
+    const label = ((img.alt || '') + ' ' + decodeURIComponent(String(img.src || '').split('/').pop() || '')).replace(/[_:\-.]/g, ' ');
+    if (BG_WORD.test(label)) return 'bg';
+    if (names && nameIn(img, names)) return 'person';
+    if (img.w && img.h) {
+      if (img.w >= img.h * 1.3) return 'bg';
+      if (img.h > img.w * 1.12) return 'person';
+      return 'cg';
+    }
+    return 'cg';
   }
 
-  // 각 장면에서 보여 줄 그림 결정
-  //  - 장면 그림(가로)은 다음 장면 그림이 나올 때까지 배경으로 남는다
-  //  - 인물 그림(세로)은 그 그림이 나온 대사 묶음에서만 보이고, 다른 사람이 말하기 시작하면 내려간다
-  //  - 그림 이름(alt)에 다른 인물 이름이 있으면 그 사람이 말할 때만 보인다
   // 그림 이름(alt·파일명)에 들어 있는 인물 이름 (이 응답에 말한 사람 중에서)
   function nameIn(img, names) {
     const t = ((img.alt || '') + ' ' + decodeURIComponent(String(img.src || '').split('/').pop() || '')).replace(/[_:\-.]/g, ' ');
-    return names.filter(n => n && t.includes(n)).sort((a, b) => b.length - a.length)[0] || null;
+    return (names || []).filter(n => n && t.includes(n)).sort((a, b) => b.length - a.length)[0] || null;
   }
 
-  function stageFrames(beats) {
+  // 각 장면에서 보여 줄 그림 결정
+  //  - 배경은 새 배경이 나올 때까지 계속 깔린다 (응답이 바뀌어도: startBg로 이어 받는다)
+  //  - 인물은 그 인물이 말하는 동안 보이고, 다른 사람이 말하면 숨는다
+  //  - 삽화는 나온 장면부터 다음 그림이 나오거나 3장면이 지날 때까지
+  function stageFrames(beats, startBg) {
     const names = [...new Set(beats.map(b => b.who).filter(Boolean))];
-    let scene = null, person = null, owner = null;
+    let bg = startBg || null, person = null, owner = null, cg = null, cgLeft = 0;
     return beats.map((b) => {
       for (const im of b.imgs || []) {
-        if (imgKind(im) === 'scene') { scene = im; continue; }
+        const k = imgKind(im, names);
+        if (k === 'bg') { bg = im; continue; }
+        if (k === 'cg') { cg = im; cgLeft = 3; continue; }
         person = im;
         owner = nameIn(im, names) || (b.kind === 'say' ? b.who : null);
       }
       if (person && b.kind === 'say' && b.who && !owner) owner = b.who;   // 이름 모르는 그림은 그다음 처음 말하는 사람 것
-      // 그림 주인이 아닌 사람이 말하는 동안에는 숨긴다 (주인이 다시 말하면 다시 보인다)
       const show = person && !(b.kind === 'say' && b.who && owner && b.who !== owner);
-      return { scene, person: show ? person : null, who: b.who };
+      const frame = { bg, person: show ? person : null, cg: cgLeft > 0 ? cg : null, who: b.who };
+      frame.scene = frame.bg;   // 예전 이름 호환
+      if (cgLeft > 0) cgLeft--;
+      return frame;
     });
   }
 

@@ -373,7 +373,7 @@
     const rec = store.get(work.id);
     return {
       work, url: (!fresh && S.settings.workUrls[work.id]) || work.url || S.creatorUrl || S.info.crackOrigin,
-      tab: 'status', baseStatus: null,
+      tab: 'status', baseStatus: null, curBg: rec.lastBg || null, turnStartBg: rec.lastBg || null,
       orig: true, autoOrig: true, side: true,
       turn: null,        // { key, segs, beats, frames, status, choices, done, live }
       idx: 0, typed: true, follow: false,
@@ -397,6 +397,7 @@
       <section class="stage-wrap">
         <div class="stage" id="stage">
           <div class="bg thumbbg" id="bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
+          <div class="backdrop" id="bdA"></div><div class="backdrop" id="bdB"></div>
           <div class="scene" id="scene"></div>
           <div class="person off" id="person"></div>
           <div class="vign"></div>
@@ -515,6 +516,20 @@
   }
 
   let typeTimer = null;
+  function setBackdrop(src) {
+    const a = $('#bdA'), b = $('#bdB');
+    if (!a || !b) return;
+    const cur = a.classList.contains('on') ? a : b.classList.contains('on') ? b : null;
+    if ((cur ? cur.dataset.src : '') === (src || '')) return;
+    if (!src) { if (cur) cur.classList.remove('on'); return; }
+    const next = cur === a ? b : a;
+    next.dataset.src = src;
+    next.style.backgroundImage = cssUrl(src);
+    const img = new Image();
+    const show = () => { next.classList.add('on'); if (cur) cur.classList.remove('on'); };
+    img.onload = show; img.onerror = show; img.src = src;
+  }
+
   function drawBeat() {
     const r = S.room;
     if (!r || !r.turn) return;
@@ -525,20 +540,16 @@
     const b = t.beats[r.idx];
     const f = t.frames[r.idx] || {};
     showCover('');
-    // 배경: 장면 그림이 있으면 그 그림을 흐리게 깔고 가운데에 온전히, 없으면 작품 썸네일
-    const bg = $('#bg');
+    // 배경: 배경 그림은 화면 뒤에 꽉 차게, 새 배경이 나올 때까지 유지 / 삽화는 가운데에 크게
+    setBackdrop(f.bg ? f.bg.src : '');
     const scene = $('#scene');
-    const sceneSrc = f.scene ? f.scene.src : '';
-    if (scene.dataset.src !== sceneSrc) {
-      scene.dataset.src = sceneSrc;
-      scene.innerHTML = sceneSrc && !f.person ? `<img src="${esc(sceneSrc)}" alt="">` : '';
-      if (sceneSrc) { bg.classList.remove('thumbbg'); bg.style.backgroundImage = cssUrl(sceneSrc); }
-      else { bg.classList.add('thumbbg'); bg.style.backgroundImage = r.work.thumb ? cssUrl(r.work.thumb) : ''; }
-    } else if (sceneSrc) {
-      scene.innerHTML = f.person ? '' : `<img src="${esc(sceneSrc)}" alt="">`;
+    const cgSrc = f.cg ? f.cg.src : '';
+    if (scene.dataset.src !== cgSrc) {
+      scene.dataset.src = cgSrc;
+      scene.innerHTML = cgSrc ? `<img src="${esc(cgSrc)}" alt="">` : '';
     }
     const person = $('#person');
-    const pSrc = f.person ? f.person.src : '';
+    const pSrc = f.person && !f.cg ? f.person.src : '';
     if (person.dataset.src !== pSrc) {
       person.dataset.src = pSrc;
       if (pSrc) { person.innerHTML = `<img src="${esc(pSrc)}" alt="">`; person.classList.remove('off'); }
@@ -638,13 +649,14 @@
       r.idx = 0;
       r.follow = false;
       r.typed = false;
+      r.turnStartBg = r.curBg;              // 이 응답은 지금 배경에서 시작
       if (r.autoOrig && r.orig) setOrig(false, false);
     }
     const t = r.turn;
     const wasAtEnd = r.idx >= (t.beats ? t.beats.length - 1 : 0);
     t.segs = d.segs;
     t.beats = parsed.beats.length ? parsed.beats : [{ kind: 'narr', who: null, text: '…' }];
-    t.frames = R.stageFrames(t.beats);
+    t.frames = R.stageFrames(t.beats, t.live ? r.turnStartBg : (r.curBg || null));
     t.choices = parsed.choices;
     t.done = !!d.done;
     if (parsed.status) { r.status = parsed.status; renderSide(); }
@@ -658,6 +670,11 @@
     }
     if (d.done) {
       hideWaiting();
+      const lastBg = t.frames.length ? t.frames[t.frames.length - 1].bg : null;
+      if (lastBg && (!r.curBg || r.curBg.src !== lastBg.src)) {
+        r.curBg = lastBg;                          // 새 배경이 나올 때까지 유지 (다음에 열어도)
+        const rec = store.get(r.work.id); rec.lastBg = { src: lastBg.src, w: lastBg.w || 0, h: lastBg.h || 0 }; store.save(r.work.id);
+      }
       r.idx = 0;
       r.typed = false;
       r.follow = false;
@@ -737,7 +754,7 @@
       bar.parentElement.classList.remove('indet');
       bar.style.width = Math.max(6, pct) + '%';
       // 새 그림이 오면 배경을 살짝 바꿔 미리 분위기만 보여 준다
-      if (info.img) { const bg = $('#bg'); if (bg && bg.dataset.tease !== info.img) { bg.dataset.tease = info.img; bg.classList.remove('thumbbg'); bg.style.backgroundImage = cssUrl(info.img); } }
+      if (info.img && !S.room.curBg) { const bg = $('#bg'); if (bg && bg.dataset.tease !== info.img) { bg.dataset.tease = info.img; bg.classList.remove('thumbbg'); bg.style.backgroundImage = cssUrl(info.img); } }
     } else {
       bar.parentElement.classList.add('indet');
     }
@@ -903,6 +920,7 @@
       bindWebview();
       updateSendable();
       drawQuick();
+      if (S.room.curBg) setBackdrop(S.room.curBg.src);
       if (S.room.turn) drawBeat();
       startBgm();
     } else if (S.view === 'community') {
@@ -1028,8 +1046,9 @@
     render();
   }
 
-  async function doSync(diag) {
+  async function doSync(diag, quiet) {
     if (S.syncing) return;
+    const before = S.works.length;
     S.syncing = true;
     renderHome();
     const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
@@ -1040,7 +1059,13 @@
       copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개`,
         ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}`),
         '--- 소개 글 ---', ...(r.sample || []).map(x => `# ${x.title}\n${(x.text || '').replace(/\s+/g, ' ').slice(0, 220)}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
-    } else toast(r.ok ? `작품 ${r.count}개를 불러왔어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
+    } else if (!quiet) toast(r.ok ? `작품 ${r.count}개를 불러왔어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
+    else if (r.ok && S.works.length > before) toast(`새 작품 ${S.works.length - before}개가 추가됐어요`);
+  }
+  // 작가 프로필을 자동으로 다시 읽기: 앱을 켤 때마다, 그리고 홈에 있을 때 1시간마다
+  function autoSync() {
+    const last = S.syncedAt ? Date.parse(S.syncedAt) : 0;
+    if (Date.now() - last > 20 * 60 * 1000 && S.view !== 'room') doSync(false, true);
   }
 
   document.addEventListener('click', async (e) => {
@@ -1166,8 +1191,9 @@
     applyPrefs();
     render();
     api.engineReady();
-    if (!S.syncedAt) doSync(false);
-    else loadNotice().then(renderHome);
+    loadNotice().then(renderHome);
+    autoSync();
+    setInterval(autoSync, 60 * 60 * 1000);
     setInterval(() => loadNotice().then(renderHome), 30 * 60 * 1000);
   })();
 

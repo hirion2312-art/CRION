@@ -78,7 +78,7 @@ test('다른 사람이 말하면 인물 그림이 내려간다', () => {
 test('가로 그림은 배경으로 남는다', () => {
   const r = R.parse([{ t: 'img', src: 'bg.png', w: 1200, h: 700 }, { t: 'text', s: '숲이다.\n세라 "조용하네."\n카일 "그러게."' }]);
   const f = R.stageFrames(r.beats);
-  assert.ok(f.every(x => x.scene && x.scene.src === 'bg.png'));
+  assert.ok(f.every(x => x.bg && x.bg.src === 'bg.png'));
 });
 test('그림 이름이 다른 인물이면 그 사람 차례에 내린다', () => {
   const r = R.parse([{ t: 'text', s: '세라 "안녕!"' }, { t: 'img', src: 'k.png', w: 400, h: 800, alt: '카일_웃음' }, { t: 'text', s: '카일 "어."\n세라 "뭐야."' }]);
@@ -103,6 +103,28 @@ test('파일 이름으로도 인물을 안다', () => {
   const f = R.stageFrames(r.beats);
   assert.strictEqual(f[0].person, null);
   assert.ok(f[1].person);
+});
+
+test('배경은 다음 응답까지 이어지고, 새 배경이 오면 바뀐다', () => {
+  const a = R.parse([{ t: 'img', src: 'bg1.png', w: 1200, h: 700 }, { t: 'text', s: '숲이다.\n세라 "조용하네."' }]);
+  const fa = R.stageFrames(a.beats);
+  const b = R.parse('세라 "계속 가자."\n카일 "응."');
+  const fb = R.stageFrames(b.beats, fa[fa.length - 1].bg);
+  assert.ok(fb.every(x => x.bg && x.bg.src === 'bg1.png'));
+  const c = R.parse([{ t: 'text', s: '마을에 도착했다.\n' }, { t: 'img', src: 'bg2.png', w: 1600, h: 900 }, { t: 'text', s: '세라 "드디어."' }]);
+  const fc = R.stageFrames(c.beats, fb[fb.length - 1].bg);
+  assert.strictEqual(fc[0].bg.src, 'bg1.png');
+  assert.strictEqual(fc[1].bg.src, 'bg2.png');
+});
+test('그림 이름에 배경이 있으면 정사각형이어도 배경', () => {
+  assert.strictEqual(R.imgKind({ src: 'x.png', w: 800, h: 800, alt: '배경_교실' }), 'bg');
+  assert.strictEqual(R.imgKind({ src: 'x.png', w: 800, h: 800 }), 'cg');
+  assert.strictEqual(R.imgKind({ src: 'x.png', w: 800, h: 800, alt: '세라_웃음' }, ['세라']), 'person');
+});
+test('삽화는 그 장면 근처에서만', () => {
+  const r = R.parse([{ t: 'img', src: 'cg.png', w: 800, h: 800 }, { t: 'text', s: '하나.\n둘.\n셋.\n넷.\n다섯.' }]);
+  const f = R.stageFrames(r.beats);
+  assert.ok(f[0].cg && f[2].cg && !f[3].cg);
 });
 
 let fail = 0;
