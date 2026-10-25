@@ -36,7 +36,7 @@ async def gh(route):
 async def main():
     errs = []
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', args=['--allow-file-access-from-files'])
+        b = await p.chromium.launch(args=['--allow-file-access-from-files'])
         page = await b.new_page(viewport={'width': 1360, 'height': 860})
         page.on('pageerror', lambda e: errs.append('pageerror:' + str(e)))
         await setup(page, [])

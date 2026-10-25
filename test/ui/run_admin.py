@@ -42,7 +42,7 @@ async def handle(route, req):
 async def main():
     errs = []
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path='/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', args=['--allow-file-access-from-files'])
+        b = await p.chromium.launch(args=['--allow-file-access-from-files'])
         page = await b.new_page(viewport={'width': 1100, 'height': 900})
         page.on('pageerror', lambda e: errs.append(str(e)))
         page.on('dialog', lambda d: asyncio.ensure_future(d.accept()))

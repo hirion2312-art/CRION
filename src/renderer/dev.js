@@ -105,11 +105,13 @@
     if (dup) throw new Error(`이미 「${dup.name}」에 같은 주소가 있어요`);
     const clean = { name, url, genre: String(w.genre || '').trim() };
     for (const k of ['desc', 'guide']) { const v = String(w[k] || '').replace(/\s+$/, ''); if (v) clean[k] = v; }
+    if (w.adult) clean.adult = true;
     let item = w.id && data.works.find(x => x.id === w.id);
     if (item) {
       Object.assign(item, clean);
       if (!clean.desc) delete item.desc;
       if (!clean.guide) delete item.guide;
+      if (!clean.adult) delete item.adult;
     } else {
       item = Object.assign({ id: newId(name, new Set(data.works.map(x => x.id))) }, clean, { thumb: '' });
       data.works.unshift(item);

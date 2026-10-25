@@ -452,3 +452,7 @@ select.field { height: 42px; }
 .rp pre { max-height: 180px; overflow: auto; background: #f6f6f9; padding: 8px; border-radius: 8px; font-size: 11px; white-space: pre-wrap; }
 .rp-act, .rp-rep { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
 .rp-rep .field { flex: 1; min-width: 200px; }
+/* 성인 작품 표시 */
+.card .tag.adult { left: auto; right: 10px; top: auto; bottom: 10px; background: #e11d48; color: #fff; border-radius: 999px; min-width: 26px; text-align: center; font-weight: 800; }
+.adult-dot { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 999px; background: #e11d48; color: #fff; font-size: 13px; font-weight: 800; vertical-align: middle; }
+.dev-tags i.adult { background: #e11d48; color: #fff; }

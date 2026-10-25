@@ -47,7 +47,7 @@
   const tintOf = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return TINTS[Math.abs(h) % TINTS.length]; };
 
   // 화면 취향 (이 컴퓨터에만)
-  const PREF_DEFAULT = { splash: true, navSmall: false, openMode: 'continue', bgmAuto: true };
+  const PREF_DEFAULT = { splash: true, navSmall: false, openMode: 'continue', bgmAuto: true, adult: false };
   function loadPrefs() { try { return Object.assign({}, PREF_DEFAULT, JSON.parse(localStorage.getItem('crion.prefs') || '{}')); } catch (e) { return Object.assign({}, PREF_DEFAULT); } }
   const P = loadPrefs();
   function savePref(k, v) { P[k] = v; try { localStorage.setItem('crion.prefs', JSON.stringify(P)); } catch (e) { /* 저장 안 됨 */ } }
@@ -93,10 +93,21 @@
   const packFor = (w) => PK.forWork(S.packs, w);
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
 
+  // ---------- 성인 작품 구분: 설정에서 '성인 작품 보기'를 켠 경우에만 보인다 (만 19세 이상 본인 확인) ----------
+  function applyAge() { S.works = (S.worksAll || []).filter(w => P.adult || !w.adult); }
+  const isAdultPack = (p) => !!(p && (p.adult || (p.workName && (S.worksAll || []).some(w => w.adult && w.name && w.name.includes(p.workName)))));
+  const ageTag = (w) => w && w.adult ? '<span class="tag adult" title="성인 작품">19</span>' : '';
+  function askAdult() {
+    modal(`<header><h3>성인 작품 보기</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body"><p>성인 작품(<b class="adult-dot">19</b>)은 <b>만 19세 이상</b>만 볼 수 있어요.<br>크랙에서도 성인 인증을 마친 계정이어야 플레이할 수 있어요.</p>
+      <p class="muted">켜면 홈·스토어에 성인 작품과 성인 플레이팩이 함께 보여요. 언제든 설정에서 끌 수 있어요.</p>
+      <div class="form-foot"><button class="btn" data-act="close-modal">취소</button><button class="btn primary" data-act="adult-yes">만 19세 이상이에요, 켜기</button></div></div>`);
+  }
   // ---------- 작품 목록: 관리 페이지(catalog.json)만 쓴다 ----------
   function setCatalog(c) {
     const hidden = new Set((c.hidden || []).map(u => String(u).replace(/\/$/, '')));
-    S.works = (c.works || []).filter(w => w && w.id && w.name && !(w.url && hidden.has(String(w.url).replace(/\/$/, ''))));
+    S.worksAll = (c.works || []).filter(w => w && w.id && w.name && !(w.url && hidden.has(String(w.url).replace(/\/$/, ''))));
+    applyAge();
     if (c.creatorUrl) S.creatorUrl = c.creatorUrl;
   }
   async function loadCatalog() {
@@ -185,7 +196,7 @@
         <button class="hero-poster" data-act="info" data-id="${esc(w.id)}">${thumbInner(w)}</button>
         <div class="hero-text">
           <span class="eyebrow">${w.featured ? '추천 작품' : rec.lastAt ? '최근 플레이' : '오늘의 작품'}</span>
-          <h2>${esc(w.name)}</h2>
+          <h2>${esc(w.name)}${w.adult ? ' <span class="adult-dot">19</span>' : ''}</h2>
           ${w.genre ? `<p class="genre">${esc(w.genre)}</p>` : ''}
           ${w.desc ? `<p class="desc">${esc(w.desc)}</p>` : ''}
           <div class="hero-btns">${playBtns(w, true)}<button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info}작품 정보</button></div>
@@ -200,7 +211,7 @@
     const sub = !w.url ? '준비 중' : rec.lastAt ? `${ago(rec.lastAt)} 플레이` : (w.genre || '');
     return `<div class="card ${w.url ? '' : 'off'}">
       <button class="thumb" data-act="${w.url ? 'play' : 'info'}" data-id="${esc(w.id)}" title="${esc(w.name)}">${thumbInner(w)}
-        ${w.featured ? '<span class="tag hot">추천</span>' : ''}
+        ${w.featured ? '<span class="tag hot">추천</span>' : ''}${ageTag(w)}
         ${pk ? `<span class="tag pack">${installed.has(pk.id) ? '전용 화면' : '플레이팩'}</span>` : ''}
         ${w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
       </button>
@@ -255,7 +266,7 @@
     const rec = store.get(w.id);
     const pk = packFor(w);
     modal(`<div class="info-head"><div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
-        <div class="info-head-in"><div class="info-poster">${thumbInner(w)}</div><div><h3>${esc(w.name)}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
+        <div class="info-head-in"><div class="info-poster">${thumbInner(w)}</div><div><h3>${esc(w.name)}${w.adult ? ' <span class="adult-dot">19</span>' : ''}</h3>${w.genre ? `<span>${esc(w.genre)}</span>` : ''}
           <div class="hero-btns">${playBtns(w, false)}</div></div></div>
         <button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
       <div class="body">
@@ -282,7 +293,7 @@
     </div>`;
   }
   function storeHtml() {
-    const list = PK.filter(S.packs, { tab: S.storeTab, q: S.storeQ }, installed);
+    const list = PK.filter(S.packs.filter(p => P.adult || !isAdultPack(p)), { tab: S.storeTab, q: S.storeQ }, installed);
     const nInst = S.packs.filter(p => installed.has(p.id)).length;
     const nUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
     const tabs = [['all', `전체 ${S.packs.length}`], ['installed', `설치됨 ${nInst}`], ['update', `업데이트 ${nUpd}`]];
@@ -528,6 +539,7 @@
       ${pageHead('설정', '')}
       <section class="set-group"><h3>플레이</h3>
         ${row('작품을 열 때', '이어하기: 마지막으로 보던 대화로 · 처음 화면: 항상 작품 페이지부터', pseg('openMode', [['continue', '이어하기'], ['page', '처음 화면']]))}
+        ${row('성인 작품 보기', P.adult ? '성인 작품(19)과 성인 플레이팩이 함께 보여요' : '전연령 작품만 보여요 · 만 19세 이상만 켤 수 있어요', `<span class="seg"><button data-act="adult-off" class="${P.adult ? '' : 'on'}">끄기</button><button data-act="adult-ask" class="${P.adult ? 'on' : ''}">켜기</button></span>`)}
         ${row('배경 음악', '작품에 음악이 있으면 플레이할 때 틀어 줘요', pseg('bgmAuto', [[true, '켜기'], [false, '끄기']]))}
         ${row('음량', '', `<input type="range" min="0" max="100" step="5" value="${vol}" id="vol"><output id="volOut">${vol}</output>`)}
         ${row('이어하기 기억', nCont ? `${nCont}개 작품의 마지막 대화를 기억하고 있어요` : '아직 기억한 대화가 없어요', `<button class="btn sm" data-act="forget-all" ${nCont ? '' : 'disabled'}>모두 잊기</button>`)}
@@ -687,7 +699,7 @@
       return `<div class="dev-row ${hid ? 'hid' : ''}">
         <div class="mini">${thumbInner({ name: w.name, thumb: th })}</div>
         <div class="dev-t"><b>${esc(w.name)}</b><span>${esc(w.url || '주소 없음 · 앱에서 "준비 중"으로 보여요')}</span>
-          <div class="dev-tags">${w.genre ? `<i>${esc(w.genre)}</i>` : ''}${w.featured ? '<i class="hot">홈 추천</i>' : ''}${hid ? '<i>숨김</i>' : ''}${w.bgm ? '<i>음악</i>' : ''}${w.guide ? '<i>공략</i>' : ''}</div></div>
+          <div class="dev-tags">${w.genre ? `<i>${esc(w.genre)}</i>` : ''}${w.featured ? '<i class="hot">홈 추천</i>' : ''}${w.adult ? '<i class="adult">19 성인</i>' : ''}${hid ? '<i>숨김</i>' : ''}${w.bgm ? '<i>음악</i>' : ''}${w.guide ? '<i>공략</i>' : ''}</div></div>
         <div class="dev-btns">
           <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="-1" title="위로" ${i ? '' : 'disabled'}>${I.up}</button>
           <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="1" title="아래로" ${i < d.works.length - 1 ? '' : 'disabled'}>${I.dn}</button>
@@ -723,6 +735,7 @@
           <label class="f"><span>소개 (홈 배너·작품 정보)</span><textarea id="dDesc" class="field" rows="3">${esc(w.desc || '')}</textarea></label>
           <label class="f"><span>공략 (선택 · # 제목, - 목록, **굵게**)</span><textarea id="dGuide" class="field" rows="3">${esc(w.guide || '')}</textarea></label>
           <label class="chk"><input type="checkbox" id="dFeat" ${w.featured ? 'checked' : ''}> 홈 맨 위 추천 작품으로</label>
+          <label class="chk"><input type="checkbox" id="dAdult" ${w.adult ? 'checked' : ''}> 성인 작품 (19) · 설정에서 '성인 작품 보기'를 켠 사람에게만 보여요</label>
           <div class="form-foot"><span class="muted">주소가 비어 있으면 "준비 중"으로 보여요</span><button class="btn primary" data-act="dev-save">${id ? '저장' : '추가하기'}</button></div>
         </div>
         <input type="file" id="devFile" accept="image/png,image/jpeg,image/webp" class="hidden">
@@ -744,7 +757,7 @@
   async function devSave() {
     const id = $('.dev-form').dataset.id || undefined;
     const v = (s) => ($(s) || {}).value || '';
-    const w = { id, name: v('#dName'), url: v('#dUrl'), genre: v('#dGenre'), desc: v('#dDesc'), guide: v('#dGuide'), featured: $('#dFeat').checked };
+    const w = { id, name: v('#dName'), url: v('#dUrl'), genre: v('#dGenre'), desc: v('#dDesc'), guide: v('#dGuide'), featured: $('#dFeat').checked, adult: $('#dAdult').checked };
     try { DV.upsert(JSON.parse(JSON.stringify(S.dev.data || { works: [], hidden: [] })), w); } catch (e) { toast(e.message); return; }
     const btn = $('[data-act=dev-save]'); if (btn) { btn.disabled = true; btn.textContent = '올리는 중…'; }
     const ok = await devMutate((data) => DV.upsert(data, w), (id ? '수정 ' : '추가 ') + w.name.trim(), devThumb);
@@ -1018,6 +1031,9 @@
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
       case 'form-send': sendForm(el.dataset.kind); break;
       // 설정
+      case 'adult-ask': if (!P.adult) askAdult(); break;
+      case 'adult-yes': savePref('adult', true); applyAge(); closeModal(); toast('성인 작품이 보여요'); render(); break;
+      case 'adult-off': savePref('adult', false); applyAge(); render(); break;
       case 'pref': { let v = el.dataset.v; if (v === 'true' || v === 'false') v = v === 'true'; savePref(el.dataset.k, v); render(); break; }
       case 'set': { let v = el.dataset.v; if (v === 'true' || v === 'false') v = v === 'true'; await save({ [el.dataset.k]: v }); render(); break; }
       case 'check-update': {

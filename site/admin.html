@@ -59,6 +59,7 @@
   #toast { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; opacity: 0; transition: .2s; pointer-events: none; }
   #toast.on { opacity: 1; }
   @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } .work { grid-template-columns: 64px 1fr; } .work .side { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; } .thumb { width: 64px; } }
+  .feat.adult { color: #e11d48; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -247,6 +248,7 @@
           <button class="btn sm" data-a="bgm">${bgmName(w) ? '♪ 음악 바꾸기' : '♪ 음악 올리기'}</button>
           ${bgmName(w) ? `<span class="bgm-name" title="${esc(bgmName(w))}">♪ ${esc(bgmName(w))}</span><button class="btn sm" data-a="bgm-del">음악 빼기</button>` : ''}
           <label class="feat"><input type="radio" name="featured" data-a="featured" ${w.featured ? 'checked' : ''}> 홈 추천</label>
+          <label class="feat adult"><input type="checkbox" data-a="adult" ${w.adult ? 'checked' : ''}> 성인(19)</label>
           <button class="btn sm" data-a="up" ${i === 0 ? 'disabled' : ''}>▲ 위로</button>
           <button class="btn sm" data-a="down" ${i === data.works.length - 1 ? 'disabled' : ''}>▼ 아래로</button>
           <button class="btn sm" data-a="hide">${isHidden(w) ? '다시 보이기' : '숨기기'}</button>
@@ -362,6 +364,7 @@
     if (a === 'bgm') { uploadFor = w; $('#bgmFile').value = ''; $('#bgmFile').click(); return; }
     if (a === 'bgm-del') { delete w.bgm; delete bgmUp[w.id]; }
     if (a === 'featured') { data.works.forEach(x => { if (x !== w) delete x.featured; }); w.featured = true; }
+    if (a === 'adult') { if (e.target.checked) w.adult = true; else delete w.adult; }
     renderWorks();
     markDirty();
   });
