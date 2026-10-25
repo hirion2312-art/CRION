@@ -355,6 +355,23 @@ const keyOf = (el) => {
   return el.dataset.crionId;
 };
 
+// 대화 칸(입력창과 같은 세로 줄)의 스크롤 상자에서 메시지 상자들을 찾는다 — 프롤로그·지난 대화 읽기용
+function columnMessages(input) {
+  const col = columnOf();
+  if (!col) return [];
+  const boxes = scrollables().filter(el => !el.contains(input) && inColumn(el, col) && !el.closest('nav, aside, header, footer'));
+  let list = boxes.sort((a, b) => (b.innerText || '').length - (a.innerText || '').length)[0];
+  if (!list) {
+    // 스크롤 상자가 없으면: 입력창 위쪽 형제 중 글이 가장 많은 것
+    for (let e = input.parentElement, i = 0; e && i < 6 && !list; e = e.parentElement, i++) {
+      const sib = [...e.parentElement ? e.parentElement.children : []].filter(x => x !== e && !x.contains(input) && inColumn(x, col) && (x.innerText || '').length > 40);
+      if (sib.length) list = sib.sort((a, b) => (b.innerText || '').length - (a.innerText || '').length)[0];
+    }
+  }
+  if (!list) return [];
+  return messages(list).filter(m => inColumn(m, col) && !m.closest('nav, aside, header, footer') && (m.innerText || '').trim().length >= 10);
+}
+
 // 지금 보여 줄 응답: ① 보낸 직후면 새로 생긴 글자 ② 크랙 규칙 ③ 배운 모양. 셋 다 없으면 아무것도 안 읽는다
 // (예전처럼 페이지 전체 글자를 응답으로 오해하지 않도록)
 function latest() {
@@ -369,6 +386,8 @@ function latest() {
   let how = 'none';
   if (rules.msgSel) { msgs = qa(rules.msgSel).filter(visible); how = 'rules'; }
   else if (learned) { msgs = bySig(learned); how = 'learned'; }
+  // 아직 모양을 모르거나(첫 플레이) 배운 모양에 안 맞는 글(프롤로그 등): 대화 칸 안의 마지막 글 상자를 읽는다
+  if (!msgs.length) { msgs = columnMessages(input); if (msgs.length) how = 'column'; }
   if (!msgs.length) return { input: !!input, msgs: 0, how, unknown: how === 'none' };
   const last = msgs[msgs.length - 1];
   const text = (last.innerText || '').trim();

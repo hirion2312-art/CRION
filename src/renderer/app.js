@@ -139,7 +139,7 @@
     }
     if (S.view === 'home') tools += `<button class="btn" data-act="community">${I.chat}소통 · 신고</button><button class="btn" data-act="login">${I.user}크랙 로그인</button>`;
     tools += `<button class="icon-btn" data-act="settings" title="설정">${I.gear}</button>`;
-    return `<header class="top"><div class="brand"><svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#14161b"/><path d="M18 17h28a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7H31l-10 8v-8h-3a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z" fill="#fff"/><path d="M28 24.5 40 31l-12 6.5z" fill="#5b5bd6"/></svg>CRION</div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
+    return `<header class="top"><div class="brand"><img class="wordmark" src="logo.png" alt="CRION"></div><div class="crumb">${crumb}</div><div class="tools">${tools}</div></header>`;
   }
 
   // ---------- 홈 ----------

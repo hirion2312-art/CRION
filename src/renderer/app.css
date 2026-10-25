@@ -371,3 +371,5 @@ select.field { height: 40px; }
 .backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,18,.15) 0%, rgba(10,12,18,.05) 40%, rgba(10,12,18,.55) 100%); }
 .stage.waiting .backdrop.on { animation: breathe2 9s ease-in-out infinite alternate; }
 @keyframes breathe2 { from { transform: scale(1); filter: brightness(.8); } to { transform: scale(1.04); filter: brightness(.9); } }
+
+.brand .wordmark { height: 22px; width: auto; display: block; }

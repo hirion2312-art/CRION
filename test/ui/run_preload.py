@@ -24,13 +24,20 @@ async def main():
         await page.evaluate("__fire('crion:config', {play:true, rules:{}, learned:null})"); await page.wait_for_timeout(800)
         out = await page.evaluate('__out')
         replies = [o for o in out if o[0] == 'crion:reply']
-        print('① 배우기 전, 보내기 전 응답 수:', len(replies), '(0이어야 함 — 페이지 글자를 응답으로 착각하지 않기)')
-        if replies: fails.append('unlearned read')
+        await page.wait_for_timeout(2200)
+        out = await page.evaluate('__out')
+        replies = [o for o in out if o[0] == 'crion:reply']
+        first = ''.join(x.get('s', '') for x in (replies[-1][1]['segs'] if replies else []) if x['t'] == 'text')
+        print('① 처음 열었을 때 읽은 글(프롤로그·지난 응답):', json.dumps(first[:60], ensure_ascii=False))
+        if '지난 응답' not in first: fails.append('prologue not read')
+        for bad in ['최근 대화', '공유', '크래커', '재생성', '세션']:
+            if bad in first: fails.append('prologue leak:' + bad)
+        before = len(replies)
         await page.evaluate("__fire('crion:send', {text:'옥상을 살핀다'})"); await page.wait_for_timeout(4500)
         out = await page.evaluate('__out')
         sent = [o for o in out if o[0] == 'crion:sent']
         print('② 보내기:', sent[-1][1] if sent else None)
-        replies = [o[1] for o in out if o[0] == 'crion:reply']
+        replies = [o[1] for o in out if o[0] == 'crion:reply'][before:]
         done = [r for r in replies if r['done']]
         print('   스트리밍 중 보낸 횟수:', len([r for r in replies if not r['done']]), '/ 완료:', len(done))
         last = done[-1] if done else replies[-1]
