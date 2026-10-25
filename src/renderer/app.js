@@ -378,7 +378,8 @@
       body = `${workSel(false)}
         <label class="f"><span>무슨 문제가 있었나요?</span><textarea id="fBody" class="field" rows="4" placeholder="예) 작품이 안 열려요 / 이어하기가 다른 대화로 가요"></textarea></label>
         <label class="f"><span>어떻게 하다가 생겼나요? (선택)</span><input id="fSteps" class="field" placeholder="예) 작품 열고 바로"></label>
-        ${opt.diag ? '<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (주소·화면 크기만 들어가요)</label>' : ''}`;
+        ${opt.diag ? '<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (주소·화면 구조·플레이팩 상태 · 대화 내용은 마지막 몇 줄만)</label>' : ''}
+        <p class="muted" style="font-size:12px;margin:0">앱 버전·최근 오류 기록이 함께 보내져 원인을 찾는 데 쓰여요.</p>`;
     } else if (kind === 'idea') {
       body = `<label class="f"><span>한 줄 요약</span><input id="fTitle" class="field" maxlength="80" placeholder="예) 이런 플레이팩이 있으면 좋겠어요"></label>
         <label class="f"><span>자세히</span><textarea id="fBody" class="field" rows="5"></textarea></label>${workSel(false)}`;
@@ -427,6 +428,24 @@
       <div class="tab-body">${body}</div>
     </div></main>`;
   }
+  // ---------- 오류 제보용 자동 첨부: 최근 오류 + 플레이팩 상태 ----------
+  function errLog() { return (window.__crionErrs || []).slice(-15).map(e => `${new Date(e.at).toLocaleTimeString()} ${e.msg}`).join('\n'); }
+  function packSnapshot() {
+    if (!runner || !runner.state) return '';
+    const R = runner.state, st = R.status || {};
+    const pt = (st.partners || []).map(p => `${p.nick}(${p.base || '?'}·${p.stage || 1}) Lv${p.lv} ${p.hp}/${p.hpMax} 기술${(p.skills || []).length}`).join(' / ');
+    const beats = (R.beats || []).slice(-3).map(b => (b.who ? b.who + ': ' : '') + String(b.text || '').slice(0, 80)).join(' | ');
+    return ['[플레이팩 상태]', `팩 ${S.play && S.play.pack ? S.play.pack.id + ' rev ' + (S.play.pack.rev || '-') : '-'}`, `모드 ${R.mode} · 화면 ${R.page || '-'} · 다른대화 ${R.away ? '예' : '아니오'} · 응답대기 ${R.waiting ? '예' : '아니오'}`,
+      `상태창 ${st.dateText || '-'} | ${st.place || '-'}`, `파트너 ${pt || '-'}`, `전투 ${R.battle ? (R.battle.title || 'vs') + ' ' + ((R.battle.ally || {}).name || '?') + ' vs ' + ((R.battle.enemy || {}).name || '?') : '없음'}`,
+      `마지막 대사 ${beats || '-'}`].join('\n');
+  }
+  function bugAttach(withDiag) {
+    const parts = [];
+    if (withDiag && S.diagText) parts.push(S.diagText);
+    const pk = packSnapshot(); if (pk) parts.push(pk);
+    const er = errLog(); if (er) parts.push('[최근 오류]\n' + er);
+    return parts.join('\n\n');
+  }
   async function sendForm(kind) {
     const v = (id) => { const el = $('#' + id); return el ? el.value.trim() : ''; };
     const f = { work: v('fWork'), title: v('fTitle'), body: v('fBody'), steps: v('fSteps'), nick: v('fNick') };
@@ -442,7 +461,7 @@
       const btn0 = document.querySelector('[data-act=form-send]');
       if (btn0) { btn0.disabled = true; btn0.textContent = '보내는 중…'; }
       try {
-        await cloud.submitReport(kind, f, ctx, ($('#fDiag') && $('#fDiag').checked && S.diagText) ? S.diagText : '');
+        await cloud.submitReport(kind, f, ctx, kind === 'bug' ? bugAttach($('#fDiag') && $('#fDiag').checked) : '');
         if (CM.isWebhook(hook)) CM.send(hook, CM.buildPayload(kind, f, ctx), null).catch(() => {});  // 디스코드 알림은 덤
         pushSent({ kind, title: f.title, work: f.work, at: Date.now() });
         BD.resetMy();
@@ -455,13 +474,14 @@
       return;
     }
     if (!CM.isWebhook(hook)) {
-      copy(CM.asText(kind, f, ctx), '내용을 복사했어요. 커뮤니티나 히리온에게 붙여서 보내 주세요');
+      copy(CM.asText(kind, f, ctx) + (kind === 'bug' && bugAttach(true) ? '\n\n' + bugAttach(true) : ''), '내용을 복사했어요. 디스코드 소통방에 붙여서 보내 주세요');
       pushSent({ kind, title: f.title, work: f.work, at: Date.now(), copied: true });
       return finishForm();
     }
     const lim = CM.allowed(sentHistory());
     if (!lim.ok) { toast(lim.why); return; }
-    const attach = ($('#fDiag') && $('#fDiag').checked && S.diagText) ? { text: S.diagText, name: 'crion-diag.txt' } : null;
+    const attText = kind === 'bug' ? bugAttach($('#fDiag') && $('#fDiag').checked) : '';
+    const attach = attText ? { text: attText, name: 'crion-diag.txt' } : null;
     const btn = document.querySelector('[data-act=form-send]');
     if (btn) { btn.disabled = true; btn.textContent = '보내는 중…'; }
     try {
