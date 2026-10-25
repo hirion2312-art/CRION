@@ -129,14 +129,41 @@ async def main():
         await page.wait_for_timeout(300); await page.screenshot(path=OUT + 'pk_b1_gate.png')
         await page.click('.ak-gate [data-ak=click][data-id="1"]'); await page.wait_for_timeout(200)
         await ipc(page, 'crion:state', {'page': 'chat', 'input': True, 'actions': []})
-        # 첫 응답: 소환
-        await ipc(page, 'crion:reply', reply(FIRST, 'k1'))
+        # 프롤로그(첫 화면): 그림 순서대로 무대 전체 → 대사 끝나면 소환의 제단
+        R = 'https://reg.test/CRION/packs/hirion.summoner-academy/'
+        PRO = [{'t': 'img', 'src': R + 'assets/bg/hero.webp', 'w': 1080, 'h': 560},
+               {'t': 'text', 's': '*사흘 동안 안개 속을 헤친 은빛 갈매기호가 마침내 닻을 내렸다.*\n\n**에테르나 아카데미.**\n\n*입학식이 끝나자, 신입생들은 첨탑 아래 \'소환의 제단\' 앞에 길게 줄을 섰다.*\n'},
+               {'t': 'img', 'src': R + 'assets/c/margaret.webp', 'w': 480, 'h': 640},
+               {'t': 'text', 's': '**마가렛 교수** "다음, {user}. 소환진 중앙에 손을 올리고 마나를 일정하게 흘려 넣으십시오."\n\n**레이먼드 교수** "…하암. 긴장할 거 없어."\n'},
+               {'t': 'img', 'src': R + 'assets/c/raymond.webp', 'w': 480, 'h': 640},
+               {'t': 'text', 's': '*제단 위 소환진이 당신의 마나를 기다리며 희미하게 맥동한다.*'}]
+        await ipc(page, 'crion:reply', {'key': 'k0', 'segs': PRO, 'done': True}); await page.wait_for_timeout(1500)
+        await page.screenshot(path=OUT + 'pk_c0a_prologue_bg.png')
+        for i in range(3): await page.click('.ak-dlg'); await page.wait_for_timeout(80)
+        await page.wait_for_timeout(1500)
+        print('3번째 장면 무대 그림:', await page.evaluate("window.__pk.state.bgKey.split('/').slice(-1)[0]"))
+        await page.screenshot(path=OUT + 'pk_c0b_prologue_person.png')
+        for i in range(12):
+            if await page.query_selector('.ak-ov'): break
+            await page.click('.ak-dlg'); await page.wait_for_timeout(80)
         await page.wait_for_timeout(1200)
-        await page.screenshot(path=OUT + 'pk_c1_summon.png')
-        await page.click('.ak-ov .ak-btn.primary'); await page.wait_for_timeout(700)
-        await page.screenshot(path=OUT + 'pk_c2_first_beat.png')
+        await page.screenshot(path=OUT + 'pk_c0c_altar.png')
+        before = len([x for x in await page.evaluate('window.__sent') if x[0] == 'crion:send'])
+        await page.click('.ak-altar-picks .ak-btn >> nth=0'); await page.wait_for_timeout(200)
+        print('제단 → 입력창:', await page.evaluate("document.querySelector('#akIn').value"), '/ 자동 전송:', len([x for x in await page.evaluate('window.__sent') if x[0] == 'crion:send']) - before)
+        # 첫 응답: 소환 (대사가 다 끝난 뒤 소환 연출)
+        await ipc(page, 'crion:reply', {'key': 'k1', 'segs': [{'t': 'text', 's': FIRST.split('\n\n', 1)[0] + '\n'}, {'t': 'img', 'src': R + 'assets/s/위카_기본기쁨.webp', 'w': 800, 'h': 600}, {'t': 'text', 's': FIRST.split('\n\n', 1)[1]}], 'done': True})
+        await page.wait_for_timeout(600)
+        print('첫 장면에 겹창 없음:', not await page.query_selector('.ak-ov'))
         await page.click('.ak-dlg'); await page.wait_for_timeout(50); await page.click('.ak-dlg'); await page.wait_for_timeout(900)
         await page.screenshot(path=OUT + 'pk_c3_margaret.png')
+        for i in range(12):
+            if await page.query_selector('.ak-ov'): break
+            await page.click('.ak-dlg'); await page.wait_for_timeout(80)
+        await page.wait_for_timeout(1300)
+        await page.screenshot(path=OUT + 'pk_c1_summon.png')
+        await page.click('.ak-ov .ak-btn.primary'); await page.wait_for_timeout(500)
+        await page.screenshot(path=OUT + 'pk_c2_after_summon.png')
         # 샘플 1 (평상)
         await ipc(page, 'crion:reply', reply(TURNS[0], 'k2')); await page.wait_for_timeout(500)
         for _ in range(3): await page.click('.ak-dlg'); await page.wait_for_timeout(60)
@@ -181,15 +208,15 @@ async def main():
         print('선택지 → 입력창:', await page.evaluate("document.querySelector('#akIn').value"))
         await page.screenshot(path=OUT + 'pk_f2_turn3_choice.png')
         # 진화 + 배지
-        await ipc(page, 'crion:reply', reply(EVOLVE, 'k6')); await page.wait_for_timeout(2800)
+        await ipc(page, 'crion:reply', reply(EVOLVE, 'k6')); await page.wait_for_timeout(500)
+        for _ in range(10):
+            if await page.query_selector('.ak-ov'): break
+            await page.click('.ak-dlg'); await page.wait_for_timeout(80)
+        await page.wait_for_timeout(2600)
         await page.screenshot(path=OUT + 'pk_g1_evolve.png')
         await page.click('.ak-ov .ak-btn.primary'); await page.wait_for_timeout(1200)
         await page.screenshot(path=OUT + 'pk_g1b_join.png')
-        while await page.query_selector('.ak-ov .ak-btn.primary'): await page.click('.ak-ov .ak-btn.primary'); await page.wait_for_timeout(300)
-        for _ in range(10):
-            if await page.query_selector('.ak-ov'): break
-            await page.click('.ak-dlg'); await page.wait_for_timeout(60)
-        await page.wait_for_timeout(700)
+        await page.click('.ak-ov .ak-btn.primary'); await page.wait_for_timeout(700)
         await page.screenshot(path=OUT + 'pk_g2_badge.png')
         if await page.query_selector('.ak-ov .ak-btn.primary'): await page.click('.ak-ov .ak-btn.primary')
         await page.wait_for_timeout(300)

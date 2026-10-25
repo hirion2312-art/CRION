@@ -95,9 +95,10 @@
 
     // ---------- 배경 ----------
     let bgFlip = 0;
-    function setBg(src) {
+    function setBg(src, photo) {
       if (!src || src === R.bgKey) return;
       R.bgKey = src;
+      stage.classList.toggle('photo', !!photo);
       const layers = stage.querySelectorAll('.ak-bg i');
       const next = layers[bgFlip = 1 - bgFlip];
       const prev = layers[1 - bgFlip];
@@ -167,6 +168,7 @@
     function showSpeaker(sp) {
       const prev = R.speaker;
       R.speaker = sp;
+      if (!man.sprites) return;   // 이 팩은 그림을 무대 전체로만 띄운다 (인물 카드 따로 세우지 않음)
       if (sp && sp.img) {
         let at = R.slots.findIndex(s => s && s.key === sp.key);
         if (at < 0) {
@@ -225,7 +227,7 @@
         nm.hidden = true;
         dlg.classList.remove('say'); dlg.classList.add('narr');
       }
-      for (const im of b.imgs || []) if (im.src) noteImg(im);
+      for (const im of b.imgs || []) showImg(im);
       dlg.classList.remove('end');
       const text = (b.kind === 'say' ? '“' + b.text + '”' : b.text).replace(/\{user\}/g, (R.status && R.status.student) || '나');
       typeOut(text, () => {
@@ -248,12 +250,22 @@
       renderChoices();
       flushOverlays('end');
     }
-    function noteImg(im) {
-      // 장소가 바뀐 응답의 첫 그림 = 그 장소 배경으로 기억 (메인 프롬프트: 장소 전환 시 배경 그림)
-      if (R.placeChanged && R.place && !M.placeImg[R.place.replace(/\s/g, '')] && im.w >= im.h) {
-        M.placeImg[R.place.replace(/\s/g, '')] = im.src; R.placeChanged = false;
-        setBg(bgFor(R.status, null)); save();
-      }
+    // 응답 속 그림(배경·인물·소환수)은 나눠 쓰지 않고, 나온 순서대로 무대 전체에 한 장씩 띄운다 (다음 그림까지 유지)
+    function showImg(im) {
+      if (im.src) { setBg(im.src, true); return; }
+      const loc = tokenImg(im.token);
+      if (loc) setBg(loc, true);
+    }
+    // 크랙이 그림으로 바꾸지 못한 {{img::이름::상황}} 글자가 남았을 때: 팩에 같은 그림이 있으면 그것으로
+    function tokenImg(tok) {
+      const m = /^\s*([^:]+?)\s*::\s*([^:]+?)\s*$/.exec(String(tok || ''));
+      if (!m) return '';
+      const [, a, b] = m;
+      if (a === '배경') return url(`bg/${b.replace(/\s/g, '')}.webp`);
+      const lin = dex.lineage(a);
+      if (lin) return url(`s/${lin.base}_${b}.webp`) || url(`s/${lin.base}_${b.replace(/(기쁨|분노|슬픔|전투|당황)$/, '평상시')}.webp`);
+      const p = dex.person(a);
+      return p ? url(p.img) : '';
     }
 
     // ---------- HUD (학생 수첩) ----------
@@ -452,6 +464,19 @@
           <div class="ak-rv-btns">${code ? `<button class="ak-btn" data-ak="copy" data-text="${esc(code)}">🔑 ${esc(code)} 복사</button>` : ''}<button class="ak-btn primary" data-ak="ov-close">함께하기</button></div>
         </div>` };
     }
+    // 첫 파트너를 부르기 직전: 소환의 제단 장면 → 첫 행동을 입력창에 채워 주는 버튼 (보내기는 플레이어가)
+    function altarOverlay() {
+      const picks = (man.altarPicks || ['소환진에 조심스럽게 손을 올린다. "…부탁해. 와 줘."', '심호흡하고 마나를 힘껏 흘려 넣는다. "누구든 좋아. 같이 최강이 되자!"', '소환진에 손을 올리며 속으로 빈다. 따뜻한 불꽃 같은 아이였으면 좋겠다고.']);
+      return { cls: 'summon altar ring-seven', fx: ['sparks'], bgm: 'opening', html: `
+        <div class="ak-circle"><i></i><i></i><i></i></div>
+        <div class="ak-altar-card">
+          <span class="ak-rv-top">🔮 소환의 제단</span>
+          <b>첫 파트너를 부를 차례예요</b>
+          <p>제단 위 소환진이 당신의 마나를 기다리며 맥동하고 있어요.<br>어떻게 소환할지 골라 입력창에 채운 뒤 <b>보내기</b>를 눌러 주세요.</p>
+          <div class="ak-altar-picks">${picks.map(t => `<button class="ak-btn" data-ak="altar" data-fill="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+          <button class="ak-btn ghost" data-ak="ov-close">직접 쓸게요</button>
+        </div>` };
+    }
     function evolveOverlay(p, from) {
       const lin = dex.lineage(p.base) || {};
       const a = summonImg(p.base, from.stage || 1, '평상시');
@@ -486,13 +511,13 @@
         const wellish = /우물/.test((r.status.place || '') + ' ' + segs.map(s => s.s || '').join(' ').slice(0, 400));
         for (const e of ev) {
           const code = (r.codes.find(c => c.kind === 'dex' && c.base === e.partner?.base) || {}).code;
-          if (e.type === 'new') queue(summonOverlay(e.partner, wellish, code, prev && prev.partners && prev.partners.length ? 'join' : 'first'));
-          if (e.type === 'evolve') queue(evolveOverlay(e.partner, e.from));
+          if (e.type === 'new') queue(summonOverlay(e.partner, wellish, code, prev && prev.partners && prev.partners.length ? 'join' : 'first'), 'end');
+          if (e.type === 'evolve') queue(evolveOverlay(e.partner, e.from), 'end');
           if (e.type === 'level') o.toast(`${e.partner.nick} 레벨 업! Lv ${e.from.lv} → ${e.partner.lv}`);
         }
         if (!prev && r.status.partners.length && r.codes.some(c => c.kind === 'dex' && c.mode === 'C')) {
           const p = r.status.partners[0];
-          queue(summonOverlay(p, wellish, (r.codes.find(c => c.base === p.base) || {}).code));
+          queue(summonOverlay(p, wellish, (r.codes.find(c => c.base === p.base) || {}).code), 'end');
         }
       }
       for (const c of r.codes) {
@@ -513,7 +538,8 @@
       setCrisis((ally && ally.hpMax && ally.hp / ally.hpMax <= 0.3 && ally.hp > 0) || (sp && sp.hpMax && sp.hp / sp.hpMax <= 0.3 && !R.battle));
       // 배경·음악·효과
       tint(R.status);
-      setBg(bgFor(R.status, r.block));
+      const hasImg = r.beats.some(b => (b.imgs || []).some(im => im.src || tokenImg(im.token)));
+      if (!hasImg && (!R.bgKey || R.placeChanged || (r.block && r.block.bg))) { const lb = bgFor(R.status, r.block); if (lb && (!R.bgKey || lb !== url(man.bgDefault || 'bg/hero.webp'))) setBg(lb, false); }
       const blk = r.block || {};
       if (blk.bgm) playBgm(blk.bgm);
       else if (R.battle && !R.battle.over) playBgm((man.bgm || {}).wild_battle && R.battle.enemy && R.battle.enemy.wild ? 'wild_battle' : (man.battleBgm || 'rival'));
@@ -525,6 +551,9 @@
       if (blk.cg && (man.cg || {})[blk.cg]) showCg(url(man.cg[blk.cg]));
       renderBattle(true);
       // 장면
+      const noPartner = !(R.status && R.status.partners && R.status.partners.length);
+      const allText = r.beats.map(b => b.text).join(' ');
+      if (noPartner && /소환진|소환의\s*제단|제단/.test(allText) && !R.overlays.some(x => x.cls && /summon/.test(x.cls))) queue(altarOverlay(), 'end');
       R.hints = r.hints;
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
@@ -741,6 +770,7 @@
         case 'open': o.openExternal(t.dataset.url); break;
         case 'pack-off': o.packOff(); break;
         case 'ov-close': closeOverlay(); break;
+        case 'altar': closeOverlay(); fill(t.dataset.fill); break;
         case 'm-close': $('#akLayer').innerHTML = ''; R.modal = null; break;
         case 'dex-tab': dexTab = t.dataset.v; openModal('m-dex'); break;
         case 'dex-sel': dexSel = Number(t.dataset.no); openModal('m-dex'); break;
