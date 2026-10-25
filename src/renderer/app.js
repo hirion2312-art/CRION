@@ -90,6 +90,7 @@
       const n = c && c.notice;
       S.notice = n && n.on !== false && n.text ? n : null;
       S.cat = { links: (c && c.links) || {}, news: (c && Array.isArray(c.news)) ? c.news : [], report: (c && c.report) || {} };
+      if (c && Array.isArray(c.works)) { S.catalog = { works: c.works, hidden: c.hidden || [] }; rebuildWorks(); }
     } catch (e) { /* 오프라인 */ }
   }
   const noticeId = (n) => 'crion.notice.' + String(n.id || n.text).slice(0, 80);
@@ -102,11 +103,22 @@
       <button class="icon-btn" data-act="close-notice" title="닫기">${I.x}</button></div>`;
   }
 
+  // 작품 목록 = 작가 프로필(기본) + 관리 페이지 값(덧입힘). 합치는 규칙은 catalog.js
+  function savedProfile() { try { return JSON.parse(localStorage.getItem('crion.profile') || 'null'); } catch (e) { return null; } }
+  function rebuildWorks() {
+    const prof = savedProfile();
+    const shell = S.shellWorks || [];
+    const catalog = S.catalog || { works: shell.filter(w => !w.auto), hidden: [] };
+    S.works = window.CrionCatalog.merge(catalog, prof ? prof.works : [], shell);
+    S.profileCount = prof ? prof.works.length : 0;
+    if (prof && prof.at) S.syncedAt = prof.at;
+  }
   async function loadWorks() {
     const r = await api.getWorks();
-    S.works = r.works || [];
+    S.shellWorks = r.works || [];
     S.creatorUrl = r.creatorUrl || '';
     S.syncedAt = r.syncedAt || null;
+    rebuildWorks();
   }
 
   // ---------- 상단 ----------
@@ -177,7 +189,7 @@
         </button>`;
       }).join('')}</div>` : '';
     const syncLine = S.syncing ? '<span class="spin"></span> 작가 프로필에서 작품을 불러오는 중'
-      : S.syncedAt ? `프로필 기준 ${new Date(S.syncedAt).toLocaleDateString('ko-KR')} 업데이트` : '';
+      : S.syncedAt ? `작가 프로필 연동 · ${ago(Date.parse(S.syncedAt))}${S.profileCount ? ` · ${S.profileCount}개 찾음` : ''}` : '작가 프로필 연동 전';
     const cards = S.works.map(w => {
       const rec = store.get(w.id);
       return `<div class="card">
@@ -1053,13 +1065,16 @@
     renderHome();
     const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
     S.syncing = false;
+    if (r && r.ok && Array.isArray(r.sample) && r.sample.length) {
+      try { localStorage.setItem('crion.profile', JSON.stringify({ at: new Date().toISOString(), works: r.sample })); } catch (e) { /* 저장 안 됨 */ }
+    }
     await loadWorks();
     renderHome();
     if (diag) {
       copy(['[CRION 목록 진단]', `결과: ${r.ok ? '성공' : '실패'} ${r.error || ''}`, `페이지: ${r.page || '-'} / ${r.title || '-'}`, `찾은 작품 ${r.count || 0}개`,
         ...(r.sample || []).map(x => `- ${x.title} | ${x.url} | ${x.thumb || '썸네일 없음'}`),
         '--- 소개 글 ---', ...(r.sample || []).map(x => `# ${x.title}\n${(x.text || '').replace(/\s+/g, ' ').slice(0, 220)}`)].join('\n'), '목록 진단을 복사했어요. 붙여서 보내 주세요.');
-    } else if (!quiet) toast(r.ok ? `작품 ${r.count}개를 불러왔어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
+    } else if (!quiet) toast(r.ok ? `작가 프로필에서 작품 ${r.count}개를 찾아 목록에 넣었어요` : '목록을 못 읽었어요. 크랙에 로그인한 뒤 다시 눌러 주세요.');
     else if (r.ok && S.works.length > before) toast(`새 작품 ${S.works.length - before}개가 추가됐어요`);
   }
   // 작가 프로필을 자동으로 다시 읽기: 앱을 켤 때마다, 그리고 홈에 있을 때 1시간마다
@@ -1201,5 +1216,5 @@
   setInterval(() => { if (S.view === 'room' && S.room && document.hasFocus()) store.addTime(S.room.work.id, 30000); }, 30000);
 
   // 시험용
-  window.__crion = { S, onReply, onState, render, step };
+  window.__crion = { S, onReply, onState, render, step, rebuild: rebuildWorks };
 })();

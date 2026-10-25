@@ -7,7 +7,8 @@
 - `src/renderer/` = 화면 엔진. 바꾸고 `engine.json`의 `version`을 올려 push 하면 설치된 앱이 자동으로 받는다(다음 재시작에 적용).
   - `crack-preload.js` 크랙 페이지 안에서 응답 읽기·보내기
   - `crack-rules.js` 크랙 화면 선택자(인식이 틀리면 여기부터)
-  - `catalog-extract.js` 작가 프로필에서 작품 목록 뽑기
+  - `catalog-extract.js` 작가 프로필에서 작품 목록 뽑기 (시험: `test/ui/run_profile.py`)
+  - `catalog.js` 작품 목록 합치기: 프로필이 기본, 관리 페이지 값 덧입힘 (시험: `test/catalog.test.js`)
   - `reply.js` 응답 → 장면/상태창/선택지 해석 (시험: `test/reply.test.js`)
   - `app.js`, `app.css`, `index.html` 화면
 - `config/works.json` 작품 목록·공지 (히리온은 관리 페이지 `site/admin.html`로 고친다)

@@ -9,7 +9,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test/reply.test.js && node test/store.test.js && node test/community.test.js && node test/updater.test.js",
+    "test": "node test/reply.test.js && node test/store.test.js && node test/catalog.test.js && node test/community.test.js && node test/updater.test.js",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "dist": "electron-builder",
