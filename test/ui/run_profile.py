@@ -29,6 +29,11 @@ async def main():
             if not ok:
                 fails.append(name)
                 print('   ', titles)
+        r = await run(b, 'fakeprofile4.html')
+        t4 = [w['title'] for w in r['works']]
+        ok4 = len(t4) == 52 and len(set(t4)) == 52 and all(t.startswith('히리온 작품') for t in t4)
+        print(f'fakeprofile4.html (52개·더보기·데이터 12개만·추천 구역): 방식 {r["method"]} · {len(t4)}개 · {"OK" if ok4 else "틀림"}  {r["log"]}')
+        if not ok4: fails.append('fakeprofile4.html')
         await b.close()
     print('\n결과:', '통과' if not fails else '실패 ' + str(fails))
 

@@ -1067,7 +1067,17 @@
     const [r] = await Promise.all([api.syncWorks(), api.checkUpdates().catch(() => null), loadNotice()]);
     S.syncing = false;
     if (r && r.ok && Array.isArray(r.sample) && r.sample.length) {
-      try { localStorage.setItem('crion.profile2', JSON.stringify({ at: new Date().toISOString(), works: r.sample })); } catch (e) { /* 저장 안 됨 */ }
+      let list = r.sample.slice();
+      if ((r.count || 0) > list.length) {
+        // 앱 본체는 40개까지만 넘겨준다 → 본체 목록(같은 추출 결과)에서 나머지를 되찾는다
+        const fresh = await api.getWorks().catch(() => null);
+        const have = new Set(list.map(x => window.CrionCatalog.normUrl(x.url)));
+        for (const w of (fresh && fresh.works) || []) {
+          if (!w.url || have.has(window.CrionCatalog.normUrl(w.url))) continue;
+          if (w.auto) { list.push({ url: w.url, title: w.name, thumb: w.thumb || '', text: '' }); have.add(window.CrionCatalog.normUrl(w.url)); }
+        }
+      }
+      try { localStorage.setItem('crion.profile2', JSON.stringify({ at: new Date().toISOString(), works: list })); } catch (e) { /* 저장 안 됨 */ }
     }
     await loadWorks();
     renderHome();

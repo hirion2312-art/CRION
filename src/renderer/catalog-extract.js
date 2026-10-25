@@ -3,9 +3,22 @@
 // 2순위: 화면의 작품 카드 — 추천·인기 같은 구역은 빼고, 같은 작품은 한 번만
 (async () => {
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 6; i++) {
+  // 작품을 끝까지 펼친다: 아래로 내리기 + '더보기' 누르기, 링크 수가 3번 연속 그대로면 멈춤 (최대 30번)
+  const MORE = /^(더\s*보기|더보기|작품\s*더\s*보기|전체\s*보기|more|show more|load more)$/i;
+  let stable = 0, last = -1, clicks = 0;
+  for (let i = 0; i < 30 && stable < 3; i++) {
     window.scrollTo(0, document.body.scrollHeight);
-    await sleep(600);
+    document.querySelectorAll('main *, [role="main"] *, body > div *').forEach((el) => {
+      if (el.scrollHeight > el.clientHeight + 200 && /auto|scroll/.test(getComputedStyle(el).overflowY)) el.scrollTop = el.scrollHeight;
+    });
+    if (clicks < 15) {
+      const btn = [...document.querySelectorAll('button, [role="button"]')].find(b => b.offsetParent && MORE.test((b.innerText || '').trim()) && !b.closest('nav, header, footer, aside'));
+      if (btn) { btn.click(); clicks++; }
+    }
+    await sleep(700);
+    const n = document.querySelectorAll('a[href]').length;
+    stable = n === last ? stable + 1 : 0;
+    last = n;
   }
   window.scrollTo(0, 0);
   const here = location.href.split('#')[0];
@@ -159,7 +172,7 @@
       const title = titleOf(card, a, img);
       if (!title) continue;
       seenUrl.add(key);
-      cands.push({ url: key, title, thumb: img.src, text: (card.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400), shape: shapeOf(u), sec });
+      cands.push({ url: key, title, thumb: img.src, text: (card.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 400), shape: shapeOf(u), sec, el: card });
     }
     const count = {};
     cands.forEach(c => { count[c.shape] = (count[c.shape] || 0) + 1; });
@@ -171,7 +184,7 @@
       const t = normT(c.title);
       if (seenT.has(t) || seenImg.has(c.thumb)) continue;      // 같은 작품이 여러 번(캐러셀 복제 등) 나와도 한 번만
       seenT.add(t); seenImg.add(c.thumb);
-      works.push({ url: c.url, title: c.title, thumb: c.thumb, text: c.text, sec: c.sec });
+      works.push({ url: c.url, title: c.title, thumb: c.thumb, text: c.text, sec: c.sec, el: c.el });
     }
     log.push(`dom: 후보 ${cands.length}개, 주소 모양 ${JSON.stringify(count)}, 고른 것 ${works.length}개`);
     return works;
@@ -179,7 +192,20 @@
 
   let works = null, method = 'data';
   try { works = fromData(); } catch (e) { log.push('data 오류: ' + e.message); }
-  if (!works || !works.length) { method = 'dom'; works = fromDom(); }
+  const dom = fromDom();
+  if (!works || !works.length) { method = 'dom'; works = dom; }
+  else {
+    // 페이지 데이터에는 첫 몇 개만 들어 있을 수 있다 → 데이터로 확인한 내 작품들이 놓인 구역의 카드를 모두 더한다
+    const mineEls = dom.filter(d => works.some(w => w.url === d.url)).map(d => d.el);
+    if (mineEls.length >= 2) {
+      let box = mineEls[0];
+      for (const e of mineEls.slice(1)) { while (box && !box.contains(e)) box = box.parentElement; }
+      const extra = box && box !== document.body ? dom.filter(d => box.contains(d.el) && !works.some(w => w.url === d.url || normT(w.title) === normT(d.title))) : [];
+      if (extra.length) { works = works.concat(extra); method = 'data+dom'; log.push(`같은 구역 카드 ${extra.length}개 추가`); }
+    }
+  }
+  works = works.map(({ el, ...w }) => w);
+  log.push(`펼치기: 더보기 ${clicks}번, 링크 ${last}개`);
   if (works[0]) { works[0]._method = method; works[0]._log = log.join(' / '); }
   return { page: here, title: document.title, works, method, log };
 })();
