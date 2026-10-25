@@ -255,6 +255,7 @@
       }
       for (const im of b.imgs || []) showImg(im);
       dlg.classList.remove('end');
+      stage.querySelector('.ak-text').classList.toggle('ask', !!b.ask);
       const text = (b.kind === 'say' ? '“' + b.text + '”' : b.text).replace(/\{user\}/g, (R.status && R.status.student) || '나');
       typeOut(text, () => {
         dlg.classList.add('ready');
@@ -496,6 +497,7 @@
       lay.innerHTML = `<div class="ak-ov ${esc(ov.cls || '')}" data-ak="ov-close">${ov.html}</div>`;
       if (ov.fx) fx(ov.fx);
       if (ov.bgm) playBgm(ov.bgm);
+      if (ov.onShow) ov.onShow(lay.firstElementChild);
     }
     function closeOverlay() {
       $('#akLayer').innerHTML = '';
@@ -522,16 +524,24 @@
     // 입학 등록: 프롤로그 뒤 — 입학 등록 사이트를 열고, 받은 '입학 등록 결과'를 붙여 넣어 한 번 보낸다
     const REG_URL = man.registerUrl || 'https://hirion2312-art.github.io/hyerong.live.net/academy/';
     function regOverlay() {
-      return { cls: 'summon altar reg', fx: ['sparks'], html: `
-        <div class="ak-altar-card">
-          <span class="ak-rv-top">🎓 에테르나 아카데미 · 입학 등록</span>
-          <b>먼저 입학 서류를 작성해 주세요</b>
-          <p>① 입학 등록 사이트에서 서류를 작성하고 <b>결과를 복사</b>해요.<br>② 복사한 <b>입학 등록 결과</b>를 아래에 붙여 넣고 보내면 첫 소환수를 만나러 가요.</p>
-          <button class="ak-btn primary" data-ak="reg-open">입학 등록 사이트 열기</button>
-          <textarea id="akReg" class="ak-reg-in" rows="5" placeholder="[에테르나 아카데미 | 입학 등록 결과] … 를 여기에 붙여 넣기 (Ctrl+V)"></textarea>
-          <div class="ak-altar-picks"><button class="ak-btn primary" data-ak="reg-send">입학 등록 결과 보내기</button></div>
-          <button class="ak-btn ghost" data-ak="ov-close">나중에 할게요</button>
-        </div>` };
+      // 아카데미+ : 입학 사이트를 클라이언트 안에서 (등록 → 학생증 → 소환 의식 → 결과 보내기)
+      return { cls: 'reg', html: '<div class="akr-host"></div>', onShow: (ovEl) => {
+        const host = ovEl.querySelector('.akr-host');
+        if (!host || !root.CrionAcademyReg) return;
+        root.CrionAcademyReg.open({
+          host, saved: M.reg || null, toast: o.toast,
+          img: (n) => summonImg(n, 1, '평상시') || url(`s/${n}_기본평상시.webp`),
+          bgm: (id) => { bgmId = ''; playBgm(id); }, fx: (f) => fx(f),
+          save: (S) => { M.reg = S ? { p: S.p, id: S.id, beast: S.beast && S.beast.n, dorm: S.dorm } : null; save(); },
+          send: (text, S) => {
+            if (R.mode !== 'play' || R.away || R.page !== 'chat') { o.toast('크랙 대화 화면이 열린 뒤에 보낼 수 있어요'); return false; }
+            if (R.waiting) return false;
+            M.registered = Date.now(); M.regName = S.p.name; save();
+            closeOverlay(); $('#akIn').value = text; doSend(); return true;
+          },
+          onClose: () => closeOverlay()
+        });
+      } };
     }
     function needReg() {
       return !M.registered && !(R.status && R.status.partners && R.status.partners.length) && !(M.log || []).some(x => x.me && /입학\s*등록\s*결과/.test(x.t || ''));
@@ -637,6 +647,10 @@
       R.hints = r.hints;
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
+      // 끝 문구: 「{이름}은(는) 어떻게 할까?」
+      { const nm = (R.status && R.status.student && !/\{user\}/.test(R.status.student) ? R.status.student : (M.regName || '신입생')).split(/[\s(]/)[0];
+        const c = nm.charCodeAt(nm.length - 1), jong = c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0;
+        R.beats.push({ kind: 'narr', ask: true, text: `${nm}${jong ? '은' : '는'} 어떻게 할까?` }); }
       M.log = M.log.concat(R.beats.map(b => ({ who: b.who || '', t: b.text }))).slice(-200);
       const sv = curSave();
       if (sv) {
@@ -910,7 +924,7 @@
     const onKey = (e) => {
       if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
       if (e.target.id === 'akIn' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
-      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'WEBVIEW') return;
+      if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName) || e.target.closest('.akr')) return;
       if (e.key === 'Escape') { if (R.overlayOn) closeOverlay(); else if (R.modal) { $('#akLayer').innerHTML = ''; R.modal = null; } }
       if ((e.key === ' ' || e.key === 'Enter') && !R.modal && !e.target.closest('button')) { e.preventDefault(); next(); }
     };
@@ -958,7 +972,7 @@
     function hideTitle() { const box = el.querySelector('.ak-title'); if (box) box.hidden = true; }
     function showTitle() {
       R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false);
-      bgmId = ''; playBgm(man.bgmTitle || 'title');
+      bgmId = ''; playBgm(man.bgmTitle && man.bgmTitle !== 'title' ? man.bgmTitle : 'opening');
       renderTitle();
     }
     function startNew() {
@@ -971,7 +985,7 @@
       hideTitle();
       stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">새 대화를 여는 중이에요…</span>';
       banner('new');
-      bgmId = ''; playBgm(man.bgmTitle || 'title');
+      bgmId = ''; playBgm(man.bgmTitle && man.bgmTitle !== 'title' ? man.bgmTitle : 'opening');
       o.load(o.workUrl);
     }
     function continueSave(id) {

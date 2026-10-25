@@ -170,3 +170,13 @@ if (fail) process.exit(1);
   assert.strictEqual(s.contract.max, 12); assert.strictEqual(s.dex.n, 3); assert.strictEqual(s.badges.max, 7);
   console.log('  ✔ 실제 상태창(한 줄 섞임·설명형 기술) 읽기');
 }
+
+// 이름💬 화자 + 상태창 줄은 대사로 안 나옴
+{
+  const t = '안개 속 서술이다.\n오토💬\n"이거 반짝여서 주운 건데!"\n브루노💬 "떨어진 게 아니라 네가 뜯은 거잖아!" 그가 외쳤다.\n**???**💬\n"누구야?"\n[info] 상태 정보\n📅 1학년 봄 1일차 오전 | 📍강당\n🐾 위카(위카·기본) Lv5 ❤️30/30';
+  const r = A.parse(t, null, {});
+  const says = r.beats.filter(b => b.kind === 'say').map(b => b.who + ':' + b.text);
+  assert.deepStrictEqual(says, ['오토:이거 반짝여서 주운 건데!', '브루노:떨어진 게 아니라 네가 뜯은 거잖아!', '???:누구야?']);
+  assert.ok(!r.beats.some(b => /📅|🐾|info|💬/.test(b.text)), '상태·info·💬 줄은 대사 아님');
+  console.log('  ✔ 이름💬 화자 · 상태/info 줄 제외');
+}

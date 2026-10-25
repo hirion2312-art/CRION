@@ -330,6 +330,8 @@
   const QUOTED = /^[“"「『](.*?)[”"」』]\s*(.*)$/;
   const strip = (s) => String(s || '').replace(/^\*+|\*+$/g, '').trim();
 
+  const SPEAK = /^\**\s*([가-힣A-Za-z0-9·?？ ]{1,14}?)\s*\**\s*💬\s*(.*)$/u;
+  const STATUS_LINE = /^\s*[*>\-•]*\s*(📅|📍|🎓|🏠|💰|🎒|🐾|📦|📖|🏅|📜|🗓|⚔|🟦|🟥|🔮|ℹ|📊|📋|🧾|💳)|^\s*[\[［(]?\s*(info|INFO|Info|상태창|정보창|상태)\s*[\]］):：]/u;
   function lineBeat(line, ctx) {
     const l = line.trim();
     let m = RE_MARK.exec(l);
@@ -369,11 +371,12 @@
   function parse(input, dex, opt) {
     opt = opt || {};
     const segs = typeof input === 'string' ? [{ t: 'text', s: input }] : (input || []);
-    const lines = [], imgAt = [];
+    const lines = [], imgAt = [], codeAt = new Set();
     const tokens = [];
     for (const sg of segs) {
       if (sg.t === 'img') { imgAt.push({ at: lines.length, img: sg }); continue; }
       String(sg.s || '').replace(/ /g, ' ').split('\n').forEach((p) => {
+        if (sg.code) codeAt.add(lines.length);
         let m; IMG_TOKEN.lastIndex = 0;
         while ((m = IMG_TOKEN.exec(p))) tokens.push({ at: lines.length, token: m[1] });
         lines.push(p.replace(IMG_TOKEN, '').replace(/\s+$/, ''));
@@ -440,7 +443,7 @@
     // 장면
     const ctx = { isName: (n) => !!((dex && (dex.person(n) || dex.find(n))) || (opt.names || []).includes(n)) };
     const beats = [];
-    let pend = [];
+    let pend = [], who = null;
     const take = (i) => { for (const x of imgAt) if (x.at === i) pend.push(x.img); for (const x of tokens) if (x.at === i) pend.push({ token: x.token }); };
     for (let i = 0; i <= lines.length; i++) {
       take(i);
@@ -448,7 +451,19 @@
       if (drop[i]) continue;
       const raw = lines[i];
       if (!raw.trim() || DIVIDER.test(raw)) continue;
-      const b = lineBeat(raw, ctx);
+      if (codeAt.has(i) || STATUS_LINE.test(raw)) continue;          // 상태창·정보 줄·코드 상자는 대사로 안 보냄
+      // 「이름💬」 → 사람 이름 (같은 줄 대사 또는 다음 줄 대사의 화자)
+      const sp = SPEAK.exec(raw.trim());
+      if (sp) {
+        const nm = sp[1].replace(/\*/g, '').trim(), rest = (sp[2] || '').trim();
+        if (!rest) { who = nm; continue; }
+        const q = QUOTED.exec(rest);
+        beats.push(Object.assign({ kind: 'say', who: nm, text: q ? q[1] : strip(rest) }, pend.length ? { imgs: pend } : {})); pend = [];
+        if (q && q[2]) beats.push({ kind: 'narr', who: null, text: strip(q[2]) });
+        who = null; continue;
+      }
+      let b = lineBeat(raw, ctx);
+      if (who) { if (/^[“"「『]/.test(raw.trim())) { const q = QUOTED.exec(raw.trim()); b = { kind: 'say', who, text: q ? q[1] : strip(raw), after: q ? q[2] : '' }; } who = null; }
       if (!b.text) continue;
       const pieces = b.kind === 'narr' ? chunk(b.text, opt.max || 160) : [b.text];
       pieces.forEach((t, k) => {
