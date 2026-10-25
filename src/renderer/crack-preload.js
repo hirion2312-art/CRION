@@ -76,21 +76,36 @@ const START_WORDS = [
   ['continue', /^(이어서\s*(대화|하기|플레이)?|이어하기|대화\s*이어(가기|하기)|계속\s*(하기|대화|플레이)|최근\s*대화)/],
   ['new', /^(새\s*(대화|채팅)(\s*시작)?|대화\s*시작(하기)?|채팅\s*시작(하기)?|시작하기|플레이(하기)?|대화하기|채팅하기|처음부터)/]
 ];
-// 대화 화면 안에서는 '새 대화' 계열 버튼만 찾는다 (CRION '처음부터'용)
-const NEW_ON_CHAT = [['new', /^(새\s*(대화|채팅)(\s*(시작|하기))?|새로\s*(시작|하기)|처음부터(\s*(시작|하기))?|대화\s*새로\s*시작)$/]];
+// '새 대화' 계열 (크랙 표기 예: 새로 대화하기 · 새 대화 · 새로운 대화 · 처음부터) — 작품 화면·대화 화면 모두
+const NEW_STRONG = /^[+＋]?\s*(새로운?\s*(대화|채팅)(\s*(시작|하기))?(하기)?|새로\s*(대화|채팅|시작)(하기)?|새\s*(대화|채팅)(\s*(시작|하기))?|처음부터(\s*(시작|하기))?|대화\s*새로\s*(시작|하기)|다시\s*시작(하기)?)$/;
+const CONFIRM = /^(확인|시작|시작하기|대화\s*시작(하기)?|새로\s*시작(하기)?|네|예|계속)$/;
+const DIALOG = '[role="dialog"], [aria-modal="true"], [class*="modal" i], [class*="dialog" i], [class*="popup" i]';
+const labelOf = (b) => ((b.innerText || b.textContent || b.getAttribute('aria-label') || b.title || '') + '').trim().replace(/\s+/g, ' ');
 let actionEls = [];
 function pageActions(onChat) {
   actionEls = [];
   const out = [];
-  for (const b of qa('button, a[href], [role="button"]')) {
-    if (!visible(b) || b.disabled) continue;
-    const t = (b.innerText || b.getAttribute('aria-label') || b.title || '').trim().replace(/\s+/g, ' ');
-    if (!t || t.length > 16) continue;
-    for (const [kind, re] of (onChat ? NEW_ON_CHAT : START_WORDS)) {
-      if (re.test(t)) { out.push({ id: actionEls.length, kind, label: t }); actionEls.push(b); break; }
+  const seen = new Set();
+  const add = (b, kind, label, hidden) => { if (seen.has(b)) return; seen.add(b); out.push({ id: actionEls.length, kind, label, hidden: !!hidden }); actionEls.push(b); };
+  const cands = qa('button, a[href], [role="button"], [role="menuitem"], [role="option"], li, [tabindex]');
+  for (const b of cands) {
+    if (b.disabled || b.getAttribute('aria-disabled') === 'true') continue;
+    if (b.matches('li, [tabindex]') && !b.matches('button, a, [role]') && b.querySelector('button, a[href], [role="button"]')) continue;
+    const t = labelOf(b);
+    if (!t || t.length > 18) continue;
+    const vis = visible(b);
+    if (NEW_STRONG.test(t)) { add(b, 'new', t, !vis); continue; }
+    if (!vis) continue;
+    if (CONFIRM.test(t) && b.closest(DIALOG)) { add(b, 'confirm', t); continue; }
+    if (onChat) continue;
+    for (const [kind, re] of START_WORDS) {
+      if (re.test(t)) { add(b, kind, t); break; }
     }
   }
-  return out.slice(0, 4);
+  // 바깥 상자와 안쪽 버튼이 같은 글이면 안쪽만
+  const keep = out.filter((a) => !out.some(o => o !== a && o.label === a.label && actionEls[a.id].contains(actionEls[o.id])));
+  const rank = { new: 0, confirm: 1, continue: 2 };
+  return keep.sort((a, b) => (rank[a.kind] - rank[b.kind]) || (a.hidden - b.hidden)).slice(0, 6);
 }
 let msgCount = { url: '', n: -1, at: 0 };
 function chatMsgs(input) {
@@ -484,6 +499,8 @@ ipcRenderer.on('crion:diag', () => {
   });
   send('crion:diag', {
     title: document.title, chat: !!input, size: `${window.innerWidth}x${window.innerHeight}`, inputs, play: active,
+    actions: pageActions(!!input).map(x => `${x.kind}:${x.label}${x.hidden ? '(숨김)' : ''}`),
+    buttons: [...new Set(qa('button, a[href], [role="button"], [role="menuitem"]').map(b => labelOf(b) + (visible(b) ? '' : '(숨김)')).filter(t => t && t.length <= 24))].slice(0, 80),
     url: location.href.replace(/[?#].*$/, ''),
     input: desc(input),
     send: desc(btn),

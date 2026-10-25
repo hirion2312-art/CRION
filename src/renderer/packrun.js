@@ -644,21 +644,21 @@
           <div class="row">${(R.actions || []).map(a => `<button class="ak-btn ${a.kind === 'continue' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button></div></div>`;
       } else if (kind === 'other') {
         b.hidden = false; b.className = 'ak-banner center';
-        b.innerHTML = `<div class="ak-gate"><b>세이브의 대화가 열리지 않았어요</b><span>크랙에서 대화가 지워졌거나 로그인이 풀렸을 수 있어요.</span><div class="row"><button class="ak-btn primary" data-ak="back-save">다시 열기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+        b.innerHTML = `<div class="ak-gate"><b>세이브의 대화가 열리지 않았어요</b><span>크랙에서 대화가 지워졌거나 로그인이 풀렸을 수 있어요.</span><div class="row"><button class="ak-btn primary" data-ak="back-save">다시 열기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'new') {
         b.hidden = false; b.className = 'ak-banner center';
         const acts = (R.actions || []).filter(a => a.kind === 'new');
         b.innerHTML = `<div class="ak-gate"><b>새 대화를 여는 중이에요</b><span>${R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요. 시작 설정을 고르는 창이 나오면 크랙 화면에서 골라 주세요.' : '크랙 작품 화면을 여는 중이에요…'}</span>
-          <div class="row">${acts.map(a => `<button class="ak-btn ${a.kind === 'new' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+          <div class="row">${acts.map(a => `<button class="ak-btn ${a.kind === 'new' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'old') {
         b.hidden = false; b.className = 'ak-banner center';
         const acts = (R.actions || []).filter(a => a.kind === 'new');
         b.innerHTML = `<div class="ak-gate"><b>크랙이 예전 대화를 열었어요</b><span>처음부터 하려면 새 대화를 시작해 주세요. 예전 대화는 읽지 않아요.</span>
-          <div class="row">${acts.map(a => `<button class="ak-btn primary" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn ${acts.length ? '' : 'primary'}" data-ak="crack">크랙 화면에서 새 대화 열기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+          <div class="row">${acts.map(a => `<button class="ak-btn primary" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn ${acts.length ? '' : 'primary'}" data-ak="crack">크랙 화면에서 새 대화 열기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'away') {
         b.hidden = false; b.className = 'ak-banner center';
         b.innerHTML = `<div class="ak-gate"><b>이 세이브의 대화가 아니에요</b><span>크랙 화면에서 다른 대화로 옮겨 갔어요. 이 대화는 읽지 않아요.</span>
-          <div class="row"><button class="ak-btn primary" data-ak="back-save">세이브 대화로 돌아가기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button></div></div>`;
+          <div class="row"><button class="ak-btn primary" data-ak="back-save">세이브 대화로 돌아가기</button><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'slow') {
         b.hidden = false; b.className = 'ak-banner';
         b.innerHTML = `<span>응답을 아직 못 읽었어요. 크랙에서 답이 왔는지 확인해 보세요.</span><button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button><button class="ak-btn" data-ak="unwait">닫기</button>`;
@@ -923,8 +923,12 @@
     function bindNew(st) {
       const nf = R.newFlow;
       if (!nf) return;
+      // '새로 대화하기'를 누른 뒤 뜬 확인 창(확인·시작하기)은 한 번만 눌러 준다
+      const cf = (st.actions || []).find(x => x.kind === 'confirm');
+      if (cf && nf.clicked && !nf.confirmed) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
       const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
       if (st.page === 'detail') {
+        if (st.url) lsSet(`crion.pk.${PK_ID}.detail.${WORK}`, st.url);   // 작품 화면 주소 기억 (크랙이 예전 대화로 바로 갈 때 돌아올 곳)
         const a = (st.actions || []).find(x => x.kind === 'new');
         if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
         banner('new');
@@ -946,6 +950,8 @@
       const a = (st.actions || []).find(x => x.kind === 'new');
       if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
       if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
+      const detail = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      if (detail && !nf.triedDetail && normUrl(detail) !== u) { nf.triedDetail = true; nf.clicked = false; o.load(detail); banner('new'); return; }
       banner('old');
     }
     setInterval(() => { const sv = curSave(); if (sv && R.mode === 'play' && !R.away && document.visibilityState === 'visible' && !el.closest('.off')) { sv.playMs = (sv.playMs || 0) + 30000; putSaves(); } }, 30000);

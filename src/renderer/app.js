@@ -840,7 +840,7 @@
       } else if (e.channel === 'crion:diag' && d) {
         const t = ['[CRION 화면 진단]', `앱 ${S.info.version} / 화면 ${S.info.engineVersion} / ${S.info.platform}`, `작품: ${S.play ? S.play.work.name : '-'}`,
           `주소: ${d.url}`, `제목: ${d.title}`, `대화 화면: ${d.chat ? '예' : '아니오'}`, `크기: ${d.size}`, '입력칸: ' + (d.inputs || []).join(' / ')]
-          .concat(d.play ? [`플레이팩: 켜짐`, `입력창: ${d.input}`, `보내기 버튼: ${d.send}`, `대화 목록: ${d.list}`, `메시지 수: ${d.messages}`, `배운 모양: ${JSON.stringify(d.learned)}`, '--- 마지막 메시지 구조 ---', d.lastTwo || '(없음)'] : []).join('\n');
+          .concat(d.play ? [`찾은 버튼: ${(d.actions || []).join(', ') || '없음'}`, `화면의 버튼: ${(d.buttons || []).join(' | ')}`, `플레이팩: 켜짐`, `입력창: ${d.input}`, `보내기 버튼: ${d.send}`, `대화 목록: ${d.list}`, `메시지 수: ${d.messages}`, `배운 모양: ${JSON.stringify(d.learned)}`, '--- 마지막 메시지 구조 ---', d.lastTwo || '(없음)'] : []).join('\n');
         if (S.waitDiag) { S.waitDiag = false; S.diagText = t; } else copy(t, '화면 진단을 복사했어요');
       }
     });
