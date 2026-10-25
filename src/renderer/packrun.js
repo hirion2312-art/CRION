@@ -424,24 +424,45 @@
       const box = stage.querySelector('.ak-battle');
       const b = R.battle;
       stage.classList.toggle('in-battle', !!b);
-      if (!b) { box.hidden = true; box.innerHTML = ''; return; }
+      if (!b) { box.hidden = true; box.innerHTML = ''; R.prevBattle = null; return; }
       box.hidden = false;
+      // 지난 턴과 HP 비교 → 공격 연출 (같은 상대일 때만)
+      const pv = R.prevBattle;
+      const same = (x, y) => x && y && x.name === y.name;
+      const dFoe = fresh && pv && same(pv.enemy, b.enemy) ? Math.max(0, pv.enemy.hp - b.enemy.hp) : 0;
+      const dAlly = fresh && pv && same(pv.ally, b.ally) ? Math.max(0, pv.ally.hp - b.ally.hp) : 0;
+      const logFoe = (b.log || [])[0] && (b.log[0].dmg || 0), logAlly = (b.log || [])[1] && (b.log[1].dmg || 0);
+      const hitFoe = dFoe || (fresh && !pv ? logFoe : 0) || 0, hitAlly = dAlly || (fresh && !pv ? logAlly : 0) || 0;
+      if (fresh) R.prevBattle = JSON.parse(JSON.stringify({ ally: b.ally, enemy: b.enemy }));
       const multTag = b.mult > 1 ? '<span class="good">상성 유리 ×1.5</span>' : b.mult < 1 ? '<span class="weak">상성 불리 ×0.5</span>' : '<span>상성 보통</span>';
       const head = b.title || b.turn || b.forecast ? `<div class="ak-bhead">${b.title ? `<b>⚔️ ${esc(b.title)}</b>` : ''}${b.turn ? `<span>${b.turn}턴째</span>` : ''}${b.forecast ? `<em>🔮 ${esc(b.forecast)}</em>` : ''}</div>` : '';
-      box.innerHTML = head + `<div class="ak-bt-row">${sideHtml(b.ally, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(b.enemy, 'foe')}</div>
-        <div class="ak-blog">${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : ''}${x.note ? `<span class="${/굉장/.test(x.note) ? 'good' : /별로/.test(x.note) ? 'weak' : ''}">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
+      const showA = dAlly ? Object.assign({}, b.ally, { hp: pv.ally.hp }) : b.ally;
+      const showE = dFoe ? Object.assign({}, b.enemy, { hp: pv.enemy.hp }) : b.enemy;
+      box.innerHTML = head + `<div class="ak-bt-row">${sideHtml(showA, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(showE, 'foe')}</div>
+        <div class="ak-blog" ${(b.log || []).length ? '' : 'hidden'}>${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : ''}${x.note ? `<span class="${/굉장/.test(x.note) ? 'good' : /별로/.test(x.note) ? 'weak' : ''}">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
         ${b.over ? `<div class="ak-bover">${b.enemy && b.enemy.hp <= 0 ? '승리!' : '쓰러졌다…'}</div>` : ''}`;
       if (fresh) {
-        (b.log || []).forEach((x, i) => {
-          if (x.dmg == null) return;
-          const f = document.createElement('div');
-          f.className = 'ak-dmg ' + (i === 0 ? 'to-foe' : 'to-ally');
-          f.textContent = '-' + x.dmg;
-          box.appendChild(f);
-          setTimeout(() => f.remove(), 1600);
-        });
-        if ((b.log || []).some(x => /굉장/.test(x.note))) fx(['flash', 'shake']);
-        else if ((b.log || []).some(x => x.dmg)) fx(['shake']);
+        const card = (c) => box.querySelector('.ak-bs.' + c);
+        const setHp = (c, sd) => { const g = card(c) && card(c).querySelector('.ak-gauge'); if (!g || !sd) return; const i = g.querySelector('i'), t = g.querySelector('span'); if (i) i.style.width = Math.max(0, Math.min(100, sd.hp / (sd.hpMax || 1) * 100)) + '%'; if (t) t.textContent = `${sd.hp}/${sd.hpMax}`; card(c).classList.toggle('low', sd.hpMax && sd.hp / sd.hpMax <= 0.3); card(c).classList.toggle('down', sd.hp <= 0); };
+        const strike = (from, to, dmg, sd, at) => setTimeout(() => {
+          if (!box.isConnected || R.battle !== b) return;
+          const a = card(from), d = card(to);
+          if (a) { a.classList.remove('atk'); void a.offsetWidth; a.classList.add('atk'); }
+          setTimeout(() => {
+            if (!d) return;
+            d.classList.remove('hit'); void d.offsetWidth; d.classList.add('hit');
+            setHp(to, sd);
+            const f = document.createElement('div');
+            f.className = 'ak-dmg ' + (to === 'foe' ? 'to-foe' : 'to-ally');
+            f.textContent = '-' + dmg;
+            box.appendChild(f);
+            setTimeout(() => f.remove(), 1600);
+            fx(dmg >= (sd.hpMax || 999) * 0.3 ? ['shake', 'flash'] : ['shake']);
+          }, 260);
+        }, at);
+        let t = 350;
+        if (hitFoe) { strike('ally', 'foe', hitFoe, b.enemy, t); t += 1100; }
+        if (hitAlly) strike('foe', 'ally', hitAlly, b.ally, t);
         if ((b.log || []).some(x => /별로/.test(x.note))) fx(['dim']);
       }
     }
