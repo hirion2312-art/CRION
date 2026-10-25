@@ -366,7 +366,7 @@ select.field { height: 40px; }
 .link.light { color: #c7cbff; margin-left: 8px; font-size: 12.5px; }
 
 /* ===== 배경 그림: 뒤에 꽉 차게, 새 배경까지 유지 ===== */
-.backdrop { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity .9s ease; }
+.backdrop { position: absolute; inset: 0; background-size: cover; background-position: center 22%; opacity: 0; transition: opacity .9s ease; }
 .backdrop.on { opacity: 1; }
 .backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,18,.15) 0%, rgba(10,12,18,.05) 40%, rgba(10,12,18,.55) 100%); }
 .stage.waiting .backdrop.on { animation: breathe2 9s ease-in-out infinite alternate; }

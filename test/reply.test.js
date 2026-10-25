@@ -93,7 +93,7 @@ test('긴 서술은 문장 끝에서 나눈다', () => {
 });
 
 test('세라 그림이 세라 대사 뒤에 와도 카일이 말할 땐 안 보인다', () => {
-  const r = R.parse([{ t: 'text', s: '세라: "식량이 부족해요."\n' }, { t: 'img', src: 'https://x/a.png', w: 250, h: 410, alt: '세라' }, { t: 'text', s: '카일 "내가 볼게."\n세라 "조심해요."' }]);
+  const r = R.parse([{ t: 'text', s: '세라: "식량이 부족해요."\n' }, { t: 'img', src: 'https://x/a.png', w: 250, h: 410, alt: '세라' }, { t: 'text', s: '카일 "내가 볼게."\n세라 "조심해요."' }], { attachBack: true });
   const f = R.stageFrames(r.beats);
   assert.strictEqual(f[0].person && f[0].person.alt, '세라');
   assert.strictEqual(f[1].person, null);
@@ -125,6 +125,14 @@ test('삽화는 그 장면 근처에서만', () => {
   const r = R.parse([{ t: 'img', src: 'cg.png', w: 800, h: 800 }, { t: 'text', s: '하나.\n둘.\n셋.\n넷.\n다섯.' }]);
   const f = R.stageFrames(r.beats);
   assert.ok(f[0].cg && f[2].cg && !f[3].cg);
+});
+
+test('한 장씩: 종류 상관없이 가장 최근 그림이 다음 그림까지 남는다', () => {
+  const a = R.parse([{ t: 'img', src: 'bg.png', w: 1200, h: 700 }, { t: 'text', s: '숲.\n세라 "여기."' }, { t: 'img', src: 'sera.png', w: 400, h: 800, alt: '세라' }, { t: 'text', s: '카일 "응."\n둘은 걸었다.' }]);
+  const f = R.stageFrames(a.beats);
+  assert.deepStrictEqual(f.map(x => x.img && x.img.src), ['bg.png', 'bg.png', 'sera.png', 'sera.png']);
+  const b = R.parse('밤이 됐다.');
+  assert.strictEqual(R.stageFrames(b.beats, f[f.length - 1].img)[0].img.src, 'sera.png');
 });
 
 let fail = 0;

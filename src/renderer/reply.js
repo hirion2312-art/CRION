@@ -184,7 +184,7 @@
         if (b.face) beat.face = b.face;
         if (k === 0 && pendImgs.length) {
           const prev = beats[beats.length - 1];
-          const back = prev && prev.who && prev.who !== beat.who && pendImgs.every(im => nameIn(im, [prev.who]));
+          const back = opts.attachBack && prev && prev.who && prev.who !== beat.who && pendImgs.every(im => nameIn(im, [prev.who]));
           if (back) prev.imgs = (prev.imgs || []).concat(pendImgs);
           else beat.imgs = pendImgs;
           pendImgs = [];
@@ -230,8 +230,10 @@
   function stageFrames(beats, startBg) {
     const names = [...new Set(beats.map(b => b.who).filter(Boolean))];
     let bg = startBg || null, person = null, owner = null, cg = null, cgLeft = 0;
+    let img = startBg || null;                 // 종류 상관없이 '가장 최근 그림' (한 장씩 순서대로 꽉 차게 보여 줄 때)
     return beats.map((b) => {
       for (const im of b.imgs || []) {
+        img = im;
         const k = imgKind(im, names);
         if (k === 'bg') { bg = im; continue; }
         if (k === 'cg') { cg = im; cgLeft = 3; continue; }
@@ -240,7 +242,7 @@
       }
       if (person && b.kind === 'say' && b.who && !owner) owner = b.who;   // 이름 모르는 그림은 그다음 처음 말하는 사람 것
       const show = person && !(b.kind === 'say' && b.who && owner && b.who !== owner);
-      const frame = { bg, person: show ? person : null, cg: cgLeft > 0 ? cg : null, who: b.who };
+      const frame = { img, bg, person: show ? person : null, cg: cgLeft > 0 ? cg : null, who: b.who };
       frame.scene = frame.bg;   // 예전 이름 호환
       if (cgLeft > 0) cgLeft--;
       return frame;

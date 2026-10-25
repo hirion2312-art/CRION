@@ -552,16 +552,16 @@
     const b = t.beats[r.idx];
     const f = t.frames[r.idx] || {};
     showCover('');
-    // 배경: 배경 그림은 화면 뒤에 꽉 차게, 새 배경이 나올 때까지 유지 / 삽화는 가운데에 크게
-    setBackdrop(f.bg ? f.bg.src : '');
+    // 그림: 배경·인물 구분 없이, 응답에 나온 그림을 한 장씩 순서대로 화면에 꽉 차게. 다음 그림이 나올 때까지 유지
+    setBackdrop(f.img ? f.img.src : '');
     const scene = $('#scene');
-    const cgSrc = f.cg ? f.cg.src : '';
+    const cgSrc = '';
     if (scene.dataset.src !== cgSrc) {
       scene.dataset.src = cgSrc;
       scene.innerHTML = cgSrc ? `<img src="${esc(cgSrc)}" alt="">` : '';
     }
     const person = $('#person');
-    const pSrc = f.person && !f.cg ? f.person.src : '';
+    const pSrc = '';
     if (person.dataset.src !== pSrc) {
       person.dataset.src = pSrc;
       if (pSrc) { person.innerHTML = `<img src="${esc(pSrc)}" alt="">`; person.classList.remove('off'); }
@@ -682,7 +682,7 @@
     }
     if (d.done) {
       hideWaiting();
-      const lastBg = t.frames.length ? t.frames[t.frames.length - 1].bg : null;
+      const lastBg = t.frames.length ? t.frames[t.frames.length - 1].img : null;
       if (lastBg && (!r.curBg || r.curBg.src !== lastBg.src)) {
         r.curBg = lastBg;                          // 새 배경이 나올 때까지 유지 (다음에 열어도)
         const rec = store.get(r.work.id); rec.lastBg = { src: lastBg.src, w: lastBg.w || 0, h: lastBg.h || 0 }; store.save(r.work.id);
