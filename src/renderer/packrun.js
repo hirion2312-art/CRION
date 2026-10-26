@@ -722,7 +722,7 @@
       if (needReg()) { if (!R.overlays.some(x => x.cls && /reg/.test(x.cls))) queue(regOverlay(), 'end'); }
       else if (noPartner && /소환진|소환의\s*제단|제단/.test(allText) && !R.overlays.some(x => x.cls && /summon/.test(x.cls))) queue(altarOverlay(), 'end');
       R.hints = r.hints;
-      R.choices = r.choices || []; R.choiceAsk = r.choiceAsk || '';
+      R.choices = (r.choices && r.choices.length) ? r.choices : (r.hints && r.hints.length >= 2 && !(R.battle && !R.battle.over) ? r.hints.slice() : []); R.choiceAsk = r.choiceAsk || '';
       if (R.choices.length) queue(choiceOverlay(R.choices, R.choiceAsk), 'end');
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];

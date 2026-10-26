@@ -514,11 +514,14 @@
     const adult = tokens.map(t => t.token.split('::').map(x => x.trim())).filter(x => x[1] && /^성인/.test(x[1])).map(x => x[0]);
     // 행동 힌트(💡)
     let hints = [];
+    // 💡 줄은 본문 중간에 나와도 잡는다 (마지막 💡 줄을 쓰고, 💡 줄은 모두 본문에서 뺀다)
     for (let i = lines.length - 1; i >= 0; i--) {
-      if (drop[i] || !lines[i].trim()) continue;
-      const h = /^\s*💡\s*(.+)$/u.exec(lines[i]);
-      if (h) { hints = h[1].split(/\s*(?:\/|｜|\|)\s*/).map(x => x.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean).slice(0, 4); drop[i] = true; }
-      break;
+      if (drop[i]) continue;
+      const h = /^\s*\**\s*💡\s*(.+)$/u.exec(lines[i]);
+      if (!h) continue;
+      const hs = h[1].replace(/\*\*/g, '').split(/\s*(?:\/|｜|\|)\s*/).map(x => x.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean).slice(0, 4);
+      if (!hints.length && hs.length) hints = hs;
+      drop[i] = true;
     }
     // 아카데미+ : 💡 없이 '상태창 바로 위 한 줄'에 행동 힌트 2~3개 (예: "수업 들으러 간다 / 도서관 / 기숙사로")
     if (!hints.length && si >= 0) {

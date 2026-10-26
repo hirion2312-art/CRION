@@ -299,3 +299,11 @@ if (fail) process.exit(1);
   assert.deepStrictEqual(A.parse('1. 하나뿐\n━━━━━━━━━━━━━━\n📅 1학년 봄 3일차 오후 | 📍기숙사\n━━━━━━━━━━━━━━', dex).choices, []);
   console.log('  ✔ 선택지 목록 → 선택 화면');
 }
+
+{
+  // 💡 줄이 본문 중간에 와도 힌트로 잡고 본문에서 뺀다
+  const r = A.parse(['위카가 소매를 당겼다.', '💡 위카를 어깨에 태운다 / 문장 안으로 돌려보낸다 / 손을 잡고 걷는다', '세라💬 "귀엽다."', '━━━━━━━━━━━━━━', '📅 1학년 봄 1일차 오후 | 📍기숙사', '━━━━━━━━━━━━━━'].join('\n'), dex);
+  assert.deepStrictEqual(r.hints, ['위카를 어깨에 태운다', '문장 안으로 돌려보낸다', '손을 잡고 걷는다']);
+  assert.ok(!r.beats.some(b => /💡/.test(b.text)));
+  console.log('  ✔ 중간 💡 줄 → 선택지');
+}
