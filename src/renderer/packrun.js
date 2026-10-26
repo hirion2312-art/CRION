@@ -321,7 +321,7 @@
       const img = summonImg(p.base, p.stage || 1, situ);
       const low = p.hpMax && p.hp / p.hpMax <= 0.3;
       const statMax = 200;
-      const st = p.stats || {};
+      const st = p.stats || p.statsCalc || dex.calcStats(p.base, p.stage || 1, p.lv) || {};
       const flipped = R.flip[p.base + i];
       return `<button class="ak-pc ${RAR_CLS[p.rarity] || 'r1'} ${flipped ? 'flip' : ''} ${low ? 'low' : ''}" data-ak="flip" data-k="${esc(p.base + i)}" style="--el:${esc((theme.elements || {})[p.el] || '#c9ced9')}">
         <div class="ak-pc-in">
@@ -330,7 +330,7 @@
             <div class="ak-pc-meta"><b>${esc(p.nick)}</b><span>${p.formName && p.formName !== p.nick ? esc(p.formName) + ' · ' : ''}${esc(p.stageName || '')}</span>
               <em class="lv">Lv ${p.lv || '-'}</em></div>
             <div class="ak-pc-tags"><i class="el">${EL_ICON[p.el] || ''}${esc(p.el || '')}</i>${p.rarity ? `<i>${esc(p.rarity)}</i>` : ''}${p.ailment ? `<i class="bad">${esc(p.ailment)}</i>` : ''}</div>
-            ${gauge(p.hp, p.hpMax, 'hp')}${gauge(p.xp, p.xpMax, 'xp')}
+            ${gauge(p.hp != null ? p.hp : (p.hpMax || p.hpMaxCalc), p.hpMax || p.hpMaxCalc, 'hp')}${gauge(p.xp, p.xpMax != null ? p.xpMax : (p.lv ? p.lv * 4 : null), 'xp')}
           </div>
           <div class="ak-pc-back">
             <div class="ak-stats">${[['공격', st.atk], ['방어', st.def], ['특공', st.spa], ['특방', st.spd], ['속도', st.spe]].map(([k, v]) => `<div><span>${k}</span><i><b style="width:${pct(v || 0, statMax)}%"></b></i><em>${v == null ? '-' : v}</em></div>`).join('')}</div>
@@ -424,8 +424,9 @@
       const box = $('#akChoices');
       const acts = battleActions();
       const hints = R.hints || [];
-      box.innerHTML = acts + (hints.length ? `<div class="ak-hints">${hints.map(hn => `<button data-ak="fill" data-fill="${esc(hn)}"><i>💡</i>${esc(hn)}</button>`).join('')}</div>` : '');
-      box.classList.toggle('has', !!(acts || hints.length));
+      const ch = (R.choices || []).length ? `<div class="ak-hints"><button class="ak-choice-reopen" data-ak="choice-open"><i>📝</i>선택지 ${R.choices.length}개 보기</button></div>` : '';
+      box.innerHTML = acts + ch + (hints.length ? `<div class="ak-hints">${hints.map(hn => `<button data-ak="fill" data-fill="${esc(hn)}"><i>💡</i>${esc(hn)}</button>`).join('')}</div>` : '');
+      box.classList.toggle('has', !!(acts || ch || hints.length));
     }
 
     // ---------- 전투 패널 ----------
@@ -593,6 +594,25 @@
           <button class="ak-btn ghost" data-ak="ov-close">직접 쓸게요</button>
         </div>` };
     }
+    // 선택지 화면: 고르면 아래 칸에 채워지고(고쳐 쓰기·직접 쓰기 가능) 「보내기」 한 번 = 전송 한 번
+    function choiceOverlay(list, ask) {
+      return { cls: 'choice', html: `
+        <div class="ak-choice-card">
+          <span class="ak-rv-top">📝 선택의 순간</span>
+          <b>${esc(ask || '어떻게 할까?')}</b>
+          <div class="ak-choice-list">${list.map((c, i) => `<button class="ak-choice-btn" data-ak="choice-pick" data-fill="${esc(c)}"><i>${i + 1}</i><span>${esc(c)}</span></button>`).join('')}</div>
+          <label class="ak-choice-free"><span>✍️ 직접 쓰기 · 고른 선택지에 덧붙여도 돼요</span>
+            <textarea id="akChoiceIn" rows="2" placeholder="원하는 행동이나 대사를 자유롭게 적어 보세요"></textarea></label>
+          <div class="ak-rv-btns"><button class="ak-btn ghost" data-ak="ov-close">나중에 고를게요</button><button class="ak-btn primary" data-ak="choice-send">보내기</button></div>
+        </div>`, onShow: (ov) => { const ta = ov.querySelector('#akChoiceIn'); if (ta) ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); choiceSend(); } }); } };
+    }
+    function choiceSend() {
+      const ta = el.querySelector('#akChoiceIn'); const v = ta ? ta.value.trim() : '';
+      if (!v) { o.toast('선택지를 고르거나 직접 적어 주세요'); return; }
+      if (R.waiting) return;
+      if (R.mode !== 'play' || R.away || R.page !== 'chat') { o.toast('대화 화면이 열린 뒤에 보낼 수 있어요'); return; }
+      R.choices = []; closeOverlay(); $('#akIn').value = v; doSend();
+    }
     // 포획: 계약석이 세 번 흔들린 뒤 결과 (🎯 포획 성공!/실패…)
     function captureOverlay(a) {
       const lin = dex.lineage(a.base) || {};
@@ -702,6 +722,8 @@
       if (needReg()) { if (!R.overlays.some(x => x.cls && /reg/.test(x.cls))) queue(regOverlay(), 'end'); }
       else if (noPartner && /소환진|소환의\s*제단|제단/.test(allText) && !R.overlays.some(x => x.cls && /summon/.test(x.cls))) queue(altarOverlay(), 'end');
       R.hints = r.hints;
+      R.choices = r.choices || []; R.choiceAsk = r.choiceAsk || '';
+      if (R.choices.length) queue(choiceOverlay(R.choices, R.choiceAsk), 'end');
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
       // 끝 문구: 「{이름}은(는) 어떻게 할까?」
@@ -744,13 +766,63 @@
       ta.value = ''; autosize();
       waitingUi(true);
     }
+    // ---------- 불러오는 중 화면: 귀여운 소환수 + 팁 ----------
+    const TIPS_BASE = [
+      '선택지·전투 버튼은 입력창에 글만 채워요. 보내기는 직접 눌러 주세요.',
+      '파트너 카드를 누르면 뒤집혀서 능력치와 기술 남은 횟수가 보여요.',
+      '상성은 수→화→풍→지→수! 빛과 어둠은 서로에게 강해요.',
+      '포획은 상대 HP 30% 이하일 때. 상태이상을 걸어 두면 확률이 +10%예요.',
+      'HP 10% 이하까지 몰아붙이면 포획 확률이 +20% 더 올라가요.',
+      '같은 기술은 두 번 연속으로 쓸 수 없어요. 기술을 섞어 쓰세요.',
+      '유대가 80을 넘은 소환수는 쓰러질 때 HP 1로 한 번 버텨요.',
+      '교수가 🔮 예고한 큰 기술은 방어로 피해를 절반으로 줄일 수 있어요.',
+      '배지 3개면 졸업, 7개를 모으면 학장과의 마지막 대결이 열려요.',
+      '도감 80칸을 모두 채우면… 히든 엔딩이 있다는 소문이에요.',
+      '진화 직전에는 진화할지 물어봐요. 거절해도 다음 레벨업에 다시 물어요.',
+      '위쪽 「크랙 화면」 버튼으로 언제든 원래 크랙 화면을 볼 수 있어요.',
+      '야생 도망은 50%. 공식전에서는 도망칠 수 없어요.',
+      '휴식하면 HP·기술 횟수·상태이상이 모두 회복돼요.',
+    ].concat(PLUS ? ['📜 과제는 마감이 하루 남으면 붉게 바뀌어요.', '지금이 몇 막인지는 학생 수첩 위쪽에 표시돼요.'] : []);
+    function tipList() {
+      const out = TIPS_BASE.concat(Array.isArray(man.tips) ? man.tips : []);
+      for (const l of (data.lineages || [])) if (l.quote) out.push(`${l.base} 💬 ${l.quote}${l.species ? ` — ${l.species}` : ''}`);
+      return out;
+    }
+    let tipT = null, tipLast = -1, tipNow = '', loadPic = '';
+    function pickTip() {
+      const t = tipList(); if (!t.length) return '';
+      let i = Math.floor(Math.random() * t.length); if (i === tipLast && t.length > 1) i = (i + 1) % t.length; tipLast = i;
+      return (tipNow = t[i]);
+    }
+    function tipLoop() {
+      if (tipT) return;
+      tipT = setInterval(() => {
+        const tips = el.querySelectorAll('.ak-tip');
+        if (!tips.length) { clearInterval(tipT); tipT = null; loadPic = ''; return; }
+        tips.forEach(x => x.classList.add('out'));
+        setTimeout(() => { const t = '💡 ' + pickTip(); el.querySelectorAll('.ak-tip').forEach(x => { x.textContent = t; x.classList.remove('out'); }); }, 350);
+      }, 5000);
+    }
+    function hopHtml() {
+      if (!loadPic) {
+        const ls = (data.lineages || []).filter(l => summonImg(l.base, 1, '기쁨'));
+        const l = ls.length ? ls[Math.floor(Math.random() * ls.length)] : null;
+        loadPic = l ? `<img src="${esc(summonImg(l.base, 1, '기쁨'))}" alt="">` : '<em>🥚</em>';
+      }
+      return `<span class="ak-hop">${loadPic}<i class="sh"></i><b class="sp a">✦</b><b class="sp b">✧</b><b class="sp c">✦</b></span>`;
+    }
+    const tipHtml = () => `<span class="ak-tip">💡 ${esc(tipNow || pickTip())}</span>`;
+    function loaderHtml(msg) {
+      tipLoop();
+      return `<span class="ak-load">${hopHtml()}<span class="ak-load-t"><span class="ak-load-msg">${msg}<i>.</i><i>.</i><i>.</i></span>${tipHtml()}</span></span>`;
+    }
     function waitingUi(on, preview) {
       el.classList.toggle('ak-wait', !!on);
       if (on) {
         const box = stage.querySelector('.ak-text');
         stage.querySelector('.ak-name').hidden = true;
         stage.querySelector('.ak-dlg').classList.remove('ready', 'end');
-        box.innerHTML = `<span class="ak-quill">✒️ 이야기를 쓰는 중이에요<i>.</i><i>.</i><i>.</i></span>${preview ? `<small class="ak-stream">${esc(preview.slice(-140))}</small>` : ''}`;
+        box.innerHTML = `${loaderHtml('✒️ 이야기를 쓰는 중이에요')}${preview ? `<small class="ak-stream">${esc(preview.slice(-140))}</small>` : ''}`;
         $('#akChoices').innerHTML = '';
       }
     }
@@ -775,7 +847,8 @@
         const acts = (R.actions || []).filter(a => a.kind === 'new');
         const why = R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요.'
           : (R.page === 'detail' && !acts.length ? '크랙 작품 화면에서 「새로하기」 버튼을 찾지 못했어요. 크랙 화면 보기를 눌러 직접 「새로하기」를 누르면 바로 이어져요.' : '크랙 작품 화면을 여는 중이에요…');
-        b.innerHTML = `<div class="ak-gate"><b>새 대화를 여는 중이에요</b><span>${why}</span>
+        tipLoop();
+        b.innerHTML = `<div class="ak-gate">${hopHtml()}<b>새 대화를 여는 중이에요</b><span>${why}</span>${tipHtml()}
           <div class="row">${acts.map(a => `<button class="ak-btn ${a.kind === 'new' ? 'primary' : ''}" data-ak="click" data-id="${a.id}">${esc(a.label)}</button>`).join('')}<button class="ak-btn" data-ak="crack">크랙 화면 보기</button><button class="ak-btn" data-ak="title">처음 화면</button><button class="ak-btn" data-ak="diag">화면 진단 복사</button></div></div>`;
       } else if (kind === 'old') {
         b.hidden = false; b.className = 'ak-banner center';
@@ -953,6 +1026,9 @@
         case 'open': o.openExternal(t.dataset.url); break;
         case 'pack-off': o.packOff(); break;
         case 'ov-close': closeOverlay(); break;
+        case 'choice-pick': { const ta = el.querySelector('#akChoiceIn'); if (ta) { ta.value = t.dataset.fill; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } el.querySelectorAll('.ak-choice-btn.on').forEach(x => x.classList.remove('on')); t.classList.add('on'); break; }
+        case 'choice-send': choiceSend(); break;
+        case 'choice-open': if (!R.overlayOn && (R.choices || []).length) { queue(choiceOverlay(R.choices, R.choiceAsk), 'end'); flushOverlays('end'); } break;
         case 'altar': closeOverlay(); fill(t.dataset.fill); break;
         case 'reg-open': o.openExternal(REG_URL); break;
         case 'reg-send': {
@@ -1023,7 +1099,7 @@
       box.hidden = false;
     }
     function resetScene() {
-      R.status = M.status; R.place = M.status && M.status.place; R.battle = null; R.beats = []; R.i = -1; R.hints = []; R.overlays = []; R.lastKey = ''; R.waiting = false; R.away = false; R.flip = {}; R.partnerFace = {}; R.cue = '';
+      R.status = M.status; R.place = M.status && M.status.place; R.battle = null; R.beats = []; R.i = -1; R.hints = []; R.choices = []; R.overlays = []; R.lastKey = ''; R.waiting = false; R.away = false; R.flip = {}; R.partnerFace = {}; R.cue = '';
       $('#akLayer').innerHTML = ''; R.overlayOn = false; R.modal = null;
       $('#akChoices').innerHTML = '';
       renderBattle(false); setCrisis(false); tint(R.status); renderHud();
@@ -1043,7 +1119,7 @@
       resetScene();
       R.mode = 'binding'; R.newFlow = { clicked: false, fromUrl: '', at: Date.now() };
       hideTitle();
-      stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">새 대화를 여는 중이에요…</span>';
+      stage.querySelector('.ak-text').innerHTML = loaderHtml('새 대화를 여는 중이에요');
       banner('new');
       bgmId = ''; playBgm(man.bgmTitle && man.bgmTitle !== 'title' ? man.bgmTitle : 'opening');
       o.load(o.workUrl);
@@ -1055,7 +1131,7 @@
       resetScene();
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null;
       hideTitle(); banner(null);
-      stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">지난 대화를 불러오는 중이에요…</span>';
+      stage.querySelector('.ak-text').innerHTML = loaderHtml('지난 대화를 불러오는 중이에요');
       bgmId = ''; playBgm(placeBgm(R.place));
       o.load(sv.url);
     }
@@ -1084,7 +1160,7 @@
         if (sv) { sv.url = st.url || R.curUrl; sv.last = Date.now(); putSaves(); }
         R.mode = 'play'; R.boundUrl = u; R.newFlow = null;
         banner(null);
-        stage.querySelector('.ak-text').innerHTML = '<span class="ak-muted">새 이야기를 불러오는 중이에요…</span>';
+        stage.querySelector('.ak-text').innerHTML = loaderHtml('이야기를 불러오는 중이에요');
         o.rescan();
         return;
       }

@@ -263,6 +263,41 @@ async def main():
         if await page.query_selector('.ak-ov .ak-btn.primary'): await page.click('.ak-ov .ak-btn.primary')
         await page.wait_for_timeout(300)
         await page.screenshot(path=OUT + 'pk_g3_two_partners.png')
+        # 선택지 화면 + 수치 없는 상태창(크리온이 계산)
+        CHOICE = """세라가 책을 끌어안은 채 고개를 갸웃했다. 복도 끝에서 종이 울린다.
+
+세라💬 "같이 도서관 갈래? 아니면… 다른 데?"
+
+어떻게 할까?
+1. 세라를 따라 도서관으로 간다
+2. 혼자 대투기장에서 훈련한다
+3. 탤로윈에게 의견을 묻는다
+━━━━━━━━━━━━━━
+📅 1학년 가을 4일차 오후 | 📍강의실 | 💰12은 40동
+🎓 하루 | 🏠해
+🐾 탤로윈(위카·1진화) Lv 16
+📦 계약 3/6 | 📖 6/80 | 🏅 1/7
+━━━━━━━━━━━━━━"""
+        await ipc(page, 'crion:reply', reply(CHOICE, 'kc')); await page.wait_for_timeout(500)
+        for _ in range(12):
+            if await page.evaluate("window.__pk.state.overlayOn"): break
+            await page.click('.ak-dlg'); await page.wait_for_timeout(80)
+        await page.wait_for_timeout(700)
+        await page.screenshot(path=OUT + 'pk_j1_choice.png')
+        await page.click('.ak-choice-btn >> nth=1'); await page.wait_for_timeout(200)
+        await page.type('#akChoiceIn', ' 탤로윈도 같이.'); await page.wait_for_timeout(200)
+        await page.screenshot(path=OUT + 'pk_j2_choice_pick.png')
+        n0 = len([x for x in await page.evaluate('window.__sent') if x[0] == 'crion:send'])
+        await page.click('[data-ak=choice-send]'); await page.wait_for_timeout(500)
+        sent = [x for x in await page.evaluate('window.__sent') if x[0] == 'crion:send']
+        print('선택지 보내기 → 전송', len(sent) - n0, '번:', sent[-1][1] if sent else None)
+        await page.screenshot(path=OUT + 'pk_j3_waiting_tip.png')
+        await page.evaluate("window.__pk.state.waiting = false")
+        await ipc(page, 'crion:reply', reply(CHOICE.replace('어떻게 할까?\n1. 세라를 따라 도서관으로 간다\n2. 혼자 대투기장에서 훈련한다\n3. 탤로윈에게 의견을 묻는다\n', ''), 'kc2')); await page.wait_for_timeout(500)
+        await drain(page); await page.wait_for_timeout(300)
+        await page.click('.ak-pc'); await page.wait_for_timeout(600)
+        await page.screenshot(path=OUT + 'pk_j4_calc_stats.png', clip={'x': 1060, 'y': 0, 'width': 380, 'height': 900})
+        await page.click('.ak-pc'); await page.wait_for_timeout(300)
         # 모달
         for k, name in [('m-dex', 'h1_dex'), ('m-people', 'h3_people'), ('m-map', 'h4_map'), ('m-bag', 'h5_bag'), ('m-badge', 'h6_badge'), ('m-set', 'h7_set'), ('log', 'h8_log')]:
             await page.click(f'.ak-menu [data-ak={k}]' if k != 'log' else '.ak-dlg-tools [data-ak=log]'); await page.wait_for_timeout(400)

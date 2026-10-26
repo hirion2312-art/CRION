@@ -51,6 +51,26 @@
     let p = base + (hpPct <= 0.1 ? 20 : 0) + (opt && opt.ailment ? 10 : 0) + (opt && opt.hi ? 20 : 0);
     return Math.min(95, p);
   };
+  // 능력치 계산 (메인 프롬프트 규칙: HP=기본×2+Lv×5, 그 외=기본+Lv×2, 1진화×1.2 · 최종×1.4, 버림)
+  //  크랙 응답에 수치가 없을 때 크리온이 직접 계산해 보여 준다
+  Dex.prototype.calcStats = function (base, stage, lv) {
+    const l = this.lineage(base);
+    if (!l || !Array.isArray(l.stats) || l.stats.length < 6) return null;
+    const L = Math.max(1, Number(lv) || 1), m = [1, 1.2, 1.4][Math.min(3, Math.max(1, Number(stage) || 1)) - 1];
+    const [hp, atk, def, spa, spd, spe] = l.stats;
+    const f = (v) => Math.floor((v + L * 2) * m);
+    return { hp: Math.floor((hp * 2 + L * 5) * m), atk: f(atk), def: f(def), spa: f(spa), spd: f(spd), spe: f(spe), calc: true };
+  };
+  // 그 단계까지 배우는 고유기 (응답에 기술 목록이 없을 때)
+  Dex.prototype.baseSkills = function (base, stage) {
+    const l = this.lineage(base);
+    if (!l || !l.skills) return [];
+    const out = [];
+    for (let k = 1; k <= Math.min(3, Number(stage) || 1); k++) for (const sk of (l.skills[k] || l.skills[String(k)] || [])) {
+      out.push({ name: sk.name, kind: sk.kind, icon: { 물리: '⚔️', 특수: '💫', 보조: '✨' }[sk.kind] || '✨', power: sk.power || '', left: null, max: sk.pp != null ? Number(sk.pp) : null, eff: sk.eff || '', ult: k === 3, calc: true });
+    }
+    return out.slice(-4);
+  };
   // 도감 번호 (계열 1~26 × 3단계 = 1~78, 전설 79·80)
   Dex.prototype.no = function (base, stage) {
     const l = this.lineage(base);
@@ -213,6 +233,12 @@
           if (lin) { cur.el = lin.el; cur.rarity = lin.rarity; cur.formName = (lin.names || [])[cur.stage - 1] || cur.base; }
         }
         if (cur.skillsRaw) { const s1 = parseSkills(cur.skillsRaw); cur.skills = s1.length ? s1 : parseSkillsLoose(cur.skillsRaw, dex, cur.base); }
+        if (dex && cur.base) {
+          const cs = dex.calcStats(cur.base, cur.stage || 1, cur.lv);
+          if (cs && !cur.hpMax) cur.hpMaxCalc = cs.hp;
+          if (cs && !cur.statsCalc) cur.statsCalc = cs;
+          if (!(cur.skills || []).length) cur.skills = dex.baseSkills(cur.base, cur.stage || 1);
+        }
         st.partners.push(cur);
         continue;
       }
@@ -502,6 +528,25 @@
     }
     if (block && block.choices.length) hints = block.choices.slice(0, 4);
 
+    // 선택지: 이야기 끝쪽(상태창 위)의 번호 목록 (1. … / 1) … / ① … / A. …) 2~6개 → 따로 선택 화면
+    const choices = [];
+    let choiceAsk = '';
+    {
+      const CH = /^\s*\**\s*(?:\[?\s*(?:\d{1,2}|[A-Fa-f])\s*[.)．、\]]|[①-⑥]|선택\s*\d\s*[:：.)])\s*\**\s*(.+?)\s*\**\s*$/u;
+      const idx = [];
+      for (let i = (si >= 0 ? si : lines.length) - 1; i >= 0; i--) {
+        const l = lines[i];
+        if (drop[i] || !l.trim() || DIVIDER.test(l)) continue;
+        if (!idx.length && (STATUS_LINE.test(l) || codeAt.has(i))) continue;
+        const m = !/💬/u.test(l) && !/^\s*▶/.test(l) ? CH.exec(l) : null;
+        const t = m ? m[1].replace(/^\*+|\*+$/g, '').trim() : '';
+        if (m && t.length >= 1 && t.length <= 70) { idx.unshift([i, t]); continue; }
+        if (idx.length >= 2 && l.trim().length < 90 && /[?？]\s*\**\s*$|선택|고르/.test(l)) choiceAsk = strip(l.trim());
+        break;
+      }
+      if (idx.length >= 2 && idx.length <= 6) for (const [i, t] of idx) { choices.push(t); drop[i] = true; }
+    }
+
     // 장면
     const ctx = { isName: (n) => !!((dex && (dex.person(n) || dex.find(n))) || (opt.names || []).includes(n)) };
     const beats = [];
@@ -537,7 +582,7 @@
       if (b.after && b.kind === 'say') beats.push({ kind: 'narr', who: null, text: strip(b.after) });
     }
     if (pend.length) { if (beats.length) beats[beats.length - 1].imgs = (beats[beats.length - 1].imgs || []).concat(pend); else beats.push({ kind: 'narr', who: null, text: '', imgs: pend }); }
-    return { beats, status, battle, codes, notices, hints, block, music, dark, adult, alerts, tokens: tokens.map(t => t.token) };
+    return { beats, status, battle, codes, notices, hints, choices, choiceAsk, block, music, dark, adult, alerts, tokens: tokens.map(t => t.token) };
   }
 
   // ---------- 알림 줄 ----------

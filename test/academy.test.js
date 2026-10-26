@@ -271,3 +271,31 @@ if (fail) process.exit(1);
   assert.strictEqual(r.dark, true);
   console.log('  ✔ 성인판 형식: XP 한 조각·💡 힌트·성인 이미지·암전');
 }
+
+{
+  // 크랙이 수치를 안 줄 때: 크리온이 능력치·HP·기본 기술을 직접 계산
+  assert.deepStrictEqual(dex.calcStats('위카', 1, 5), { hp: 165, atk: 55, def: 80, spa: 95, spd: 110, spe: 80, calc: true });
+  assert.strictEqual(dex.calcStats('플린트', 2, 20).atk, 180);
+  assert.strictEqual(dex.calcStats('없는이름', 1, 5), null);
+  assert.deepStrictEqual(dex.baseSkills('위카', 3).map(s => s.name), ['촛불 점화', '촛농 붕대', '밀랍 방벽', '백촛불 성가']);
+  const r = A.parse(['━━━━━━━━━━━━━━', '📅 1학년 봄 3일차 오후 | 📍기숙사 | 💰3은', '🐾 촛불이(위카·기본) Lv 5', '📦 계약 1/6 | 📖 3/80 | 🏅 0/7', '━━━━━━━━━━━━━━'].join('\n'), dex);
+  const p = r.status.partners[0];
+  assert.strictEqual(p.hpMaxCalc, 165);
+  assert.strictEqual(p.statsCalc.spa, 95);
+  assert.deepStrictEqual(p.skills.map(s => s.name), ['촛불 점화', '촛농 붕대']);
+  console.log('  ✔ 수치 없는 상태창: 능력치·HP·기본 기술 자동 계산');
+}
+
+{
+  // 선택지: 상태창 위 번호 목록 → choices (본문에서는 빠짐), 질문 줄은 choiceAsk
+  const t = ['세라가 고개를 갸웃했다.', '어떻게 할까?', '1. 세라를 따라간다', '2) **혼자 도서관으로 간다**', '③ 위카에게 물어본다', '💡 산책 / 휴식 / 수업',
+    '━━━━━━━━━━━━━━', '📅 1학년 봄 3일차 오후 | 📍기숙사 | 💰3은', '━━━━━━━━━━━━━━'].join('\n');
+  const r = A.parse(t, dex);
+  assert.deepStrictEqual(r.choices, ['세라를 따라간다', '혼자 도서관으로 간다', '위카에게 물어본다']);
+  assert.strictEqual(r.choiceAsk, '어떻게 할까?');
+  assert.ok(!r.beats.some(b => /따라간다/.test(b.text)));
+  // 본문 중간의 숫자나 1개짜리는 선택지가 아님
+  assert.deepStrictEqual(A.parse('그는 1. 2. 3. 이라고 말했다.\n━━━━━━━━━━━━━━\n📅 1학년 봄 3일차 오후 | 📍기숙사\n━━━━━━━━━━━━━━', dex).choices, []);
+  assert.deepStrictEqual(A.parse('1. 하나뿐\n━━━━━━━━━━━━━━\n📅 1학년 봄 3일차 오후 | 📍기숙사\n━━━━━━━━━━━━━━', dex).choices, []);
+  console.log('  ✔ 선택지 목록 → 선택 화면');
+}
