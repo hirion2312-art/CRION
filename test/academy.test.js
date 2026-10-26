@@ -253,3 +253,21 @@ if (fail) process.exit(1);
   assert.deepStrictEqual(A.actOf(st(3, '겨울')), { no: '6막', name: '졸업' });
   console.log('  ✔ 아카데미+ : 힌트 판정·엠바고 시기·이야기 막');
 }
+
+{
+  // 성인판 메인(2026-10-26) 형식: 🐾 첫 조각에 ✨XP가 붙어 옴 · 💡 힌트 · 성인 이미지 · 🌙 암전
+  const txt = [
+    '{{img::세라::성인1}}', '세라💬 "…불 꺼 줄래?"', '🌙 암전',
+    '💡 기숙사로 돌아간다 / 카일에게 말 건다 / 공방에 들른다',
+    '━━━━━━━━━━━━━━', '📅 1학년 봄 3일차 오후 | 📍기숙사 | 💰3은 20동', '🎓 히리온 | 🏠해',
+    '🐾 촛불이(위카·기본체) Lv 6 ❤️44/44 ✨XP 3/24 | 정상 | 기술: 촛불 점화(💫40|14/15 화상10%), 촛농 붕대(✨|5/5 HP 25% 회복)',
+    '📦 계약 1/6 | 📖 3/80 | 🏅 0/7', '━━━━━━━━━━━━━━'].join('\n');
+  const r = A.parse(txt, dex);
+  const p = r.status.partners[0];
+  assert.deepStrictEqual([p.nick, p.base, p.lv, p.hp, p.xp, p.xpMax], ['촛불이', '위카', 6, 44, 3, 24]);
+  assert.deepStrictEqual(p.skills.map(s => [s.name, s.icon, s.power, s.left, s.max]), [['촛불 점화', '💫', '40', 14, 15], ['촛농 붕대', '✨', '', 5, 5]]);
+  assert.deepStrictEqual(r.hints, ['기숙사로 돌아간다', '카일에게 말 건다', '공방에 들른다']);
+  assert.deepStrictEqual(r.adult, ['세라']);
+  assert.strictEqual(r.dark, true);
+  console.log('  ✔ 성인판 형식: XP 한 조각·💡 힌트·성인 이미지·암전');
+}

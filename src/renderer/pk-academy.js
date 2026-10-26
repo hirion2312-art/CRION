@@ -197,6 +197,8 @@
         if (m) { cur.nick = m[1].trim(); cur.base = m[2].trim(); cur.stageName = m[3].trim(); cur.stage = stageNo(m[3]); cur.lv = m[4] ? Number(m[4]) : 0; }
         else { const n = /^(.+?)\s*(?:Lv\.?\s*(\d+))?$/.exec(head[0]); cur.nick = n[1].trim(); cur.lv = n[2] ? Number(n[2]) : 0; const f = dex && dex.find(cur.nick); if (f) { cur.base = f.lin.base; cur.stage = f.stage; } }
         { const g0 = /❤️?\s*(\d+)\s*\/\s*(\d+)/u.exec(head[0]); if (g0) { cur.hp = Number(g0[1]); cur.hpMax = Number(g0[2]); } }
+        // "Lv 6 ❤️44/44 ✨XP 3/24"처럼 XP가 첫 조각에 붙어 오는 형식(아카데미+ 상태창)
+        { const x0 = /XP\s*(\d+)\s*\/\s*(\d+)/i.exec(head[0]); if (x0) { cur.xp = Number(x0[1]); cur.xpMax = Number(x0[2]); } }
         // 기술 목록 안의 '|'는 조각을 나누지 않게: '기술:' 뒤는 통째로
         { const ki = l.search(/[|｜]\s*기술\s*[:：]/); if (ki >= 0) { cur.skillsRaw = l.slice(ki).replace(/^[|｜]\s*기술\s*[:：]\s*/, ''); head.splice(1, head.length, ...l.slice(0, ki).replace(/^🐾\s*/, '').split(/\s*\|\s*/).slice(1)); } }
         for (const part of head.slice(1)) {
