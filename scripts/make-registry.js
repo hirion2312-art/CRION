@@ -74,7 +74,7 @@ for (const id of fs.readdirSync(SRC)) {
 
 // 소개 겸 다운로드 페이지
 const siteDir = path.join(ROOT, 'site');
-if (fs.existsSync(siteDir)) for (const f of fs.readdirSync(siteDir)) fs.copyFileSync(path.join(siteDir, f), path.join(OUT, f));
+if (fs.existsSync(siteDir)) fs.cpSync(siteDir, OUT, { recursive: true });
 
 // 작품 목록 (앱 업데이트 없이 목록·썸네일을 고칠 수 있게)
 const works = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'works.json'), 'utf8'));

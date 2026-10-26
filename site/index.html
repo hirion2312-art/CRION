@@ -3,71 +3,317 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CRION — 히리온 작품을 게임처럼</title>
+<title>CRION — 크랙 작품을 게임처럼</title>
 <link rel="icon" href="icon.png">
-<meta name="description" content="히리온의 크랙 작품을 채팅창 대신 게임 화면으로 플레이하는 PC 앱">
+<meta name="description" content="히리온의 크랙 작품을 채팅창 대신 게임 화면으로. 대사창·상태창·선택지·전투 연출이 들어간 무료 PC 앱 CRION.">
+<meta property="og:title" content="CRION — 크랙 작품을 게임처럼">
+<meta property="og:description" content="대사창·상태창·선택지·전투 연출까지. 히리온의 크랙 작품을 게임 화면으로 플레이하는 무료 PC 앱">
+<meta property="og:image" content="https://hirion2312-art.github.io/CRION/shots/play.webp">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0d0f24">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-  :root { --ink: #14161b; --muted: #6b7280; --line: #e6e8ec; --bg: #f5f6f8; --accent: #5b5bd6; }
+  :root {
+    --bg: #0b0d1f; --bg2: #12152e; --card: #171a38; --line: rgba(255,255,255,.09);
+    --fg: #f3f4fb; --muted: #a3a8c8; --dim: #6f7499;
+    --accent: #ff5a36; --accent2: #ff8a5c; --gold: #f2d58a;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
-  header { display: flex; align-items: center; gap: 10px; padding: 22px 0; font-weight: 800; letter-spacing: .06em; }
-  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 900; letter-spacing: 0; }
-  .hero { padding: 56px 0 40px; }
-  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -.03em; margin: 0 0 14px; }
-  .lead { font-size: 17px; color: var(--muted); line-height: 1.7; margin: 0 0 30px; }
-  .dl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 24px; border-radius: 14px; font-weight: 800; font-size: 16px; text-decoration: none; }
-  .btn.main { background: var(--ink); color: #fff; }
-  .btn.main:hover { background: #2a2e37; }
-  .btn.sub { background: #fff; color: var(--ink); border: 1px solid var(--line); height: 44px; font-size: 14px; padding: 0 16px; }
-  .small { font-size: 13px; color: var(--muted); margin-top: 12px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 24px 0 48px; }
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
-  .card b { display: block; margin-bottom: 6px; }
-  .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-  h2 { font-size: 20px; margin: 0 0 14px; }
-  ol { margin: 0 0 48px; padding-left: 20px; line-height: 1.9; }
-  .warn { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 48px; font-size: 14px; line-height: 1.8; }
-  .warn b { color: var(--accent); }
-  footer { padding: 24px 0 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; word-break: keep-all; font-family: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; line-height: 1.6; }
+  a { color: inherit; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* 상단 */
+  nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: rgba(11,13,31,.72); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+  nav .brand img { height: 22px; width: auto; }
+  nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--muted); }
+  nav .links a { text-decoration: none; } nav .links a:hover { color: var(--fg); }
+  nav .cta { height: 38px; padding: 0 16px; font-size: 14px; }
+  @media (max-width: 720px) { nav .links { display: none; } nav .cta { margin-left: auto; } }
+
+  /* 버튼 */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 56px; padding: 0 28px; border-radius: 14px; font-weight: 800; font-size: 17px; text-decoration: none; border: 0; cursor: pointer; transition: transform .15s, box-shadow .15s, background .15s; }
+  .btn.main { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; box-shadow: 0 10px 30px rgba(255,90,54,.35); }
+  .btn.main:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(255,90,54,.45); }
+  .btn.ghost { background: rgba(255,255,255,.06); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); height: 48px; font-size: 15px; padding: 0 18px; }
+  .btn.ghost:hover { background: rgba(255,255,255,.11); }
+  .btn svg { width: 20px; height: 20px; flex: none; }
+
+  /* 히어로 */
+  .hero { position: relative; overflow: hidden; padding: 84px 0 40px; text-align: center;
+    background: radial-gradient(900px 520px at 50% -10%, rgba(255,90,54,.22), transparent 70%), radial-gradient(800px 600px at 85% 30%, rgba(91,91,214,.25), transparent 70%); }
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--gold); background: rgba(242,213,138,.08); box-shadow: inset 0 0 0 1px rgba(242,213,138,.3); }
+  .badge i { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+  h1 { font-size: clamp(38px, 6.4vw, 72px); line-height: 1.12; letter-spacing: -.035em; margin: 22px 0 18px; font-weight: 900; text-wrap: balance; }
+  h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { font-size: clamp(16px, 2vw, 19px); color: var(--muted); max-width: 620px; margin: 0 auto 34px; text-wrap: balance; }
+  .dl { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .dl .others { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .meta { font-size: 13px; color: var(--dim); margin-top: 4px; }
+  .meta b { color: var(--muted); font-weight: 600; }
+  .shot { position: relative; margin: 56px auto 0; max-width: 1020px; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 40px 120px rgba(0,0,0,.6), 0 0 80px rgba(255,90,54,.12); background: var(--bg2); }
+  .shot .bar { display: flex; gap: 7px; padding: 12px 14px; background: #1b1e3d; }
+  .shot .bar i { width: 11px; height: 11px; border-radius: 50%; background: #3a3e66; }
+  .shot .bar i:first-child { background: #ff6159; } .shot .bar i:nth-child(2) { background: #ffbd2e; } .shot .bar i:nth-child(3) { background: #28c941; }
+
+  /* 섹션 */
+  section { padding: 96px 0; }
+  .eyebrow { font-size: 13px; font-weight: 800; letter-spacing: .14em; color: var(--accent2); text-transform: uppercase; }
+  h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.2; letter-spacing: -.03em; margin: 10px 0 14px; font-weight: 900; text-wrap: balance; }
+  .sub { color: var(--muted); font-size: 17px; max-width: 560px; margin: 0; }
+  .center { text-align: center; } .center .sub { margin: 0 auto; }
+
+  .feat { display: grid; grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: center; margin-top: 72px; }
+  .feat.rev { grid-template-columns: 1.25fr 1fr; } .feat.rev .txt { order: 2; }
+  .feat .txt h3 { font-size: clamp(24px, 3vw, 32px); line-height: 1.25; letter-spacing: -.02em; margin: 10px 0 14px; font-weight: 850; }
+  .feat .txt p { color: var(--muted); margin: 0 0 18px; }
+  .feat ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .feat li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+  .feat li::before { content: ''; flex: none; width: 20px; height: 20px; margin-top: 2px; border-radius: 6px; background: rgba(255,90,54,.15) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3 3 7-7' fill='none' stroke='%23ff8a5c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
+  .feat .img { border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 30px 80px rgba(0,0,0,.5); min-width: 0; }
+  @media (max-width: 860px) { .feat, .feat.rev { grid-template-columns: 1fr; gap: 28px; } .feat.rev .txt { order: 0; } }
+
+  .grid6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+  @media (max-width: 860px) { .grid6 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .grid6 { grid-template-columns: 1fr; } }
+  .tile { padding: 24px; border-radius: 18px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+  .tile .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: rgba(255,255,255,.06); margin-bottom: 16px; }
+  .tile b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .tile p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+  /* 플레이팩 */
+  .pack { display: grid; grid-template-columns: 1.1fr 1fr; border-radius: 24px; overflow: hidden; margin-top: 48px; background: linear-gradient(135deg, #1d2160, #121538); box-shadow: 0 0 0 1px rgba(242,213,138,.35), 0 30px 80px rgba(0,0,0,.5); }
+  .pack .art { min-height: 320px; background: url(shots/academy.webp) center/cover; }
+  .pack .body { padding: 40px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+  .pack .tag { align-self: flex-start; font-size: 12px; font-weight: 800; color: #1a1d4a; background: var(--gold); padding: 4px 10px; border-radius: 999px; }
+  .pack h3 { margin: 0; font-size: 30px; letter-spacing: -.02em; }
+  .pack p { margin: 0; color: #c7cbf0; }
+  .pack .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .pack .chips span { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.08); }
+  @media (max-width: 860px) { .pack { grid-template-columns: 1fr; } .pack .art { min-height: 220px; } .pack .body { padding: 28px; } }
+
+  /* 설치 */
+  .tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); margin-top: 32px; }
+  .tabs button { height: 40px; padding: 0 20px; border: 0; border-radius: 9px; font: inherit; font-weight: 700; font-size: 15px; color: var(--muted); background: none; cursor: pointer; }
+  .tabs button.on { background: rgba(255,255,255,.1); color: var(--fg); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; counter-reset: s; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+  .step { padding: 24px; border-radius: 18px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); counter-increment: s; }
+  .step::before { content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); margin-bottom: 14px; }
+  .step b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .note { margin-top: 16px; padding: 18px 20px; border-radius: 14px; font-size: 14.5px; color: #e9dcc0; background: rgba(242,213,138,.07); box-shadow: inset 0 0 0 1px rgba(242,213,138,.25); }
+  .note b { color: var(--gold); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92em; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.08); word-break: break-all; }
+  .copy { margin-left: 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--gold); background: none; border: 1px solid rgba(242,213,138,.4); border-radius: 6px; padding: 1px 8px; cursor: pointer; }
+
+  /* 질문 */
+  .faq { max-width: 760px; margin: 40px auto 0; display: grid; gap: 10px; }
+  details { border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+  summary { list-style: none; cursor: pointer; padding: 18px 22px; font-weight: 700; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; color: var(--dim); font-size: 22px; line-height: 1; transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin: 0; padding: 0 22px 20px; color: var(--muted); font-size: 15px; }
+
+  /* 마지막 */
+  .final { text-align: center; padding: 96px 0; background: radial-gradient(700px 360px at 50% 100%, rgba(255,90,54,.2), transparent 70%); }
+  footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--dim); font-size: 13px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; }
+  footer a { color: var(--muted); }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header><img src="logo.png" alt="CRION" style="height:26px;width:auto;display:block"></header>
-  <section class="hero">
-    <h1>히리온 작품을<br>게임처럼 플레이하세요</h1>
-    <p class="lead">크랙 채팅을 배경·대사창·상태창·선택지가 있는 게임 화면으로 바꿔 주는 PC 앱이에요.<br>설치하고 크랙에 로그인하면 바로 시작돼요.</p>
-    <div class="dl">
-      <a class="btn main" id="dlMain" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">Windows용 다운로드</a>
-      <a class="btn sub" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-arm64.dmg">Mac (Apple 칩)</a>
-      <a class="btn sub" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-x64.dmg">Mac (Intel)</a>
+
+<nav><div class="wrap">
+  <a class="brand" href="#top"><img src="logo.png" alt="CRION"></a>
+  <div class="links"><a href="#features">기능</a><a href="#packs">플레이팩</a><a href="#install">설치 방법</a><a href="#faq">자주 묻는 질문</a></div>
+  <a class="btn main cta" href="#top" data-dl>다운로드</a>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <span class="badge"><i></i><span id="ver">무료 · Windows · Mac</span></span>
+  <h1>크랙 작품을,<br><em>게임처럼</em> 플레이하세요</h1>
+  <p class="lead">채팅창 대신 배경·대사창·상태창·선택지가 있는 게임 화면으로. 크리에이터 히리온의 작품을 가장 생생하게 즐기는 무료 PC 앱이에요.</p>
+  <div class="dl">
+    <a class="btn main" id="dlMain" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
+      <span id="dlLabel">Windows용 무료 다운로드</span></a>
+    <div class="others" id="dlOthers">
+      <a class="btn ghost" data-os="win" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">Windows</a>
+      <a class="btn ghost" data-os="mac-arm" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-arm64.dmg">Mac (Apple 칩)</a>
+      <a class="btn ghost" data-os="mac-x64" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-x64.dmg">Mac (Intel)</a>
     </div>
-    <p class="small">무료 · Windows 10/11 64비트 · 설치 파일 하나로 끝</p>
-    <p class="small">Mac: 처음 열 때 "확인되지 않은 개발자" 창이 뜨면 앱을 <b>우클릭 → 열기</b>. 그래도 "손상되었다"고 뜨면 터미널에 <code>xattr -cr /Applications/CRION.app</code> 한 줄을 붙여넣어 실행하세요.</p>
-  </section>
+    <div class="meta" id="meta">Windows 10/11 64비트 · macOS · 설치 후 자동 업데이트</div>
+  </div>
+  <div class="shot reveal"><div class="bar"><i></i><i></i><i></i></div><img src="shots/title.webp" alt="CRION 플레이팩 「소환수 아카데미」 첫 화면" width="1440" height="846"></div>
+</div></header>
 
-  <div class="cards">
-    <div class="card"><b>게임 화면</b><p>응답이 대사창으로 한 장면씩. 이름표, 인물 그림, 장면 그림까지.</p></div>
-    <div class="card"><b>상태창 정리</b><p>체력·자원 같은 숫자를 옆 패널에 게이지로 보여 줘요.</p></div>
-    <div class="card"><b>선택지 버튼</b><p>번호 선택지를 누르면 바로 보내져요. 지난 대화도 다시 볼 수 있어요.</p></div>
-    <div class="card"><b>자동 업데이트</b><p>새 작품과 개선 사항이 앱을 켜 두면 알아서 들어와요.</p></div>
+<section id="features"><div class="wrap">
+  <div class="center reveal">
+    <div class="eyebrow">Features</div>
+    <h2>읽는 채팅에서, 하는 게임으로</h2>
+    <p class="sub">크랙의 응답을 CRION이 읽어 한 장면씩 연출해요. 대화는 그대로 크랙에서 이어지고, 화면만 게임이 돼요.</p>
   </div>
 
-  <h2>설치 방법 (Windows)</h2>
-  <ol>
-    <li><b>Windows용 다운로드</b>를 눌러 <code>CRION-Setup.exe</code>를 받아요.</li>
-    <li>받은 파일을 실행하면 자동으로 설치되고 CRION이 열려요.</li>
-    <li>보고 싶은 작품을 누르고 크랙에 로그인한 뒤 대화를 시작하면 끝.</li>
-  </ol>
-  <div class="warn">
-    <b>“Windows의 PC 보호” 파란 창이 뜨면</b><br>
-    개인 제작 앱이라 아직 마이크로소프트 서명이 없어서 처음 한 번 뜨는 안내예요.
-    <b>추가 정보</b> → <b>실행</b>을 누르면 설치돼요.
+  <div class="feat reveal">
+    <div class="txt">
+      <div class="eyebrow">대사창 · 상태창</div>
+      <h3>응답이 한 장면씩,<br>게임처럼 넘어가요</h3>
+      <p>긴 답장을 스크롤하지 마세요. 배경과 인물 그림이 바뀌고, 이름표 달린 대사창으로 한 줄씩 읽어요.</p>
+      <ul><li>장소가 바뀌면 배경과 음악도 함께</li><li>체력·경험치·돈은 옆 패널의 게이지로</li><li>자동 넘기기 · 지난 대사 다시 보기</li></ul>
+    </div>
+    <div class="img"><img src="shots/play.webp" alt="대사창과 상태 패널" loading="lazy" width="1440" height="846"></div>
   </div>
-  <footer>CRION은 크리에이터 히리온의 팬 플레이용 앱이며 크랙(뤼튼)의 공식 앱이 아니에요.</footer>
-</div>
+
+  <div class="feat rev reveal">
+    <div class="txt">
+      <div class="eyebrow">선택의 순간</div>
+      <h3>선택지가 나오면<br>고르기만 하세요</h3>
+      <p>응답 속 선택지를 따로 모아 보여 줘요. 그대로 고르거나, 덧붙이거나, 완전히 새로 써도 돼요.</p>
+      <ul><li>고르면 입력칸에 채워지고, 보내기는 직접 한 번</li><li>자동으로 여러 번 보내는 일은 절대 없어요</li></ul>
+    </div>
+    <div class="img"><img src="shots/choice.webp" alt="선택지 화면" loading="lazy" width="1440" height="846"></div>
+  </div>
+
+  <div class="feat reveal">
+    <div class="txt">
+      <div class="eyebrow">연출</div>
+      <h3>소환·진화·포획,<br>순간을 크게</h3>
+      <p>작품마다 맞춘 연출이 들어 있어요. 새 동료가 나타나면 카드가 펼쳐지고, 도감과 인물록이 플레이와 함께 채워져요.</p>
+      <ul><li>전투 패널 · 기술 버튼 · 포획 확률 표시</li><li>도감 80칸 · 인물록 · 배지 회랑</li></ul>
+    </div>
+    <div class="img"><img src="shots/summon.webp" alt="소환 연출" loading="lazy" width="1440" height="846"></div>
+  </div>
+
+  <div class="grid6">
+    <div class="tile reveal"><div class="ic">🔄</div><b>자동 업데이트</b><p>새 작품과 개선 사항이 켜 두기만 하면 알아서 들어와요.</p></div>
+    <div class="tile reveal"><div class="ic">🧩</div><b>플레이팩 스토어</b><p>작품 전용 화면을 골라 받아요. 미리 보고, 언제든 끌 수 있어요.</p></div>
+    <div class="tile reveal"><div class="ic">💾</div><b>이어하기 세이브</b><p>작품마다 여러 세이브. 하던 대화로 바로 돌아가요.</p></div>
+    <div class="tile reveal"><div class="ic">🎵</div><b>장소별 OST</b><p>교실, 들판, 투기장… 장면에 맞는 음악이 흘러요.</p></div>
+    <div class="tile reveal"><div class="ic">🪟</div><b>크랙 화면 그대로</b><p>버튼 하나로 원래 크랙 화면을 언제든 볼 수 있어요.</p></div>
+    <div class="tile reveal"><div class="ic">💬</div><b>커뮤니티</b><p>공지·건의·버그 신고를 앱 안에서 바로 보내요.</p></div>
+  </div>
+</div></section>
+
+<section id="packs" style="background:var(--bg2)"><div class="wrap">
+  <div class="center reveal">
+    <div class="eyebrow">Play Pack</div>
+    <h2>작품마다, 그 작품만의 화면</h2>
+    <p class="sub">플레이팩은 작품에 맞춰 만든 전용 화면이에요. 첫 번째 팩을 만나 보세요.</p>
+  </div>
+  <div class="pack reveal">
+    <div class="art" role="img" aria-label="소환수 아카데미"></div>
+    <div class="body">
+      <span class="tag">플레이팩 · 무료</span>
+      <h3>소환수 아카데미</h3>
+      <p>안개 너머 외딴섬의 소환 아카데미. 첫 파트너와 함께 실습·과제·배틀을 거쳐 일곱 교수의 배지와 300년간 아무도 완성하지 못한 도감에 도전해요.</p>
+      <div class="chips"><span>🎓 학생 수첩</span><span>⚔️ 전투 패널</span><span>📖 도감 80칸</span><span>🌟 진화 연출</span><span>🎵 OST</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="install"><div class="wrap">
+  <div class="center reveal">
+    <div class="eyebrow">Install</div>
+    <h2>설치는 1분이면 끝나요</h2>
+    <div class="tabs" role="tablist"><button class="on" data-tab="win" role="tab">Windows</button><button data-tab="mac" role="tab">Mac</button></div>
+  </div>
+  <div data-pane="win">
+    <div class="steps">
+      <div class="step"><b>받기</b><p>위의 <b>Windows용 무료 다운로드</b>를 눌러 <code>CRION-Setup.exe</code>를 받아요.</p></div>
+      <div class="step"><b>실행</b><p>받은 파일을 열면 자동으로 설치되고 CRION이 바로 열려요.</p></div>
+      <div class="step"><b>로그인하고 플레이</b><p>왼쪽 아래 <b>크랙 로그인</b>으로 크랙 계정에 로그인한 뒤, 작품을 골라 시작해요.</p></div>
+    </div>
+    <div class="note"><b>“Windows의 PC 보호” 파란 창이 뜨면</b> — 개인이 만든 앱이라 아직 마이크로소프트 서명이 없어서 처음 한 번 뜨는 안내예요. <b>추가 정보 → 실행</b>을 누르면 설치돼요.</div>
+  </div>
+  <div data-pane="mac" hidden>
+    <div class="steps">
+      <div class="step"><b>받기</b><p>Apple 칩(M1~M4)이면 <b>Mac (Apple 칩)</b>, 예전 Mac이면 <b>Mac (Intel)</b>을 받아요. 모르면  메뉴 → 이 Mac에 관하여에서 확인해요.</p></div>
+      <div class="step"><b>옮기기</b><p>받은 파일을 열고 CRION 아이콘을 <b>응용 프로그램</b> 폴더로 끌어다 놓아요.</p></div>
+      <div class="step"><b>처음 열기</b><p>처음 한 번은 CRION을 <b>우클릭 → 열기</b>로 열어요. 다음부터는 그냥 열려요.</p></div>
+    </div>
+    <div class="note"><b>“손상되었기 때문에 열 수 없습니다”라고 뜨면</b> — 터미널을 열고 아래 한 줄을 붙여 넣은 뒤 Enter를 눌러요.<br><code id="xattr">xattr -cr /Applications/CRION.app</code><button class="copy" data-copy="xattr">복사</button></div>
+  </div>
+</div></section>
+
+<section id="faq" style="background:var(--bg2)"><div class="wrap">
+  <div class="center reveal"><div class="eyebrow">FAQ</div><h2>자주 묻는 질문</h2></div>
+  <div class="faq">
+    <details><summary>정말 무료인가요?</summary><p>네, CRION과 플레이팩은 모두 무료예요. 대화는 크랙에서 이뤄지니 크랙의 이용 방식(무료 이용량, 유료 기능 등)은 크랙과 같아요.</p></details>
+    <details><summary>크랙 계정이 꼭 필요한가요? 비밀번호는 안전한가요?</summary><p>네, 크랙 계정이 필요해요. 로그인은 CRION 안에 열린 크랙 공식 로그인 화면에서 직접 해요. CRION은 비밀번호를 따로 받거나 저장하지 않아요.</p></details>
+    <details><summary>제 대신 마음대로 메시지를 보내지는 않나요?</summary><p>보내지 않아요. 선택지나 버튼은 입력칸을 채워 줄 뿐이고, <b>보내기를 한 번 누르면 딱 한 번</b>만 보내요. 자동으로 반복해서 보내는 기능은 없어요.</p></details>
+    <details><summary>모든 크랙 작품에서 쓸 수 있나요?</summary><p>CRION은 히리온의 작품을 위해 만든 앱이에요. 홈 화면에 히리온의 작품이 모여 있고, 플레이팩이 있는 작품은 전용 화면으로, 없는 작품은 크랙 화면 그대로 플레이해요.</p></details>
+    <details><summary>휴대폰에서도 되나요?</summary><p>지금은 Windows와 Mac용 PC 앱만 있어요. 휴대폰에서는 크랙 앱으로 같은 대화를 이어서 할 수 있어요.</p></details>
+    <details><summary>성인 작품도 볼 수 있나요?</summary><p>설정에서 성인 작품 보기를 켠 경우에만 보여요. 크랙에서도 성인 인증을 마친 계정이어야 플레이할 수 있어요.</p></details>
+    <details><summary>오류가 나거나 건의하고 싶어요</summary><p>앱 왼쪽 메뉴의 <b>커뮤니티</b>에서 버그 신고와 건의를 바로 보낼 수 있어요. 화면 진단 정보도 함께 붙일 수 있어 빠르게 고칠 수 있어요.</p></details>
+  </div>
+</div></section>
+
+<section class="final"><div class="wrap reveal">
+  <h2>지금 바로 시작하세요</h2>
+  <p class="sub" style="margin:0 auto 30px">설치하고, 로그인하고, 작품을 누르면 끝.</p>
+  <a class="btn main" href="#top" data-dl><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg><span data-dl-label>무료 다운로드</span></a>
+</div></section>
+
+<footer><div class="wrap">
+  <span>© 히리온 · CRION은 크리에이터 히리온의 팬 플레이용 앱이며 크랙(뤼튼)의 공식 앱이 아니에요.</span>
+  <span><a href="https://github.com/hirion2312-art/CRION/releases" target="_blank" rel="noopener">모든 버전 보기</a></span>
+</div></footer>
+
+<script>
+(function () {
+  var REL = 'https://github.com/hirion2312-art/CRION/releases/latest/download/';
+  var FILES = { win: ['CRION-Setup.exe', 'Windows용 무료 다운로드'], 'mac-arm': ['CRION-mac-arm64.dmg', 'Mac (Apple 칩)용 무료 다운로드'], 'mac-x64': ['CRION-mac-x64.dmg', 'Mac (Intel)용 무료 다운로드'] };
+  var ua = navigator.userAgent || '', os = 'win';
+  if (/Mac/i.test(ua) && !/iPhone|iPad/i.test(ua)) {
+    os = 'mac-arm';
+    try { var c = document.createElement('canvas').getContext('webgl'); var d = c && c.getExtension('WEBGL_debug_renderer_info'); var r = d ? c.getParameter(d.UNMASKED_RENDERER_WEBGL) : ''; if (/Intel/i.test(r)) os = 'mac-x64'; } catch (e) {}
+  }
+  var mobile = /Android|iPhone|iPad/i.test(ua);
+  var main = document.getElementById('dlMain');
+  main.href = REL + FILES[os][0];
+  document.getElementById('dlLabel').textContent = mobile ? 'PC에서 다운로드하세요' : FILES[os][1];
+  if (mobile) main.removeAttribute('href');
+  document.querySelectorAll('[data-dl-label]').forEach(function (x) { x.textContent = mobile ? 'PC에서 다운로드' : FILES[os][1]; });
+  document.querySelectorAll('[data-os]').forEach(function (a) { if (a.dataset.os === os) a.style.display = 'none'; });
+  if (/^mac/.test(os)) setTimeout(function () { showTab('mac'); }, 0);
+
+  // 최신 버전 표시
+  fetch('https://api.github.com/repos/hirion2312-art/CRION/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j || !j.tag_name) return;
+    var dt = j.published_at ? new Date(j.published_at) : null;
+    document.getElementById('ver').textContent = '최신 ' + j.tag_name.replace(/^v?/, 'v') + (dt ? ' · ' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일 업데이트' : '');
+    var a = (j.assets || []).filter(function (x) { return x.name === FILES[os][0]; })[0];
+    if (a && a.size) document.getElementById('meta').innerHTML = '<b>' + (a.size / 1048576).toFixed(0) + 'MB</b> · Windows 10/11 64비트 · macOS · 설치 후 자동 업데이트';
+  }).catch(function () {});
+
+  // 설치 탭
+  function showTab(k) {
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === k); });
+    document.querySelectorAll('[data-pane]').forEach(function (p) { p.hidden = p.dataset.pane !== k; });
+  }
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { showTab(b.dataset.tab); }); });
+
+  // 복사
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = document.getElementById(b.dataset.copy).textContent;
+      var done = function () { b.textContent = '복사됨'; setTimeout(function () { b.textContent = '복사'; }, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, function () {}); else done();
+    });
+  });
+
+  // 스크롤 등장
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { threshold: .12 }) : null;
+  document.querySelectorAll('.reveal').forEach(function (el) { io ? io.observe(el) : el.classList.add('in'); });
+})();
+</script>
 </body>
 </html>
