@@ -34,3 +34,10 @@
   선택지·전투 버튼은 입력창에 글만 채운다. 위쪽 '크랙 화면' 버튼 또는 팩 끄기로 언제든 크랙 화면 그대로.
 - 파일 경로는 팩 폴더 기준 상대경로. 그림은 `assets/`, 음악은 `assets/bgm/`. 받은 파일은 blob 주소로 쓴다(index.html CSP에 blob: 허용).
 - 시험: `node test/academy.test.js`(응답 해석, 04_확인표 샘플 3턴), `python3 test/ui/run_pack.py`(받기→플레이→연출→모달 스크린샷), `python3 test/ui/run_preload.py`(가짜 크랙 화면 읽기·보내기).
+
+## 팩 둘로 나눔 (엔진 0.7.0~)
+- `hirion.summoner-academy` = 전연령 「소환수 아카데미」(그대로 유지).
+- `hirion.summoner-academy-adult` = 「소환수 아카데미 · 성인판」(아카데미+ 전용, 별개 팩). manifest에 `"adult": true, "plus": true`.
+- `plus: true` 일 때만 켜지는 화면: 과제 카드(📜 과제·의뢰, D-n), 막 표시(1막~6막), 전설 칸 「봉인된 페이지」(3학년 겨울 전). 포획 연출·▶ 행동 줄·알림 줄(🌀🌟🎯💫⬆️)·행동 힌트 한 줄은 글 형식을 읽는 것이라 두 팩 공통.
+- 같은 작품 이름이 겹치면 **더 긴 `workName`** 팩이 우선(성인판 작품 이름 = 「소환수 아카데미 성인판」). 성인판 작품은 관리 페이지에 등록하고 19세 표시를 켜야 연결된다.
+- 시험: `python3 test/ui/run_pack.py`(전연령) · `PACK=hirion.summoner-academy-adult python3 test/ui/run_pack.py`(성인판).

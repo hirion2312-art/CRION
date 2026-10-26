@@ -25,6 +25,7 @@
     const data = o.data || {};
     const dex = new A.Dex(data);
     const theme = man.theme || {};
+    const PLUS = !!man.plus;   // 성인판(아카데미+) 전용 화면: 과제 카드·막 표시·전설 봉인
     const res = (p) => !p ? '' : files.has(p) ? p : files.has('assets/' + p) ? 'assets/' + p : '';
     const url = (p) => { const r = res(p); return r ? files.url(r) : ''; };
     const has = (p) => !!res(p);
@@ -349,7 +350,7 @@
       const codexN = Object.keys(M.codex).length;
       const dexN = (st.dex && st.dex.n) || codexN;
       const items = st.items || [];
-      const tasks = st.tasks || (st.quests || []).map(x => ({ kind: '', text: x, d: null }));
+      const tasks = PLUS ? (st.tasks || []) : (st.quests || []).map(x => ({ kind: '', text: x, d: null }));
       box.innerHTML = `
         <div class="ak-id">
           <div class="ak-id-ic">${dormIc}</div>
@@ -364,7 +365,7 @@
         </div>
         <div class="ak-items">${items.length ? items.map(it => `<i title="${esc(it.name)}">${ITEM_ICON[it.name] || '🎁'}<b>${esc(it.name)}</b>${it.n > 1 ? `<em>×${it.n}</em>` : ''}</i>`).join('') : '<span class="ak-muted">주머니가 비어 있어요</span>'}</div>
         <div class="ak-notes">
-          <div class="ak-note ak-tasks"><b>📜 과제 · 의뢰</b>${tasks.length ? tasks.map(t => `<div class="ak-task ${t.d != null && t.d <= 1 ? 'urgent' : ''}">${t.kind ? `<i>${esc(t.kind)}</i>` : ''}<span>${esc(t.text)}</span>${t.d != null ? `<em class="dday">D-${t.d}</em>` : ''}</div>`).join('') : '<span>진행 중인 과제·의뢰 없음</span>'}</div>
+          ${PLUS ? `<div class="ak-note ak-tasks"><b>📜 과제 · 의뢰</b>${tasks.length ? tasks.map(t => `<div class="ak-task ${t.d != null && t.d <= 1 ? 'urgent' : ''}">${t.kind ? `<i>${esc(t.kind)}</i>` : ''}<span>${esc(t.text)}</span>${t.d != null ? `<em class="dday">D-${t.d}</em>` : ''}</div>`).join('') : '<span>진행 중인 과제·의뢰 없음</span>'}</div>` : `<div class="ak-note"><b>📜 의뢰</b><span>${st.quests && st.quests.length ? st.quests.map(esc).join('<br>') : '진행 중인 의뢰 없음'}</span></div>`}
           <div class="ak-note"><b>🗓️ 다음 일정</b><span>${st.next ? esc(st.next.text || '-') + (st.next.d != null ? ` <em class="dday">D-${st.next.d}</em>` : '') : '-'}</span></div>
         </div>
         <nav class="ak-menu">
@@ -376,7 +377,7 @@
       const t = st.time === '아침' ? '오전' : st.time === '점심' ? '오후' : st.time === '새벽' ? '밤' : st.time;
       tb.innerHTML = `${TIMES.map(x => `<i class="${x === t ? 'on' : ''}">${{ 오전: '☀', 오후: '◐', 저녁: '☾', 밤: '✦' }[x]} ${x}</i>`).join('')}
         <b>${st.year ? esc(st.year + '학년 ' + (st.season || '') + ' ' + st.day + '일차') : esc(st.dateText || '에테르나 아카데미')}</b>
-        <span class="ak-season-tag">${(A.actOf(st) ? A.actOf(st).no + ' · ' + A.actOf(st).name + ' ｜ ' : '')}${{ 봄: '🌸 봄', 여름: '🌿 여름', 가을: '🍁 가을', 겨울: '❄️ 겨울' }[st.season] || ''}</span>`;
+        <span class="ak-season-tag">${(PLUS && A.actOf(st) ? A.actOf(st).no + ' · ' + A.actOf(st).name + ' ｜ ' : '')}${{ 봄: '🌸 봄', 여름: '🌿 여름', 가을: '🍁 가을', 겨울: '❄️ 겨울' }[st.season] || ''}</span>`;
       const pl = stage.querySelector('.ak-place');
       pl.querySelector('b').textContent = st.place || '에테르나';
       pl.querySelector('span').textContent = st.time || '';
@@ -797,7 +798,7 @@
       $('#akLayer').innerHTML = `<div class="ak-scrim" data-ak="m-close"><div class="ak-modal ${cls || ''}"><header><h3>${title}</h3><button data-ak="m-close" class="ak-x">✕</button></header><div class="ak-mbody">${body}</div></div></div>`;
     }
     let dexTab = '전체', dexSel = 0;
-    const legendOpen = () => A.unlocked('legend', R.status);
+    const legendOpen = () => !PLUS || A.unlocked('legend', R.status);
     function codexHtml() {
       const all = (data.lineages || []).concat(data.legends || []);
       const tabs = ['전체'].concat(data.elements || []).concat(['전설']);

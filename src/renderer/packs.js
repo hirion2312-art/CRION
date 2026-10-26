@@ -42,7 +42,7 @@
     if (!work) return null;
     const nm = (s) => String(s || '').replace(/\s+/g, '');
     return packs.find(p => (p.workId && p.workId === work.id) || (p.workUrl && work.url && sameUrl(p.workUrl, work.url))) ||
-      packs.find(p => p.workName && work.name && nm(work.name).includes(nm(p.workName))) || null;
+      packs.filter(p => p.workName && work.name && nm(work.name).includes(nm(p.workName))).sort((a, b) => nm(b.workName).length - nm(a.workName).length)[0] || null;
   }
 
   function Installed(storage) { this.s = storage || null; this.m = null; }
