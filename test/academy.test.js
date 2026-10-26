@@ -180,3 +180,16 @@ if (fail) process.exit(1);
   assert.ok(!r.beats.some(b => /📅|🐾|info|💬/.test(b.text)), '상태·info·💬 줄은 대사 아님');
   console.log('  ✔ 이름💬 화자 · 상태/info 줄 제외');
 }
+
+// 🎵 곡 신호 · 🌙 암전 · 성인 장면 이미지 — 2026-10-26
+{
+  const t = '🎵 곡: 라이벌\n카일💬 "…방해다."\n{{img::벨라::성인2}}\n🌙 암전\n서술.';
+  const r = A.parse(t, null, {});
+  assert.strictEqual(r.music, '라이벌');
+  assert.strictEqual(r.dark, true);
+  assert.deepStrictEqual(r.adult, ['벨라']);
+  assert.ok(!r.beats.some(b => /🎵/.test(b.text)), '🎵 줄은 대사 아님');
+  const r2 = A.parse('🎵 [사랑·어둠]\n서술.', null, {});
+  assert.strictEqual(r2.music, '사랑·어둠');
+  console.log('  ✔ 🎵 곡 신호 · 🌙 암전 · 성인 장면 이미지 읽기');
+}

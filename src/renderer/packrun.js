@@ -80,6 +80,22 @@
       if (!M.prefs.music) return;
       bgm.play(url(p));
     }
+    // 🎵 신호 이름 → 곡 (팩의 bgmByCue가 우선, 없으면 기본 이름)
+    const CUE = { 오프닝: 'opening', 타이틀: 'title', 파트너: 'partner', 학교: 'academy', 아카데미: 'academy', 필드: 'field', 일상: 'daily', 라이벌: 'rival', 엔딩: 'ending' };
+    function cueBgm(name) {
+      if (!name) return '';
+      const n = name.replace(/\s/g, '');
+      if ((man.bgm || {})[n]) return n;
+      const map = Object.assign({}, CUE, man.bgmByCue || {});
+      const k = Object.keys(map).sort((a, b) => b.length - a.length).find(x => n.includes(x));
+      return k ? map[k] : '';
+    }
+    // 성인 장면 → 그 인물·소환수 곡 (팩의 bgmByChar, 없으면 bgmAdult)
+    function adultBgm(names) {
+      const map = man.bgmByChar || {};
+      for (const nm of names || []) { const k = Object.keys(map).find(x => nm.includes(x)); if (k) return map[k]; }
+      return (names && names.length && man.bgmAdult) || '';
+    }
     function placeBgm(place) {
       const map = man.bgmByLoc || {};
       for (const k of Object.keys(map)) if (place && place.replace(/\s/g, '').includes(k)) return map[k];
@@ -584,6 +600,7 @@
       const names = ((R.status && R.status.partners) || []).map(p => p.nick);
       const r = A.parse(segs, dex, { names });
       const prev = R.status;
+      R.placeChanged = false;
       if (r.status) {
         const ev = A.events(prev, r.status, r.codes, dex);
         R.placeChanged = !!(r.status.place && (!prev || prev.place !== r.status.place));
@@ -630,9 +647,13 @@
       const hasImg = r.beats.some(b => (b.imgs || []).some(im => im.src || tokenImg(im.token)));
       if (!hasImg && (!R.bgKey || R.placeChanged || (r.block && r.block.bg))) { const lb = bgFor(R.status, r.block); if (lb && (!R.bgKey || lb !== url(man.bgDefault || 'bg/hero.webp'))) setBg(lb, false); }
       const blk = r.block || {};
+      // 장면 음악: 🎵 신호·성인 장면 곡은 장소가 바뀌거나 암전될 때까지 유지
+      const cue = adultBgm(r.adult) || cueBgm(r.music);
+      if (cue && has((man.bgm || {})[cue] || '')) R.cue = cue;
+      else if (r.dark || R.placeChanged) R.cue = '';
       if (blk.bgm) playBgm(blk.bgm);
       else if (R.battle && !R.battle.over) playBgm((man.bgm || {}).wild_battle && R.battle.enemy && R.battle.enemy.wild ? 'wild_battle' : (man.battleBgm || 'rival'));
-      else playBgm(placeBgm(R.place));
+      else playBgm(R.cue || placeBgm(R.place));
       const f = (blk.fx || []).slice();
       if (R.crisis && !f.includes('heartbeat')) f.push('heartbeat');
       if (R.status && /흑일/.test(R.status.place || '')) f.push('vignette_dark');
@@ -909,7 +930,7 @@
         case 'dex-copyall': { const codes = Object.values(M.codex).map(x => x.code); if (codes.length) o.copy(codes.join(' ')); else o.toast('아직 등록한 칸이 없어요'); break; }
         case 'pref': {
           const v = t.dataset.v; M.prefs[t.dataset.k] = v === 'true' ? true : v === 'false' ? false : v; save();
-          if (t.dataset.k === 'music' && bgm) { if (M.prefs.music) { const id = bgmId; bgmId = ''; playBgm(id || placeBgm(R.place)); } else { bgm.stop(); } }
+          if (t.dataset.k === 'music' && bgm) { if (M.prefs.music) { const id = bgmId; bgmId = ''; playBgm(id || R.cue || placeBgm(R.place)); } else { bgm.stop(); } }
           if (t.dataset.k === 'fx') { tint(R.status); setCrisis(R.crisis); }
           if (t.dataset.k === 'auto') { const ab = el.querySelector('[data-ak=auto]'); if (ab) ab.classList.toggle('on', M.prefs.auto); }
           openModal('m-set'); break;
@@ -963,7 +984,7 @@
       box.hidden = false;
     }
     function resetScene() {
-      R.status = M.status; R.place = M.status && M.status.place; R.battle = null; R.beats = []; R.i = -1; R.hints = []; R.overlays = []; R.lastKey = ''; R.waiting = false; R.away = false; R.flip = {}; R.partnerFace = {};
+      R.status = M.status; R.place = M.status && M.status.place; R.battle = null; R.beats = []; R.i = -1; R.hints = []; R.overlays = []; R.lastKey = ''; R.waiting = false; R.away = false; R.flip = {}; R.partnerFace = {}; R.cue = '';
       $('#akLayer').innerHTML = ''; R.overlayOn = false; R.modal = null;
       $('#akChoices').innerHTML = '';
       renderBattle(false); setCrisis(false); tint(R.status); renderHud();

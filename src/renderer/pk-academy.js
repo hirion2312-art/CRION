@@ -430,6 +430,16 @@
         notices.push(l.trim()); drop[i] = true;
       }
     });
+    // 음악 신호(🎵 곡: 이름) · 암전(🌙 암전)
+    let music = '', dark = false;
+    lines.forEach((l, i) => {
+      if (drop[i]) return;
+      const mu = /^\s*🎵\s*(?:곡\s*[:：]?\s*)?(.+)$/u.exec(l);
+      if (mu) { music = mu[1].replace(/[\[\]()（）「」『』*]/g, '').trim(); drop[i] = true; return; }
+      if (/^\s*🌙\s*암전/.test(l)) dark = true;
+    });
+    // 성인 장면 이미지({{img::이름::성인n}})
+    const adult = tokens.map(t => t.token.split('::').map(x => x.trim())).filter(x => x[1] && /^성인/.test(x[1])).map(x => x[0]);
     // 행동 힌트(💡)
     let hints = [];
     for (let i = lines.length - 1; i >= 0; i--) {
@@ -475,7 +485,7 @@
       if (b.after && b.kind === 'say') beats.push({ kind: 'narr', who: null, text: strip(b.after) });
     }
     if (pend.length) { if (beats.length) beats[beats.length - 1].imgs = (beats[beats.length - 1].imgs || []).concat(pend); else beats.push({ kind: 'narr', who: null, text: '', imgs: pend }); }
-    return { beats, status, battle, codes, notices, hints, block, tokens: tokens.map(t => t.token) };
+    return { beats, status, battle, codes, notices, hints, block, music, dark, adult, tokens: tokens.map(t => t.token) };
   }
 
   // 표식을 지운 글 (폴백 확인용)
