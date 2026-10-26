@@ -104,6 +104,25 @@
       return { name, kind, icon: { 물리: '⚔️', 특수: '💫', 보조: '✨' }[kind] || '✨', power: k && k.power ? String(k.power) : '', left: null, max: k && k.pp ? Number(k.pp) : null, eff, ult: /궁극/.test(eff) };
     }).filter(x => x.name);
   }
+  // 📜 과제·의뢰 칸 (아카데미+): "📜 과제: 근교 야생 포획 (D-4) / 의뢰: 잃어버린 열쇠 ★1"
+  //  → st.tasks [{kind:'과제'|'의뢰'|'', text, d}] · st.quests (글만, 예전 형식 호환)
+  function quests(st, part) {
+    const q = String(part).replace(/^📜\s*/u, '').replace(/^(과제\s*[·・/]\s*의뢰|의뢰\s*[·・/]\s*과제)\s*[:：]?\s*/, '').trim();
+    const tasks = [];
+    if (!/^(없음|-|—|과제\s*없음|의뢰\s*없음)?$/.test(q)) {
+      let kind = '';
+      for (const raw of q.split(/\s*(?:[,，/;]|\s\/\s)\s*/).filter(Boolean)) {
+        let x = raw.trim();
+        const k = /^(과제|의뢰|숙제)\s*[:：]?\s*/.exec(x);
+        if (k) { kind = k[1] === '숙제' ? '과제' : k[1]; x = x.slice(k[0].length); }
+        if (/^(없음|-|—)?$/.test(x)) continue;
+        const d = /[(（]?\s*D\s*-\s*(\d+)\s*[)）]?/i.exec(x);
+        tasks.push({ kind, text: x.replace(/\s*[(（]?\s*D\s*-\s*\d+\s*[)）]?/i, '').trim(), d: d ? Number(d[1]) : null });
+      }
+    }
+    st.tasks = tasks;
+    st.quests = tasks.map(x => x.text + (x.d != null ? ` (D-${x.d})` : ''));
+  }
   // 한 조각(📅 · 📍 · 💰 · 🎒 · 📦 · 📖 · 🏅 · 📜 · 🗓 · 🎓 · 🏠)을 상태에 넣는다
   function statusPart(st, part) {
     const t = part.trim(); let m;
@@ -131,7 +150,7 @@
     if (/^📦/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.contract = { n: Number(m[1]), max: Number(m[2]) }; return true; }
     if (/^📖/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.dex = { n: Number(m[1]), max: Number(m[2]) }; return true; }
     if (/^🏅/.test(t) && (m = /(\d+)\s*\/\s*(\d+)/.exec(t))) { st.badges = { n: Number(m[1]), max: Number(m[2]) }; return true; }
-    if (/^📜/.test(t)) { const q = t.replace(/^📜\s*(의뢰)?\s*[:：]?\s*/, '').trim(); st.quests = /^(없음|-|—)?$/.test(q) ? [] : q.split(/\s*[,/]\s*/).filter(Boolean); return true; }
+    if (/^📜/.test(t)) { quests(st, t); return true; }
     if (/^🗓/.test(t)) {
       const q = t.replace(/^🗓️?\s*(다음\s*일정)?\s*[:：]?\s*/u, '').trim();
       const d = /D\s*-\s*(\d+)/i.exec(q);
@@ -212,7 +231,7 @@
       }
       if (/^📜|🗓/.test(l)) {
         for (const part of l.split(/\s*\|\s*/)) {
-          if (/^📜/.test(part)) { const q = part.replace(/^📜\s*의뢰\s*[:：]?\s*/, '').trim(); st.quests = /^(없음|-|—)?$/.test(q) ? [] : q.split(/\s*[,/]\s*/).filter(Boolean); }
+          if (/^📜/.test(part)) quests(st, part);
           else if (/^🗓/.test(part)) {
             const q = part.replace(/^🗓️?\s*다음\s*일정\s*[:：]?\s*/u, '').trim();
             const d = /D\s*-\s*(\d+)/i.exec(q);
@@ -250,6 +269,27 @@
     s.extra = (parts[2] || '').trim();
     return s;
   }
+  // ▶ 행동 한 조각
+  //  아카데미+ : "🗡️ 위카 「촛불 점화」 💥-24 (화상) 🔺" · 예전: "플리시아 「양털 방벽」 → 💥-38 (효과 별로)"
+  //  표시: 💥-n 피해 · 🛡️ 막음 · ❗ 급소 · 🔺 효과 굉장 · 🔻 효과 별로 · 💨 빗나감
+  function parseAct(s) {
+    const t = String(s || '').replace(/\*\*/g, '').trim();
+    if (!t) return null;
+    let who = '', skill = '', rest = '';
+    const m = /^(?:🗡️?\s*)?(.*?)\s*「([^」]*)」\s*(.*)$/u.exec(t);
+    if (m) { who = m[1].trim(); skill = m[2].trim(); rest = m[3]; }
+    else {
+      const o = /^(?:🗡️?\s*)?(.*?)\s*→\s*(.*)$/u.exec(t);
+      if (!o) return null;
+      who = o[1].trim(); rest = o[2];
+    }
+    rest = rest.replace(/^\s*→\s*/, '');
+    const dm = /💥\s*-?\s*(\d+)/u.exec(rest);
+    const note = (/[(（]([^)）]*)[)）]/.exec(rest) || [])[1] || '';
+    const flags = { crit: /❗|급소/u.test(rest), good: /🔺|굉장/u.test(rest), weak: /🔻|별로/u.test(rest), miss: /💨|빗나/u.test(rest), guard: /🛡/u.test(rest) };
+    const act = skill ? `${who} 「${skill}」` : who;
+    return Object.assign({ act, who, skill, dmg: dm ? Number(dm[1]) : null, note: note.trim() }, flags);
+  }
   function parseBattle(lines, dex) {
     let b = null;
     for (const raw of lines) {
@@ -274,10 +314,7 @@
       }
       if (!b) continue;
       if (/^▶/.test(l)) {
-        for (const part of l.replace(/^▶\s*/, '').split(/\s+\/\s+/)) {
-          const m = /^(.*?)\s*→\s*(?:💥\s*(-?\d+))?\s*(?:\((.*?)\))?\s*$/u.exec(part.trim());
-          if (m) b.log.push({ act: m[1].trim(), dmg: m[2] != null ? Math.abs(Number(m[2])) : null, note: (m[3] || '').trim() });
-        }
+        for (const part of l.replace(/^▶\s*/, '').split(/\s+\/\s+/)) { const a = parseAct(part); if (a) b.log.push(a); }
         continue;
       }
       const pp = [...l.matchAll(/([가-힣A-Za-z ]+?)\s*(\d+)\s*\/\s*(\d+)/g)];
@@ -438,6 +475,13 @@
       if (mu) { music = mu[1].replace(/[\[\]()（）「」『』*]/g, '').trim(); drop[i] = true; return; }
       if (/^\s*🌙\s*암전/.test(l)) dark = true;
     });
+    // 알림 줄 (아카데미+ 메인 '알림 줄'): 🌀 소환 · 🌟 진화 · 🎯 포획 · 💫 쓰러짐 · ⬆️ 레벨업 — 줄 맨 앞일 때만
+    const alerts = [];
+    lines.forEach((l, i) => {
+      if (drop[i]) return;
+      const a = parseAlert(l, dex);
+      if (a) { alerts.push(a); drop[i] = true; }
+    });
     // 성인 장면 이미지({{img::이름::성인n}})
     const adult = tokens.map(t => t.token.split('::').map(x => x.trim())).filter(x => x[1] && /^성인/.test(x[1])).map(x => x[0]);
     // 행동 힌트(💡)
@@ -447,6 +491,12 @@
       const h = /^\s*💡\s*(.+)$/u.exec(lines[i]);
       if (h) { hints = h[1].split(/\s*(?:\/|｜|\|)\s*/).map(x => x.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean).slice(0, 4); drop[i] = true; }
       break;
+    }
+    // 아카데미+ : 💡 없이 '상태창 바로 위 한 줄'에 행동 힌트 2~3개 (예: "수업 들으러 간다 / 도서관 / 기숙사로")
+    if (!hints.length && si >= 0) {
+      let j = si - 1;
+      while (j >= 0 && (drop[j] && DIVIDER.test(lines[j]) || !lines[j].trim())) j--;
+      if (j >= 0 && !drop[j]) { const h = hintLine(lines[j]); if (h) { hints = h; drop[j] = true; } }
     }
     if (block && block.choices.length) hints = block.choices.slice(0, 4);
 
@@ -485,7 +535,57 @@
       if (b.after && b.kind === 'say') beats.push({ kind: 'narr', who: null, text: strip(b.after) });
     }
     if (pend.length) { if (beats.length) beats[beats.length - 1].imgs = (beats[beats.length - 1].imgs || []).concat(pend); else beats.push({ kind: 'narr', who: null, text: '', imgs: pend }); }
-    return { beats, status, battle, codes, notices, hints, block, music, dark, adult, tokens: tokens.map(t => t.token) };
+    return { beats, status, battle, codes, notices, hints, block, music, dark, adult, alerts, tokens: tokens.map(t => t.token) };
+  }
+
+  // ---------- 알림 줄 ----------
+  const cleanName = (s) => String(s || '').replace(/\*\*/g, '').replace(/[!！.…~]+$/g, '').replace(/^[!！.…~\s]+/, '').replace(/\s*\(.*\)\s*$/, '').trim();
+  function who(dex, name) {
+    const n = cleanName(name);
+    const f = dex && dex.find(n);
+    return f ? { name: n, base: f.lin.base, stage: f.stage, el: f.lin.el, rarity: f.lin.rarity } : { name: n };
+  }
+  function parseAlert(line, dex) {
+    const l = String(line || '').replace(/\*\*/g, '').trim();
+    let m;
+    if ((m = /^🌀\s*소환\s*[!！]?\s*[:：]?\s*(.+)$/u.exec(l))) return Object.assign({ type: 'summon' }, who(dex, m[1]));
+    if ((m = /^🌟\s*진화\s*[!！]?\s*[:：]?\s*(.+?)\s*(?:→|->|⇒|>)\s*(.+)$/u.exec(l))) { const to = who(dex, m[2]); return Object.assign({ type: 'evolve', from: cleanName(m[1]) }, to); }
+    if ((m = /^🎯\s*포획\s*(성공|실패)\s*[!！.…]*\s*[:：]?\s*(.*)$/u.exec(l))) return Object.assign({ type: 'capture', ok: m[1] === '성공' }, who(dex, m[2]));
+    if ((m = /^💫\s*쓰러짐\s*[:：!！]?\s*(.+)$/u.exec(l))) return Object.assign({ type: 'ko' }, who(dex, m[1]));
+    if ((m = /^⬆️?\s*레벨\s*업\s*[!！]?\s*[:：]?\s*(.+?)\s*Lv\.?\s*(\d+)/u.exec(l))) return Object.assign({ type: 'level', lv: Number(m[2]) }, who(dex, m[1]));
+    return null;
+  }
+
+  // ---------- 행동 힌트 한 줄 ----------
+  function hintLine(line) {
+    let l = String(line || '').replace(/\*\*/g, '').trim();
+    if (!l || l.length > 140 || /^[“"「『]/.test(l) || /💬/u.test(l)) return null;
+    l = l.replace(/^[\[［(（]\s*/, '').replace(/[\]］)）]\s*$/, '')
+      .replace(/^(?:💡|👉|➡️?|▷|☞|✦|◆|·|-|•)\s*/u, '')
+      .replace(/^(?:행동\s*힌트|행동|힌트|선택지|추천)\s*[:：]\s*/, '');
+    let parts = l.split(/\s+\/\s+|\s*[|｜]\s*|\s+·\s+|\s*▷\s*|\s*•\s*/).map(x => x.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean);
+    if (parts.length < 2 && /\d[.)]\s/.test(l)) parts = l.split(/\s*\d[.)]\s*/).map(x => x.trim()).filter(Boolean);
+    if (parts.length < 2 || parts.length > 4) return null;
+    if (parts.some(p => p.length > 34 || p.length < 2 || /[.!?。]$/.test(p) && p.length > 24)) return null;
+    return parts;
+  }
+
+  // ---------- 이야기 막 · 엠바고 (노트 13·20) ----------
+  const SEASONS = ['봄', '여름', '가을', '겨울'];
+  const tick = (y, s) => (Number(y) - 1) * 4 + Math.max(0, SEASONS.indexOf(s));
+  const LOCKS = { blackday: tick(1, '겨울'), blackmoon: tick(2, '봄'), noel: tick(2, '겨울'), vincent: tick(3, '봄'), dean: tick(3, '가을'), legend: tick(3, '겨울') };
+  function unlocked(key, st) {
+    if (!(key in LOCKS)) return true;
+    if (!st || !st.year) return false;
+    return tick(st.year, st.season || '봄') >= LOCKS[key];
+  }
+  const ACTS = [[0, '1막', '적응'], [1, '2막', '성장'], [3, '3막', '균열'], [4, '4막', '배지'], [8, '5막', '흑월회'], [11, '6막', '졸업']];
+  function actOf(st) {
+    if (!st || !st.year) return null;
+    const k = tick(st.year, st.season || '봄');
+    let a = ACTS[0];
+    for (const x of ACTS) if (k >= x[0]) a = x;
+    return { no: a[1], name: a[2] };
   }
 
   // 표식을 지운 글 (폴백 확인용)
@@ -509,7 +609,7 @@
     return ev;
   }
 
-  const api = { Dex, parse, parseStatusLines, parseBattle, parseSkills, parseCodes, parseBlock, lineBeat, stripMarks, events, stageNo, STAGES };
+  const api = { Dex, parse, parseStatusLines, parseBattle, parseAct, parseAlert, hintLine, parseSkills, parseCodes, parseBlock, lineBeat, stripMarks, events, stageNo, STAGES, unlocked, actOf };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CrionAcademy = api;
 })(typeof window !== 'undefined' ? window : globalThis);

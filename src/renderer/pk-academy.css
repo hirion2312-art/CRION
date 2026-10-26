@@ -561,3 +561,31 @@
 .akr-text summary { cursor: pointer; font-size: 13px; color: #f4dfa6; }
 .akr-text pre { white-space: pre-wrap; font-size: 12px; background: rgba(8,12,30,.7); border: 1px solid rgba(217,178,95,.3); border-radius: 6px; padding: 10px; max-height: 180px; overflow: auto; user-select: text; }
 @media (max-width: 900px) { .akr-reg, .akr-issue, .akr-altar, .akr-res { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- 아카데미+ : 과제 카드 · 포획 연출 · 급소/효과 표시 · 봉인된 칸 ---- */
+.ak-tasks { display: flex; flex-direction: column; gap: 4px; }
+.ak-task { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 8px; background: rgba(201,162,76,.14); font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.35; }
+.ak-task i { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: var(--ink2); color: #fffaf0; flex: none; }
+.ak-task span { flex: 1; min-width: 0; }
+.ak-task em { font-style: normal; font-weight: 900; color: #b4531f; flex: none; }
+.ak-task.urgent { background: rgba(228,87,47,.16); box-shadow: 0 0 0 1px rgba(228,87,47,.5); animation: akPulse 1.2s ease-in-out infinite; }
+.ak-task.urgent em { color: #d8381c; }
+.ak-blog span.crit { background: #c2185b; color: #fff; }
+.ak-blog em.guard { color: #7fb6ff; } .ak-blog em.miss { color: #aab; }
+.ak-dmg small { display: block; font-size: 13px; letter-spacing: .02em; text-align: center; }
+.ak-dmg.crit { color: #ff3d7f; font-size: 42px; } .ak-dmg.good { color: #ff7a2f; } .ak-dmg.weak { color: #9aa3c7; font-size: 28px; }
+.ak-dc.sealed .im { font-size: 22px; opacity: .8; }
+.ak-ov.capture .ak-cap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ak-cap-img { width: 160px; height: 160px; border-radius: 50%; background-size: cover; background-position: center top; box-shadow: 0 0 0 3px #f2e6c6, 0 0 40px rgba(120,180,255,.6); }
+.ak-cap-img.in { animation: akCapIn 1.6s ease-in forwards; }
+.ak-cap-img.out { animation: akCapOut 1.6s ease-in forwards; }
+.ak-cap-wrap { position: relative; width: 160px; height: 160px; display: grid; place-items: center; }
+.ak-cap-wrap > * { grid-area: 1 / 1; }
+.ak-stone { opacity: 0; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #cfe6ff, #3b6fd6 60%, #1d2a6a); box-shadow: 0 0 22px #6aa8ff; animation: akStoneIn 2.6s .9s ease-in-out both; }
+.ak-cap-t { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0; animation: akFade .6s 2.6s forwards; text-align: center; }
+.ak-cap-t span { font-size: 13px; color: #c3c8e6; } .ak-cap-t b { font-family: var(--f-title); font-weight: 400; font-size: 28px; }
+.ak-cap-t em { font-style: normal; font-size: 12.5px; color: #c3c8e6; }
+@keyframes akCapIn { 0% { transform: scale(1); opacity: 1; } 55% { transform: scale(.25); opacity: 1; } 100% { transform: scale(.05); opacity: 0; } }
+@keyframes akCapOut { 0% { transform: scale(1); } 55% { transform: scale(.3); } 75% { transform: scale(.3); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes akStoneIn { 0% { opacity: 0; transform: scale(.4); } 10% { opacity: 1; transform: scale(1); } 25% { transform: rotate(-22deg); } 40% { transform: rotate(20deg); } 55% { transform: rotate(-16deg); } 70% { transform: rotate(12deg); } 85% { opacity: 1; } 100% { opacity: 0; transform: rotate(0); } }
+@keyframes akShakeStone { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-22deg); } 30% { transform: rotate(20deg); } 45% { transform: rotate(-16deg); } 60% { transform: rotate(12deg); } 75% { transform: rotate(-6deg); } }

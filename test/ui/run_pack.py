@@ -224,6 +224,18 @@ async def main():
         await page.wait_for_timeout(400)
         print('계약석 버튼:', await page.evaluate("[...document.querySelectorAll('.ak-act.cap')].map(b=>b.innerText.replace(/\\n/g,' '))"))
         await page.screenshot(path=OUT + 'pk_e4_capture.png')
+        # 아카데미+ 형식: ▶ 행동 줄(급소·효과)·🎯 포획·과제 카드·힌트 한 줄
+        PLUS = '풀숲이 크게 흔들렸다.\n위카💬 "지금이에요!"\n🎯 포획 성공! 월리\n보건실로 간다 / 시가지로 간다 / 도서관에 들른다\n━━━━━━━━━━━━━━\n📅 1학년 봄 3일차 오후 | 📍야생지대 | 💰3은 0동\n⚔️ 근교 야생 · 4턴째 | 🔮 상대 예고: 회전 바람\n▶ 🗡️ 위카 「촛불 점화」 💥-42 (화상) 🔺 ❗ / 🗡️ 야생 월리 「회전 바람」 💥-12 🔻\n🟦 위카 Lv5 ❤️120/165 | - | 대기 ●\n🟥 야생 월리 Lv6 ❤️9/215 | 화상 | 대기 -\n🎓 {user} | 🏠해의 동\n🐾 위카(위카·기본) Lv 5 ❤️120/165 ✨XP 0/20 | - | 기술: 촛불 점화(💫40|13/15 화상10%), 촛농 붕대(✨|5/5 HP 25% 회복)\n🎒 상처약×2, 계약석×1\n📦 계약 1/6 | 📖 1/80 | 🏅 0/7\n📜 과제: 근교 야생 1마리 포획 (D-1) / 의뢰: 잃어버린 열쇠 | 🗓️ 신입생 친선전 D-22\n━━━━━━━━━━━━━━'
+        await ipc(page, 'crion:reply', reply(PLUS, 'kp1')); await page.wait_for_timeout(600)
+        for _ in range(12): await page.evaluate("(document.querySelector('.ak-ov')||{}).tagName || document.querySelector('.ak-dlg').click()"); await page.wait_for_timeout(60)
+        await page.wait_for_timeout(400)
+        await page.screenshot(path=OUT + 'pk_p1_plus_battle.png')
+        await page.screenshot(path=OUT + 'pk_p2_plus_hud.png', clip={'x': 1060, 'y': 0, 'width': 380, 'height': 900})
+        await page.wait_for_timeout(2600)
+        await page.screenshot(path=OUT + 'pk_p3_plus_capture.png')
+        print('힌트(플러스):', await page.evaluate("[...document.querySelectorAll('.ak-hints button')].map(b=>b.innerText)"))
+        print('과제 카드:', await page.evaluate("[...document.querySelectorAll('.ak-task')].map(b=>b.innerText.replace(/\\n/g,' '))"))
+        await page.evaluate("document.querySelector('.ak-ov [data-ak=ov-close]') && document.querySelector('.ak-ov [data-ak=ov-close]').click()")
         # 샘플 3 (선택지)
         await ipc(page, 'crion:reply', reply(TURNS[2], 'k5')); await page.wait_for_timeout(500)
         await page.click('.ak-dlg'); await page.wait_for_timeout(900)

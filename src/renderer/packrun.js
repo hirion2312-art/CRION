@@ -349,6 +349,7 @@
       const codexN = Object.keys(M.codex).length;
       const dexN = (st.dex && st.dex.n) || codexN;
       const items = st.items || [];
+      const tasks = st.tasks || (st.quests || []).map(x => ({ kind: '', text: x, d: null }));
       box.innerHTML = `
         <div class="ak-id">
           <div class="ak-id-ic">${dormIc}</div>
@@ -363,7 +364,7 @@
         </div>
         <div class="ak-items">${items.length ? items.map(it => `<i title="${esc(it.name)}">${ITEM_ICON[it.name] || '🎁'}<b>${esc(it.name)}</b>${it.n > 1 ? `<em>×${it.n}</em>` : ''}</i>`).join('') : '<span class="ak-muted">주머니가 비어 있어요</span>'}</div>
         <div class="ak-notes">
-          <div class="ak-note"><b>📜 의뢰</b><span>${st.quests && st.quests.length ? st.quests.map(esc).join('<br>') : '진행 중인 의뢰 없음'}</span></div>
+          <div class="ak-note ak-tasks"><b>📜 과제 · 의뢰</b>${tasks.length ? tasks.map(t => `<div class="ak-task ${t.d != null && t.d <= 1 ? 'urgent' : ''}">${t.kind ? `<i>${esc(t.kind)}</i>` : ''}<span>${esc(t.text)}</span>${t.d != null ? `<em class="dday">D-${t.d}</em>` : ''}</div>`).join('') : '<span>진행 중인 과제·의뢰 없음</span>'}</div>
           <div class="ak-note"><b>🗓️ 다음 일정</b><span>${st.next ? esc(st.next.text || '-') + (st.next.d != null ? ` <em class="dday">D-${st.next.d}</em>` : '') : '-'}</span></div>
         </div>
         <nav class="ak-menu">
@@ -375,7 +376,7 @@
       const t = st.time === '아침' ? '오전' : st.time === '점심' ? '오후' : st.time === '새벽' ? '밤' : st.time;
       tb.innerHTML = `${TIMES.map(x => `<i class="${x === t ? 'on' : ''}">${{ 오전: '☀', 오후: '◐', 저녁: '☾', 밤: '✦' }[x]} ${x}</i>`).join('')}
         <b>${st.year ? esc(st.year + '학년 ' + (st.season || '') + ' ' + st.day + '일차') : esc(st.dateText || '에테르나 아카데미')}</b>
-        <span class="ak-season-tag">${{ 봄: '🌸 봄', 여름: '🌿 여름', 가을: '🍁 가을', 겨울: '❄️ 겨울' }[st.season] || ''}</span>`;
+        <span class="ak-season-tag">${(A.actOf(st) ? A.actOf(st).no + ' · ' + A.actOf(st).name + ' ｜ ' : '')}${{ 봄: '🌸 봄', 여름: '🌿 여름', 가을: '🍁 가을', 겨울: '❄️ 겨울' }[st.season] || ''}</span>`;
       const pl = stage.querySelector('.ak-place');
       pl.querySelector('b').textContent = st.place || '에테르나';
       pl.querySelector('span').textContent = st.time || '';
@@ -454,22 +455,34 @@
       const same = (x, y) => x && y && x.name === y.name;
       const dFoe = fresh && pv && same(pv.enemy, b.enemy) ? Math.max(0, pv.enemy.hp - b.enemy.hp) : 0;
       const dAlly = fresh && pv && same(pv.ally, b.ally) ? Math.max(0, pv.ally.hp - b.ally.hp) : 0;
-      const logFoe = (b.log || [])[0] && (b.log[0].dmg || 0), logAlly = (b.log || [])[1] && (b.log[1].dmg || 0);
-      const hitFoe = dFoe || (fresh && !pv ? logFoe : 0) || 0, hitAlly = dAlly || (fresh && !pv ? logAlly : 0) || 0;
+      // ▶ 행동 줄이 있으면 그 순서·숫자 그대로 (아카데미+), 없으면 지난 턴 HP 차이로 짐작
+      const sq = (x) => String(x || '').replace(/\s/g, '');
+      const mine = (w) => { const n = sq(w); if (!n) return null;
+        const hit = (sd) => sd && sd.name && (n.includes(sq(sd.name)) || sq(sd.name).includes(n));
+        if (hit(b.ally) || ((R.status && R.status.partners) || []).some(p => [p.nick, p.formName, p.base].some(x => x && (n.includes(sq(x)))))) return true;
+        if (hit(b.enemy)) return false; return null; };
+      const hits = [];
+      if (fresh) {
+        const lg = (b.log || []).filter(x => x.dmg);
+        if (lg.length) lg.forEach((x, k) => { let me = mine(x.who); if (me == null) me = k % 2 === 0; hits.push({ to: me ? 'foe' : 'ally', dmg: x.dmg, crit: x.crit, good: x.good, weak: x.weak }); });
+        else { if (dFoe) hits.push({ to: 'foe', dmg: dFoe }); if (dAlly) hits.push({ to: 'ally', dmg: dAlly }); }
+      }
+      const taken = (to) => hits.filter(h => h.to === to).reduce((a, h) => a + h.dmg, 0);
       if (fresh) R.prevBattle = JSON.parse(JSON.stringify({ ally: b.ally, enemy: b.enemy }));
       const multTag = b.mult > 1 ? '<span class="good">상성 유리 ×1.5</span>' : b.mult < 1 ? '<span class="weak">상성 불리 ×0.5</span>' : '<span>상성 보통</span>';
       const head = b.title || b.turn || b.forecast ? `<div class="ak-bhead">${b.title ? `<b>⚔️ ${esc(b.title)}</b>` : ''}${b.turn ? `<span>${b.turn}턴째</span>` : ''}${b.forecast ? `<em>🔮 ${esc(b.forecast)}</em>` : ''}</div>` : '';
-      const showA = dAlly ? Object.assign({}, b.ally, { hp: pv.ally.hp }) : b.ally;
-      const showE = dFoe ? Object.assign({}, b.enemy, { hp: pv.enemy.hp }) : b.enemy;
+      const before = (sd, to) => sd && taken(to) ? Object.assign({}, sd, { hp: Math.min(sd.hpMax || 1e9, sd.hp + taken(to)) }) : sd;
+      const showA = before(b.ally, 'ally'), showE = before(b.enemy, 'foe');
       dockBattle();
       box.innerHTML = head + `<div class="ak-bt-row">${sideHtml(showA, 'ally')}<div class="ak-vs"><b>VS</b>${multTag}${b.enemy && b.enemy.wild ? '<em>야생</em>' : ''}</div>${sideHtml(showE, 'foe')}</div>
-        <div class="ak-blog" ${(b.log || []).length ? '' : 'hidden'}>${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : ''}${x.note ? `<span class="${/굉장/.test(x.note) ? 'good' : /별로/.test(x.note) ? 'weak' : ''}">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
+        <div class="ak-blog" ${(b.log || []).length ? '' : 'hidden'}>${(b.log || []).map(x => `<div><b>${esc(x.act)}</b>${x.dmg != null ? `<em>-${x.dmg}</em>` : x.guard ? '<em class="guard">🛡️ 막음</em>' : x.miss ? '<em class="miss">💨 빗나감</em>' : ''}${x.crit ? '<span class="crit">급소!</span>' : ''}${x.good || /굉장/.test(x.note) ? '<span class="good">효과 굉장</span>' : x.weak || /별로/.test(x.note) ? '<span class="weak">효과 별로</span>' : ''}${x.note && !/굉장|별로/.test(x.note) ? `<span>${esc(x.note)}</span>` : ''}</div>`).join('')}</div>
         ${b.over ? `<div class="ak-bover">${b.enemy && b.enemy.hp <= 0 ? '승리!' : '쓰러졌다…'}</div>` : ''}`;
       if (fresh) {
         const card = (c) => box.querySelector('.ak-bs.' + c);
         const setHp = (c, sd) => { const g = card(c) && card(c).querySelector('.ak-gauge'); if (!g || !sd) return; const i = g.querySelector('i'), t = g.querySelector('span'); if (i) i.style.width = Math.max(0, Math.min(100, sd.hp / (sd.hpMax || 1) * 100)) + '%'; if (t) t.textContent = `${sd.hp}/${sd.hpMax}`; card(c).classList.toggle('low', sd.hpMax && sd.hp / sd.hpMax <= 0.3); card(c).classList.toggle('down', sd.hp <= 0); };
-        const strike = (from, to, dmg, sd, at) => setTimeout(() => {
+        const strike = (h, sd, at) => setTimeout(() => {
           if (!box.isConnected || R.battle !== b) return;
+          const from = h.to === 'foe' ? 'ally' : 'foe', to = h.to;
           const a = card(from), d = card(to);
           if (a) { a.classList.remove('atk'); void a.offsetWidth; a.classList.add('atk'); }
           setTimeout(() => {
@@ -477,16 +490,20 @@
             d.classList.remove('hit'); void d.offsetWidth; d.classList.add('hit');
             setHp(to, sd);
             const f = document.createElement('div');
-            f.className = 'ak-dmg ' + (to === 'foe' ? 'to-foe' : 'to-ally');
-            f.textContent = '-' + dmg;
+            f.className = 'ak-dmg ' + (to === 'foe' ? 'to-foe' : 'to-ally') + (h.crit ? ' crit' : '') + (h.good ? ' good' : h.weak ? ' weak' : '');
+            f.innerHTML = (h.crit ? '<small>급소!</small>' : h.good ? '<small>효과 굉장!</small>' : h.weak ? '<small>효과 별로…</small>' : '') + '-' + h.dmg;
             box.appendChild(f);
             setTimeout(() => f.remove(), 1600);
-            fx(dmg >= (sd.hpMax || 999) * 0.3 ? ['shake', 'flash'] : ['shake']);
+            fx(h.crit || h.good || h.dmg >= (sd.hpMax || 999) * 0.3 ? ['shake', 'flash'] : ['shake']);
           }, 260);
         }, at);
         let t = 350;
-        if (hitFoe) { strike('ally', 'foe', hitFoe, b.enemy, t); t += 1100; }
-        if (hitAlly) strike('foe', 'ally', hitAlly, b.ally, t);
+        const hp = { ally: showA ? showA.hp : 0, foe: showE ? showE.hp : 0 };
+        for (const h of hits) {
+          const base = h.to === 'foe' ? b.enemy : b.ally;
+          hp[h.to] = Math.max(base ? base.hp : 0, hp[h.to] - h.dmg);
+          strike(h, Object.assign({}, base, { hp: hp[h.to] }), t); t += 1100;
+        }
         if ((b.log || []).some(x => /별로/.test(x.note))) fx(['dim']);
       }
     }
@@ -575,6 +592,15 @@
           <button class="ak-btn ghost" data-ak="ov-close">직접 쓸게요</button>
         </div>` };
     }
+    // 포획: 계약석이 세 번 흔들린 뒤 결과 (🎯 포획 성공!/실패…)
+    function captureOverlay(a) {
+      const lin = dex.lineage(a.base) || {};
+      const img = a.base ? summonImg(a.base, a.stage || 1, a.ok ? '기쁨' : '전투') : '';
+      return { cls: 'capture ' + (a.ok ? 'ok' : 'fail'), fx: a.ok ? ['sparks'] : ['dim'], html: `
+        <div class="ak-cap"><div class="ak-cap-wrap"><div class="ak-cap-img ${a.ok ? 'in' : 'out'}" style="background-image:${cssUrl(img)}"></div><i class="ak-stone"></i></div>
+        <div class="ak-cap-t"><span>${a.ok ? '계약 성립!' : '계약석이 깨졌다…'}</span><b>${esc(a.name || lin.base || '')}</b><em>${a.ok ? '새 동료가 되었다' : '다시 도전해 보자'}</em>
+        <button class="ak-btn primary" data-ak="ov-close">${a.ok ? '확인' : '계속'}</button></div></div>` };
+    }
     function evolveOverlay(p, from) {
       const lin = dex.lineage(p.base) || {};
       const a = summonImg(p.base, from.stage || 1, '평상시');
@@ -625,6 +651,15 @@
           const k = c.prof === '학장' ? '오스왈드' : c.prof;
           if (!M.badges[k]) { M.badges[k] = Date.now(); const ov = badgeOverlay(k); if (ov) queue(ov, 'end'); }
         }
+      }
+      // 알림 줄(🌀🌟🎯💫⬆️): 상태창 비교로 이미 연출된 소환·진화는 건너뛰고, 포획·쓰러짐·레벨업을 연출한다
+      for (const a of r.alerts || []) {
+        const nm = a.name || '';
+        if (a.type === 'capture') queue(captureOverlay(a), 'end');
+        else if (a.type === 'ko') { fx(['shake', 'dim']); o.toast(`💫 ${nm} 쓰러졌다…`, 2600); }
+        else if (a.type === 'level') { fx(['sparks']); o.toast(`⬆️ ${nm} Lv ${a.lv}!`, 2600); }
+        else if (a.type === 'summon' && !r.status && a.base) queue(summonOverlay({ base: a.base, stage: a.stage || 1, nick: nm, formName: nm, el: a.el }, /우물/.test(R.place || ''), '', 'join'), 'end');
+        else if (a.type === 'evolve' && !r.status && a.base) queue(evolveOverlay({ base: a.base, stage: a.stage || 2, nick: nm, formName: nm, lv: 0 }, { stage: Math.max(1, (a.stage || 2) - 1), nick: a.from }), 'end');
       }
       // 인물: 글에 이름이 나온 사람은 '만난 사람'
       const all = segs.map(s => s.s || '').join('\n');
@@ -762,6 +797,7 @@
       $('#akLayer').innerHTML = `<div class="ak-scrim" data-ak="m-close"><div class="ak-modal ${cls || ''}"><header><h3>${title}</h3><button data-ak="m-close" class="ak-x">✕</button></header><div class="ak-mbody">${body}</div></div></div>`;
     }
     let dexTab = '전체', dexSel = 0;
+    const legendOpen = () => A.unlocked('legend', R.status);
     function codexHtml() {
       const all = (data.lineages || []).concat(data.legends || []);
       const tabs = ['전체'].concat(data.elements || []).concat(['전설']);
@@ -769,6 +805,7 @@
       for (const l of all) {
         if (dexTab !== '전체' && !(dexTab === '전설' ? l.legend : (!l.legend && l.el === dexTab))) continue;
         const n = l.legend ? 1 : 3;
+        if (l.legend && !legendOpen() && !M.codex[dex.no(l.base, 3)]) { cells.push(`<button class="ak-dc u sealed" data-ak="dex-sel" data-no="${dex.no(l.base, 3)}"><span class="no">No.${String(dex.no(l.base, 3)).padStart(2, '0')}</span><div class="im">🔒</div><b>봉인된 페이지</b></button>`); continue; }
         for (let s = 1; s <= n; s++) {
           const no = dex.no(l.base, l.legend ? 3 : s);
           const m = M.codex[no];
@@ -794,6 +831,7 @@
       if (!l) return '';
       const s = l.legend ? 3 : no - l.no + 1;
       const m = M.codex[no];
+      if (!m && l.legend && !legendOpen()) return `<div class="ak-dd u"><span class="no">No.${String(no).padStart(2, '0')}</span><b>봉인된 페이지</b><p>벽화와 오래된 노래에만 남아 있는 이름이에요. 때가 오기 전에는 펼칠 수 없어요.</p></div>`;
       if (!m) return `<div class="ak-dd u"><span class="no">No.${String(no).padStart(2, '0')}</span><b>???</b><p>아직 만나지 못한 소환수예요.${l.legend ? '' : ` 속성: ${EL_ICON[l.el]} ${esc(l.el)}`}</p>${hab(l) ? `<p class="hab">📍 ${esc(hab(l))}</p>` : ''}</div>`;
       const full = m.m === 'C';
       const st = l.stats || [];

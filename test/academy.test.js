@@ -57,7 +57,7 @@ test('샘플 2 (위기): 전투창·HP 30% 이하·포획 조건', () => {
   assert.ok(b, '전투창을 읽는다');
   assert.deepStrictEqual([b.ally.name, b.ally.lv, b.ally.hp, b.ally.hpMax, b.ally.base], ['위카', 14, 58, 210, '위카']);
   assert.deepStrictEqual([b.enemy.name, b.enemy.lv, b.enemy.hp, b.enemy.hpMax, b.enemy.base, b.enemy.el, b.enemy.wild], ['야생 월리', 15, 71, 215, '월리', '풍', true]);
-  assert.deepStrictEqual(b.log, [{ act: '촛불 점화', dmg: 38, note: '효과가 굉장했다!' }, { act: '월리 회전 바람', dmg: 46, note: '' }]);
+  assert.deepStrictEqual(b.log.map(x => ({ act: x.act, dmg: x.dmg, note: x.note })), [{ act: '촛불 점화', dmg: 38, note: '효과가 굉장했다!' }, { act: '월리 회전 바람', dmg: 46, note: '' }]);
   assert.deepStrictEqual(b.pp, [{ name: '촛불 점화', left: 14, max: 15 }, { name: '촛농 붕대', left: 5, max: 5 }]);
   assert.strictEqual(b.mult, 1.5);
   assert.strictEqual(b.capture, null, '상대 HP 33% → 아직 포획 불가');
@@ -129,7 +129,7 @@ test('3:3 배지전 전투창·[상태] 표기', () => {
   assert.strictEqual(r.battle.ally.base, '플린트');
   assert.strictEqual(r.battle.enemy.base, '키도');
   assert.strictEqual(r.battle.enemy.stage, 3);
-  assert.deepStrictEqual(r.battle.log[0], { act: '담금질', dmg: null, note: '공격+2' });
+  assert.deepStrictEqual((({ act, dmg, note }) => ({ act, dmg, note }))(r.battle.log[0]), { act: '담금질', dmg: null, note: '공격+2' });
   assert.strictEqual(r.battle.mult, 1, '화 → 지 는 보통');
 });
 
@@ -192,4 +192,64 @@ if (fail) process.exit(1);
   const r2 = A.parse('🎵 [사랑·어둠]\n서술.', null, {});
   assert.strictEqual(r2.music, '사랑·어둠');
   console.log('  ✔ 🎵 곡 신호 · 🌙 암전 · 성인 장면 이미지 읽기');
+}
+
+// ---------- 아카데미+ (크랙 입력 v1.0+) 형식 — 2026-10-26 ----------
+{
+  const t = [
+    '봄볕이 대투기장 모래 위로 쏟아진다.',
+    '세라💬 "괜찮아? 다친 데 없어?"',
+    '🌟 진화! 위카 → 탤로윈',
+    '🎯 포획 성공! 월리',
+    '💫 쓰러짐: 플립',
+    '⬆️ 레벨업! 탤로윈 Lv17',
+    '🎵 라이벌',
+    '보건실로 간다 / 공방에 들른다 / 기숙사로 돌아간다',
+    '━━━━━━━━━━━━━━',
+    '📅 1학년 봄 3일차 오후 | 📍대투기장 | 💰3은 40동',
+    '⚔️ 실습 모의전 · 3턴째 | 🔮 상대 예고: 물방울 튀기기',
+    '▶ 🗡️ 탤로윈 「촛불 점화」 💥-24 (화상) 🔻 / 🗡️ 플립 「물방울 튀기기」 💥-31 🔺 ❗',
+    '🟦 탤로윈 Lv 17 ❤️90/180 | - | 대기 ●',
+    '🟥 플립 Lv 6 ❤️0/170 | 화상 | 대기 -',
+    '🎓 {user} | 🏠해의 동',
+    '🐾 탤로윈(위카·1진화) Lv 17 ❤️90/180 ✨XP 3/68 | - | 기술: 촛불 점화(💫40|12/15 화상10%), 촛농 붕대(✨|5/5 HP 25% 회복)',
+    '🎒 상처약×2, 계약석×1',
+    '📦 계약 2/6 | 📖 4/80 | 🏅 0/7',
+    '📜 과제: 근교 야생 1마리 포획 (D-1) / 의뢰: 잃어버린 열쇠 | 🗓️ 신입생 친선전 D-22',
+    '━━━━━━━━━━━━━━'
+  ].join('\n');
+  const r = A.parse(t, dex, {});
+  assert.deepStrictEqual(r.alerts.map(a => a.type), ['evolve', 'capture', 'ko', 'level']);
+  assert.deepStrictEqual([r.alerts[0].from, r.alerts[0].name, r.alerts[0].base, r.alerts[0].stage], ['위카', '탤로윈', '위카', 2]);
+  assert.deepStrictEqual([r.alerts[1].ok, r.alerts[1].base], [true, '월리']);
+  assert.deepStrictEqual([r.alerts[2].name, r.alerts[3].lv], ['플립', 17]);
+  assert.strictEqual(r.music, '라이벌');
+  assert.deepStrictEqual(r.hints, ['보건실로 간다', '공방에 들른다', '기숙사로 돌아간다']);
+  const b = r.battle;
+  assert.strictEqual(b.title, '실습 모의전');
+  assert.strictEqual(b.turn, 3);
+  assert.deepStrictEqual(b.log.map(x => [x.who, x.skill, x.dmg, x.note, x.weak, x.good, x.crit]), [['탤로윈', '촛불 점화', 24, '화상', true, false, false], ['플립', '물방울 튀기기', 31, '', false, true, true]]);
+  assert.strictEqual(b.enemy.hp, 0);
+  const s = r.status;
+  assert.deepStrictEqual(s.tasks, [{ kind: '과제', text: '근교 야생 1마리 포획', d: 1 }, { kind: '의뢰', text: '잃어버린 열쇠', d: null }]);
+  assert.strictEqual(s.next.d, 22);
+  assert.strictEqual(s.partners[0].base, '위카');
+  assert.ok(!r.beats.some(b => /🌟|🎯|💫|⬆️|공방에 들른다/u.test(b.text)), '알림·힌트 줄은 대사창에 안 흐른다');
+  assert.ok(r.beats.some(b => b.who === '세라'));
+  console.log('  ✔ 아카데미+ : 알림 줄·▶ 새 형식·과제 카드·힌트 한 줄');
+}
+{
+  assert.strictEqual(A.hintLine('그는 천천히 고개를 들어 하늘을 보았다. 바람이 분다.'), null, '서술은 힌트 아님');
+  assert.deepStrictEqual(A.hintLine('💡 1) 도서관 2) 훈련장 3) 잠자기'), ['도서관', '훈련장', '잠자기']);
+  assert.deepStrictEqual(A.parseAlert('🎯 포획 실패… 야생 월리', dex).ok, false);
+  assert.strictEqual(A.parseAlert('🌀 소환! 플립', dex).base, '플립');
+  const st = (y, s) => ({ year: y, season: s });
+  assert.strictEqual(A.unlocked('legend', st(1, '봄')), false);
+  assert.strictEqual(A.unlocked('legend', st(3, '겨울')), true);
+  assert.strictEqual(A.unlocked('blackday', st(1, '가을')), false);
+  assert.strictEqual(A.unlocked('blackday', st(1, '겨울')), true);
+  assert.deepStrictEqual(A.actOf(st(1, '여름')), { no: '2막', name: '성장' });
+  assert.deepStrictEqual(A.actOf(st(2, '가을')), { no: '4막', name: '배지' });
+  assert.deepStrictEqual(A.actOf(st(3, '겨울')), { no: '6막', name: '졸업' });
+  console.log('  ✔ 아카데미+ : 힌트 판정·엠바고 시기·이야기 막');
 }
