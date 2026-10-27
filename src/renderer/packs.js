@@ -13,8 +13,12 @@
   }
 
   // index.json 의 팩 항목 → 화면에 쓰기 좋은 모양 (주소는 https 만)
-  function fromIndex(index) {
-    const list = (index && Array.isArray(index.packs)) ? index.packs : [];
+  //  opt.dev = 개발자 로그인 중이면 index.devPacks(개발자 전용 팩)도 합친다 (devOnly 표시)
+  function fromIndex(index, opt) {
+    const main = (index && Array.isArray(index.packs)) ? index.packs : [];
+    const dev = (opt && opt.dev && index && Array.isArray(index.devPacks)) ? index.devPacks.map(p => Object.assign({}, p, { devOnly: true })) : [];
+    const seen = new Set();
+    const list = main.concat(dev).filter(p => p && p.id && !seen.has(p.id) && seen.add(p.id));
     return list.filter(p => p && p.id && p.name && isHttps(p.base)).map(p => {
       const at = (f) => (f && !/^[a-z]+:/i.test(f) && !f.includes('..')) ? p.base + String(f).replace(/^\/+/, '') : (isHttps(f) ? f : '');
       return {
@@ -24,7 +28,7 @@
         workId: p.workId ? String(p.workId) : '', workUrl: p.workUrl ? String(p.workUrl) : '',
         cover: at(p.cover), previews: (Array.isArray(p.previews) ? p.previews : []).map(at).filter(Boolean).slice(0, 8),
         ui: at(p.ui), minEngine: p.minEngine || null, bytes: Number(p.bytes) || 0, updated: p.updated || '',
-        workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '', adult: !!p.adult,
+        workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '', adult: !!p.adult, devOnly: !!p.devOnly,
         base: String(p.base), rev: String(p.rev || ''),
         files: (Array.isArray(p.files) ? p.files : []).filter(f => f && typeof f.path === 'string' && /^[0-9a-f]{64}$/.test(String(f.sha256 || '')) && !f.path.includes('..') && !/^[a-z]+:/i.test(f.path) && !f.path.startsWith('/'))
           .map(f => ({ path: f.path, sha256: f.sha256, size: Number(f.size) || 0 }))

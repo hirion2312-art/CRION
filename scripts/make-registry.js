@@ -56,6 +56,7 @@ console.log(`화면 엔진 v${eng.version} (파일 ${ed.files.length}개, ${(ed.
 
 // 팩
 const packs = [];
+const devPacks = [];   // manifest "devOnly": true → 개발자 로그인한 앱에서만 보임 (옛 엔진은 packs만 읽어서 안 보임)
 const SRC = path.join(ROOT, 'packs');
 for (const id of fs.readdirSync(SRC)) {
   const dir = path.join(SRC, id);
@@ -68,8 +69,8 @@ for (const id of fs.readdirSync(SRC)) {
   // 스토어에 보일 소개 정보도 같이 싣는다 (형식: packs/README.md)
   const info = {};
   for (const k of ['summary', 'desc', 'author', 'tags', 'workId', 'workUrl', 'workName', 'runner', 'adult', 'cover', 'previews', 'ui', 'updated']) if (m[k] != null) info[k] = m[k];
-  packs.push(Object.assign({ id, name: m.name, version: m.version, minEngine: m.minEngine || null }, info, { rev: d.rev, bytes: d.bytes, base: `${base}packs/${id}/`, files: d.files }));
-  console.log(`팩 ${m.name} v${m.version} (파일 ${d.files.length}개, ${(d.bytes / 1048576).toFixed(1)}MB, rev ${d.rev})`);
+  (m.devOnly ? devPacks : packs).push(Object.assign({ id, name: m.name, version: m.version, minEngine: m.minEngine || null }, info, { rev: d.rev, bytes: d.bytes, base: `${base}packs/${id}/`, files: d.files }));
+  console.log(`${m.devOnly ? '개발자 전용 ' : ''}팩 ${m.name} v${m.version} (파일 ${d.files.length}개, ${(d.bytes / 1048576).toFixed(1)}MB, rev ${d.rev})`);
 }
 
 // 소개 겸 다운로드 페이지
@@ -110,7 +111,7 @@ const cloudCfg = appCfg.cloud && appCfg.cloud.url && appCfg.cloud.anonKey ? { ur
 fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(Object.assign({ updated: new Date().toISOString() }, works, cloudCfg ? { cloud: cloudCfg } : {}), null, 2));
 console.log(`작품 목록 ${(works.works || []).length}개 → catalog.json`);
 
-const bytes = Buffer.from(JSON.stringify({ updated: new Date().toISOString(), app: pkg.version, engine, packs }, null, 2));
+const bytes = Buffer.from(JSON.stringify({ updated: new Date().toISOString(), app: pkg.version, engine, packs, devPacks }, null, 2));
 fs.writeFileSync(path.join(OUT, 'index.json'), bytes);
 if (process.env.CRION_SIGN_KEY) {
   fs.writeFileSync(path.join(OUT, 'index.json.sig'), U.signBytes(bytes, process.env.CRION_SIGN_KEY));

@@ -91,6 +91,9 @@
   const workById = (id) => S.works.find(w => w.id === id) || (S.packWorks || []).find(w => w.id === id);
   const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
   const packFor = (w) => PK.forWork(S.packs, w);
+  // 팩 실행기: academy = 소환수 아카데미 학생 수첩 / safehouse = 안전지대 관리자(프로젝트 A 화면)
+  const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : null;
+  const packViewLabel = (pk) => pk && pk.runner === 'safehouse' ? '게임 화면' : '수첩 화면';
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
 
   // ---------- 성인 작품 구분: 설정에서 '성인 작품 보기'를 켠 경우에만 보인다 (만 19세 이상 본인 확인) ----------
@@ -139,7 +142,8 @@
     try {
       const res = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error(res.status);
-      S.packs = PK.fromIndex(await res.json());
+      S.packIndex = await res.json();
+      S.packs = PK.fromIndex(S.packIndex, { dev: !!S.dev.repo });
       S.packsState = 'ok';
     } catch (e) { S.packsState = 'err'; }
   }
@@ -288,7 +292,7 @@
       <button class="pcover" data-act="pack" data-id="${esc(p.id)}">${p.cover ? `<img src="${esc(p.cover)}" alt="" loading="lazy">` : `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(p.name)}, #2a1f1c)">${esc(p.name.slice(0, 1))}</div>`}</button>
       <div class="pmeta"><button class="name" data-act="pack" data-id="${esc(p.id)}">${esc(p.name)}</button>
         <span>${esc(w ? w.name : p.summary)}</span>
-        <div class="ptags">${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
+        <div class="ptags">${p.devOnly ? '<i class="dev">개발자 전용</i>' : ''}${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
       <button class="btn sm ${st[0] === 'on' ? '' : 'primary'}" data-act="${st[0] === 'on' ? 'pack' : 'pack-install'}" data-id="${esc(p.id)}">${st[0] === 'on' ? I.check : I.down}${st[1]}</button>
     </div>`;
   }
@@ -627,12 +631,15 @@
       return devLoginModal('pw', /401/.test(e.message) ? '저장된 GitHub 열쇠가 만료됐어요. "비밀번호를 잊었어요"로 새 열쇠를 넣어 주세요' : '연결 실패: ' + e.message);
     }
     S.dev.repo = repo; S.dev.fails = 0;
+    refreshPacks();
     closeModal();
     toast('개발자 모드가 켜졌어요');
     go('dev');
     devLoad();
   }
-  function devLock() { S.dev.repo = null; S.dev.data = null; S.dev.previews = {}; if (S.view === 'dev') go('settings'); else render(); toast('개발자 모드를 잠갔어요'); }
+  // 개발자 전용 팩(devPacks)은 개발자 로그인 중에만 스토어에 보인다
+  function refreshPacks() { if (S.packIndex) S.packs = PK.fromIndex(S.packIndex, { dev: !!S.dev.repo }); }
+  function devLock() { S.dev.repo = null; refreshPacks(); S.dev.data = null; S.dev.previews = {}; if (S.view === 'dev') go('settings'); else render(); toast('개발자 모드를 잠갔어요'); }
   async function devLoad() {
     if (!S.dev.repo) return;
     S.dev.busy = 'load'; if (S.view === 'dev') render();
@@ -790,7 +797,7 @@
         <button class="btn ghost" data-act="leave">${I.back}나가기</button>
         <div class="pwork"><div class="mini">${thumbInner(w)}</div><b>${esc(w.name)}</b><span class="badge ${p.pack ? 'pk' : ''}">${p.pack ? '플레이팩' : '크랙 화면'}</span></div>
         <div class="ptools">
-          ${p.pack ? `<button class="btn sm ${p.crack ? 'on' : ''}" data-act="pk-crack" title="크랙 원본 화면과 바꿔 보기">${p.crack ? `${I.book}수첩 화면` : `${I.page}크랙 화면`}</button><span class="sep"></span>` : ''}
+          ${p.pack ? `<button class="btn sm ${p.crack ? 'on' : ''}" data-act="pk-crack" title="크랙 원본 화면과 바꿔 보기">${p.crack ? `${I.book}${packViewLabel(p.pack)}` : `${I.page}크랙 화면`}</button><span class="sep"></span>` : ''}
           <button class="icon-btn" data-act="wv-back" title="뒤로">${I.back}</button>
           <button class="icon-btn" data-act="wv-reload" title="새로고침">${I.reload}</button>
           <button class="icon-btn" data-act="wv-page" title="작품 페이지로">${I.page}</button>
@@ -839,7 +846,7 @@
     const saved = (S.settings.workUrls || {})[w.id];
     const useSaved = !fresh && saved && P.openMode === 'continue';
     const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
-    const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && pk.runner === 'academy' && PK.compatible(pk, S.info.engineVersion) && window.CrionPackRun ? pk : null;
+    const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && runnerOf(pk) && PK.compatible(pk, S.info.engineVersion) ? pk : null;
     S.play = { work: w, url: useSaved && !usePack ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false };
     S.view = 'play';
     store.recordOpen(w.id);
@@ -859,7 +866,7 @@
       const manifest = await files.json('manifest.json');
       const data = await files.json('data.json');
       if (!S.play || S.play.pack !== p) return;
-      runner = window.CrionPackRun.start({
+      runner = runnerOf(p).start({
         el: box, pack: p, files, manifest, data, work: S.play.work,
         send: (text) => { const v = wv(); if (v) v.send('crion:send', { text }); },
         action: (name) => { const v = wv(); if (v) v.send('crion:action', name); },
@@ -1047,7 +1054,7 @@
       case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
       case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
       case 'pack-play': { const p = S.packs.find(x => x.id === id); const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
-      case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); el.classList.toggle('on', S.play.crack); el.innerHTML = S.play.crack ? `${I.book}수첩 화면` : `${I.page}크랙 화면`; } break;
+      case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); el.classList.toggle('on', S.play.crack); el.innerHTML = S.play.crack ? `${I.book}${packViewLabel(S.play.pack)}` : `${I.page}크랙 화면`; } break;
       // 커뮤니티
       case 'comm-tab': S.commTab = el.dataset.v; if (S.commTab === 'news') markNewsSeen(); render(); break;
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아포칼립스 안전지대의 관리자 · 석벽빌라 미리보기</title>
+<style>
+  :root { --accent: #e3a52b; --pill: #f2582f; --bg: #0f1012; --text: #f1ede4; --sub: #a3a7ad; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(120% 90% at 30% 0%, #2d2a25, var(--bg) 60%); color: var(--text); font-family: 'Noto Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; overflow: hidden; }
+  .wrap { height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 16px 18px; }
+  header b { font-size: 17px; letter-spacing: .02em; }
+  header span { display: block; font-size: 12.5px; color: var(--sub); }
+  .stage { position: relative; min-height: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px rgba(227,165,43,.45), 0 18px 40px rgba(0,0,0,.45); background: #0b0b0c; }
+  .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .6s ease; }
+  .stage img.on { opacity: 1; }
+  .cap { position: absolute; left: 14px; bottom: 14px; max-width: 70%; padding: 10px 14px; border-radius: 12px; background: rgba(239,230,203,.96); color: #1d1c1a; font-size: 13.5px; line-height: 1.6; box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+  .cap b { display: block; font-size: 15px; margin-bottom: 2px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  nav button { font: inherit; font-size: 13px; font-weight: 700; color: var(--text); padding: 7px 14px; border-radius: 999px; border: 0; cursor: pointer; background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(242,88,47,.45); }
+  nav button.on { color: #1a0c06; background: var(--pill); box-shadow: none; }
+  .note { text-align: center; font-size: 12px; color: var(--sub); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><b>석벽빌라 플레이팩 · 개발자 테스트판</b><span>예시 장면이에요. 실제 플레이에서는 크랙 응답을 읽어 이렇게 보여 줘요. 배경 그림은 크랙 응답에 나온 그림이 들어가요.</span></header>
+  <div class="stage" id="stage"></div>
+  <div><nav id="nav"></nav><p class="note">지시서·스마트폰 버튼은 입력칸에 글만 채워요 · 보내기는 직접 · 언제든 크랙 화면으로 돌아갈 수 있어요</p></div>
+</div>
+<script>
+  var S = [
+    ['shot1.webp', '로비', '응답 그림이 나온 순서대로 풀화면 배경이 되고, 왼쪽 아래 대사창에 이름·행동·대사가 흘러요. 위에는 일차·장소·자원, 오른쪽은 관리인 스마트폰.'],
+    ['shot2.webp', '건물관리 도면', '지하 발전기실부터 옥상까지 층별 손그림 평면도. 호실마다 입주한 주민 이름이 적혀요. 알약 버튼을 누르면 지시서가 열려요.'],
+    ['shot3.webp', '파견 지도', '해령시 손그림 지도. 소문을 듣기 전엔 ‘?’. 파티·형태를 고르면 지시 문장이 만들어져 입력칸에 채워져요.']
+  ];
+  var stage = document.getElementById('stage'), nav = document.getElementById('nav'), i = 0, imgs = [], cap = document.createElement('div');
+  cap.className = 'cap';
+  S.forEach(function (s, k) {
+    var im = document.createElement('img'); im.src = s[0]; im.alt = s[1]; stage.appendChild(im); imgs.push(im);
+    var b = document.createElement('button'); b.textContent = s[1]; b.onclick = function () { show(k); clearInterval(t); }; nav.appendChild(b);
+  });
+  stage.appendChild(cap);
+  function show(k) { i = k; imgs.forEach(function (m, j) { m.className = j === k ? 'on' : ''; }); [].forEach.call(nav.children, function (b, j) { b.className = j === k ? 'on' : ''; }); cap.innerHTML = '<b>' + S[k][1] + '</b>' + S[k][2]; }
+  show(0);
+  var t = setInterval(function () { show((i + 1) % S.length); }, 5000);
+</script>
+</body>
+</html>

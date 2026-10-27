@@ -82,6 +82,21 @@ test('index.json 파일 목록·rev 를 싣고 이상한 경로는 뺀다, 작�
   assert.ok(i.needsUpdate(Object.assign({}, l[0], { rev: 'r3' })), '같은 버전이라도 파일이 바뀌면 업데이트');
 });
 
+t.push(['개발자 전용 팩: 개발자 로그인일 때만 목록에', () => {
+  const sha = 'a'.repeat(64);
+  const idx = { packs: [{ id: 'a', name: '공개 팩', base: 'https://x/packs/a/', files: [] }], devPacks: [{ id: 'sh', name: '안전지대', base: 'https://x/packs/sh/', runner: 'safehouse', workId: 'safehouse', files: [{ path: 'manifest.json', sha256: sha, size: 1 }] }] };
+  assert.deepStrictEqual(P.fromIndex(idx).map(p => p.id), ['a'], '일반 사용자에겐 안 보임');
+  assert.deepStrictEqual(P.fromIndex(idx, { dev: false }).map(p => p.id), ['a']);
+  const d = P.fromIndex(idx, { dev: true });
+  assert.deepStrictEqual(d.map(p => p.id), ['a', 'sh']);
+  assert.ok(d[1].devOnly && !d[0].devOnly);
+  assert.strictEqual(d[1].runner, 'safehouse');
+  assert.strictEqual(P.forWork(d, { id: 'safehouse', name: '아포칼립스 안전지대의 관리자' }).id, 'sh');
+  assert.strictEqual(P.forWork(P.fromIndex(idx), { id: 'safehouse', name: '아포칼립스 안전지대의 관리자' }), null, '팔로워에겐 작품 연결도 없음');
+  // 같은 id가 공개 목록에도 있으면 공개 쪽 하나만
+  assert.strictEqual(P.fromIndex({ packs: idx.devPacks, devPacks: idx.devPacks }, { dev: true }).length, 1);
+}]);
+
 let fail = 0;
 for (const [n, f] of t) {
   try { f(); console.log('  ✔ ' + n); } catch (e) { fail++; console.log('  ✘ ' + n + '\n    ' + e.message); }

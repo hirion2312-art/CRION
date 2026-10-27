@@ -9,11 +9,12 @@
   - `app.js`, `app.css`, `index.html` 화면: 왼쪽 메뉴(홈·스토어·커뮤니티·내 기록·설정), 시작 애니메이션, 첫 실행 사용법
   - `crack-preload.js` 크랙 화면 안 도우미: 주소·대화 화면 여부 알림(이어하기용), 진단. **플레이팩이 켜진 작품에서만**(호스트가 `crion:config {play:true}`) 응답 읽기·보내기(사용자 한 번 누름 = 한 번). 시험 `test/ui/run_preload.py`
   - `packstore.js` 팩 파일 받기·IndexedDB 저장·blob 주소 / `packrun.js` 팩 실행기(runner `academy` = 소환수 아카데미 학생 수첩) / `pk-academy.js` 응답 해석(시험 `test/academy.test.js`) / `pk-academy.css`
-  - `packs.js` 스토어 목록·설치 상태 (시험: `test/packs.test.js`), `store.js` 내 기록 (시험: `test/store.test.js`)
+  - `pk-safehouse-run.js` 팩 실행기(runner `safehouse` = 「아포칼립스 안전지대의 관리자」, 프로젝트 A 화면) / `pk-safehouse.js` 응답 해석(시험 `test/safehouse.test.js`) / `pk-safehouse.css`(`.sh` 아래로 가둠). 화면 시험 `python3 test/ui/run_safehouse.py`
+  - `packs.js` 스토어 목록·설치 상태, 개발자 전용 팩(`index.devPacks`, manifest `devOnly`)은 개발자 로그인 때만 (시험: `test/packs.test.js`), `store.js` 내 기록 (시험: `test/store.test.js`)
   - `dev.js` 개발자 모드(설정 > 개발자 로그인, Ctrl+Shift+D): GitHub 열쇠를 비밀번호로 암호화해 그 컴퓨터에만 저장, 앱에서 작품 추가·수정·숨기기·삭제·순서 → `config/works.json`·`config/thumbs/`에 바로 커밋 (시험: `test/dev.test.js`, `test/ui/run_dev.py`)
   - `cloud.js` 서버(Supabase) 연결(익명 로그인·신고·게시판·관리자 로그인) 시험 `test/cloud.test.js` / `board.js` 게시판·보낸 것·관리자 신고함 화면(시험 `test/ui/run_cloud.py`). 서버 설계도 `supabase/schema.sql`, 만드는 순서 `supabase/README.md`. 주소·키는 `config/app.json`의 `cloud`(비어 있으면 기능 꺼짐 → 디스코드 웹후크로만 전송)
   - `catalog-extract.js` 빈 결과만 돌려줌(작가 프로필 자동 수집 중단 — 남의 작품을 섞어 와서). 작품 목록은 관리 페이지만
-- `packs/<id>/` 플레이팩 (형식: `packs/README.md`). 첫 팩 `hirion.summoner-academy` (화면 시험: `python3 test/ui/run_pack.py`)
+- `packs/<id>/` 플레이팩 (형식: `packs/README.md`). 첫 팩 `hirion.summoner-academy` (화면 시험: `python3 test/ui/run_pack.py`). 두 번째 `hirion.safehouse`(개발자 전용 공개 중 — 히리온이 OK하면 `devOnly` 해제)
 - `config/works.json` 작품 목록·공지 (히리온은 관리 페이지 `site/admin.html`로 고친다)
 - `site/` 다운로드 페이지·관리 페이지
 - `.github/workflows/registry.yml` main push 시 서버(GitHub Pages) 배포

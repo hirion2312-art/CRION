@@ -41,3 +41,11 @@
 - `plus: true` 일 때만 켜지는 화면: 과제 카드(📜 과제·의뢰, D-n), 막 표시(1막~6막), 전설 칸 「봉인된 페이지」(3학년 겨울 전). 포획 연출·▶ 행동 줄·알림 줄(🌀🌟🎯💫⬆️)·행동 힌트 한 줄은 글 형식을 읽는 것이라 두 팩 공통.
 - 같은 작품 이름이 겹치면 **더 긴 `workName`** 팩이 우선(성인판 작품 이름 = 「소환수 아카데미 성인판」). 성인판 작품은 관리 페이지에 등록하고 19세 표시를 켜야 연결된다.
 - 시험: `python3 test/ui/run_pack.py`(전연령) · `PACK=hirion.summoner-academy-adult python3 test/ui/run_pack.py`(성인판).
+
+## 안전지대 팩 · 개발자 전용 공개 (엔진 0.8.0~)
+- `hirion.safehouse` = 「아포칼립스 안전지대의 관리자」. `runner: "safehouse"` → `src/renderer/pk-safehouse-run.js`(화면) + `pk-safehouse.js`(응답 해석, 시험 `node test/safehouse.test.js`) + `pk-safehouse.css`(히리온 게임 「프로젝트 A」 디자인 이식, 모든 선택자 `.sh` 아래).
+  - 크랙 AI가 그대로 진행. 팩은 상태창(📍…D일차, 🍚…, 🛠️일과, 🚶파견, 🚪대기, 🏢확장)·📦 변동 줄·`이름💬 행동 "대사"`·응답 그림을 읽어 로비·스마트폰·도면·인사 파일·지도·연구소·도감·일지로 그린다. 크랙 출력에 새 표식을 요구하지 않는다.
+  - `data.json`: 명부(번호·이름·성별·나이만), 지역(권역·최소 인원·표준 일수·당일치기·지도 좌표), 일과 이름, 배급 방식, 팁. **능력·성격·진실·등급·기본치·교전·전리품은 넣지 않는다**(숨김 값).
+  - 시험: `python3 test/ui/run_safehouse.py` → `test/out/sh_*.png`.
+- `devOnly: true` (manifest) → `make-registry.js`가 `index.json`의 `packs`가 아니라 **`devPacks`**에 싣는다. 앱은 개발자 로그인 중일 때만 `devPacks`를 합쳐 보여 준다(스토어 카드에 '개발자 전용'). 옛 엔진(0.7.x)은 `packs`만 읽으므로 아예 안 보인다.
+  - 공개할 때: manifest의 `devOnly` 줄을 지우고 `version`을 올려 push.

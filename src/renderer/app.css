@@ -462,3 +462,4 @@ select.field { height: 42px; }
 .hint-list { margin: 8px 0 12px; padding-left: 18px; line-height: 1.8; color: #444; font-size: 14px; }
 .hint .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted, #8a8a93); margin-bottom: 12px; }
 .hint .row.end { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.ptags i.dev { background: #fff1d6; color: #9a5a00; }
