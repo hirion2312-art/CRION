@@ -349,5 +349,14 @@
       "id": "daily",
       "name": "일상"
     }
+  ],
+  "banners": [
+    {
+      "id": "smvqjpgsd",
+      "img": "banner-smvqjpgsd-mvqjq6cv.webp",
+      "work": "wmvpb0ohz",
+      "title": "소환수 아카데미",
+      "eyebrow": "신작"
+    }
   ]
 }
