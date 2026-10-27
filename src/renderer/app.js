@@ -959,7 +959,13 @@
       if (pk0 && PK.compatible(pk0, S.info.engineVersion) && !installed.has(pk0.id) && lsGet('crion.nohint.' + pk0.id) !== '1') { packHint(w, pk0, fresh); return; }
     }
     closeModal();
-    const saved = (S.settings.workUrls || {})[w.id];
+    let saved = (S.settings.workUrls || {})[w.id];
+    // 이어하기 주소가 다른 작품의 것과 같으면(앞 작품 화면이 섞여 기억된 잔여물) 이 작품 것에서 지운다
+    if (saved) {
+      const nu = (u) => { try { const x = new URL(u); return (x.origin + x.pathname).replace(/\/$/, ''); } catch (e) { return String(u || ''); } };
+      const wu = S.settings.workUrls || {};
+      if (Object.keys(wu).some(k => k !== w.id && wu[k] && nu(wu[k]) === nu(saved))) { const rest = Object.assign({}, wu); delete rest[w.id]; save({ workUrls: rest }); saved = ''; }
+    }
     const useSaved = !fresh && saved && P.openMode === 'continue';
     const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
     const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && runnerOf(pk) && PK.compatible(pk, S.info.engineVersion) ? pk : null;
@@ -978,6 +984,7 @@
     const box = $('#pk');
     if (!p || !box) return;
     try {
+      try { PK.cleanForeignUrls(window.localStorage, p.id); } catch (err) { /* 정리 못 해도 계속 */ }
       const files = await PS.open(p);
       const manifest = await files.json('manifest.json');
       const data = await files.json('data.json');

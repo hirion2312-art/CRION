@@ -49,6 +49,40 @@
       packs.filter(p => p.workName && work.name && nm(work.name).includes(nm(p.workName))).sort((a, b) => nm(b.workName).length - nm(a.workName).length)[0] || null;
   }
 
+  // 다른 팩(작품)의 크랙 주소가 이 팩의 '작품 화면 주소·세이브'로 잘못 기억된 것을 정리한다.
+  //  (앞 작품 화면의 신호가 새 작품으로 섞이던 예전 버그가 남긴 잔여물 — 안전지대를 열면 소환수 아카데미 대화가 열리던 원인)
+  //  작품마다 크랙 주소는 달라야 하므로, 이 팩의 주소가 다른 팩에도 있으면 이 팩 쪽을 지운다. 지운 개수를 돌려준다
+  function cleanForeignUrls(storage, packId) {
+    if (!storage || !packId) return 0;
+    const norm = (u) => { try { const x = new URL(u); return (x.origin + x.pathname).replace(/\/$/, ''); } catch (e) { return String(u || ''); } };
+    const mine = 'crion.pk.' + packId + '.';
+    const keys = [];
+    try { for (let i = 0; i < storage.length; i++) keys.push(storage.key(i)); } catch (e) { return 0; }
+    const rd = (k) => { try { return JSON.parse(storage.getItem(k)); } catch (e) { return null; } };
+    const foreign = new Set();
+    const own = [];
+    for (const k of keys) {
+      const m = /^crion\.pk\.(.+?)\.(detail|saves)\.(.+)$/.exec(k || '');
+      if (!m) continue;
+      if (k.startsWith(mine)) { own.push([k, m[2]]); continue; }
+      const v = rd(k);
+      if (m[2] === 'detail' && typeof v === 'string' && v) foreign.add(norm(v));
+      else if (m[2] === 'saves' && Array.isArray(v)) v.forEach(x => { if (x && x.url) foreign.add(norm(x.url)); });
+    }
+    let n = 0;
+    for (const [k, kind] of own) {
+      const v = rd(k);
+      if (kind === 'detail') {
+        if (typeof v === 'string' && v && foreign.has(norm(v))) { try { storage.removeItem(k); n++; } catch (e) { /* 안 지워짐 */ } }
+      } else if (Array.isArray(v)) {
+        let ch = 0;
+        v.forEach(x => { if (x && x.url && foreign.has(norm(x.url))) { x.url = ''; ch++; } });   // 세이브는 남기고 잘못된 대화 연결만 끊는다 ('대화 연결 전' 표시)
+        if (ch) { try { storage.setItem(k, JSON.stringify(v)); n += ch; } catch (e) { /* 안 저장됨 */ } }
+      }
+    }
+    return n;
+  }
+
   function Installed(storage) { this.s = storage || null; this.m = null; }
   Installed.prototype.all = function () {
     if (this.m) return this.m;
@@ -76,7 +110,7 @@
     });
   }
 
-  const api = { fromIndex, compatible, forWork, Installed, filter, cmpVer };
+  const api = { fromIndex, compatible, forWork, Installed, filter, cmpVer, cleanForeignUrls };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CrionPacks = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -97,6 +97,25 @@ t.push(['개발자 전용 팩: 개발자 로그인일 때만 목록에', () => {
   assert.strictEqual(P.fromIndex({ packs: idx.devPacks, devPacks: idx.devPacks }, { dev: true }).length, 1);
 }]);
 
+test('다른 팩의 크랙 주소가 섞여 기억된 것을 정리 (안전지대를 열면 아카데미가 열리던 문제)', () => {
+  const m = {};
+  const st = { get length() { return Object.keys(m).length; }, key: i => Object.keys(m)[i] || null, getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; } };
+  const J = JSON.stringify;
+  const ACA = 'https://crack.wrtn.ai/stories/ACADEMY', SH = 'https://crack.wrtn.ai/stories/SAFE';
+  m['crion.pk.hirion.summoner-academy.detail.summoner-academy'] = J(ACA);
+  m['crion.pk.hirion.summoner-academy.saves.summoner-academy'] = J([{ id: 'a1', url: 'https://crack.wrtn.ai/u/me/c/AAA' }]);
+  m['crion.pk.hirion.safehouse.detail.safehouse'] = J(ACA + '/');   // 잘못 섞임
+  m['crion.pk.hirion.safehouse.saves.safehouse'] = J([{ id: 's1', url: 'https://crack.wrtn.ai/u/me/c/AAA?x=1', last: 5 }, { id: 's2', url: 'https://crack.wrtn.ai/u/me/c/SSS' }, { id: 's3', url: '' }]);
+  assert.strictEqual(P.cleanForeignUrls(st, 'hirion.safehouse'), 2);
+  assert.ok(!('crion.pk.hirion.safehouse.detail.safehouse' in m), '잘못된 작품 화면 주소는 지운다');
+  const sv = JSON.parse(m['crion.pk.hirion.safehouse.saves.safehouse']);
+  assert.deepStrictEqual(sv.map(x => x.url), ['', 'https://crack.wrtn.ai/u/me/c/SSS', ''], '섞인 대화 연결만 끊고 세이브는 남긴다');
+  assert.strictEqual(JSON.parse(m['crion.pk.hirion.summoner-academy.saves.summoner-academy'])[0].url, 'https://crack.wrtn.ai/u/me/c/AAA', '아카데미 쪽은 그대로');
+  m['crion.pk.hirion.safehouse.detail.safehouse'] = J(SH);
+  assert.strictEqual(P.cleanForeignUrls(st, 'hirion.safehouse'), 0, '자기 주소는 건드리지 않는다');
+  assert.strictEqual(P.cleanForeignUrls(null, 'x'), 0);
+});
+
 let fail = 0;
 for (const [n, f] of t) {
   try { f(); console.log('  ✔ ' + n); } catch (e) { fail++; console.log('  ✘ ' + n + '\n    ' + e.message); }
