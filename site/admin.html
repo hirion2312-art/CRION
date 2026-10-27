@@ -212,7 +212,7 @@
 </div>
 <div id="toast"></div>
 <input type="file" id="file" accept="image/png,image/jpeg,image/webp" class="hidden">
-<input type="file" id="slideFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+<input type="file" id="slideFile" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" class="hidden">
 <input type="file" id="newsFile" accept="image/png,image/jpeg,image/webp" class="hidden">
 <input type="file" id="bgmFile" accept="audio/mpeg,.mp3" class="hidden">
 
@@ -648,6 +648,7 @@
   };
 
   // ---------- 홈 슬라이드 ----------
+  const isVidName = (u) => /\.(mp4|webm|m4v)(\?|#|$)/i.test(String(u || '')) || /^blob:/.test(String(u || '')) && /video/.test(String(u));
   const slideSrc = (b) => slideUp[b.id] ? slideUp[b.id].preview : !b.img ? '' : /^https?:/.test(b.img) ? b.img : RAW('config/thumbs/' + b.img);
   function renderSlides() {
     const opts = (sel) => '<option value="">(연결 안 함 · 사진·글만)</option>' + data.works.map(w => `<option value="${esc(w.id)}" ${w.id === sel ? 'selected' : ''}>${esc(w.name)}${w.adult ? ' (19)' : ''}</option>`).join('');
@@ -655,7 +656,7 @@
       const src = slideSrc(b);
       return `<div class="work slide-row" data-i="${i}" data-id="${esc(b.id)}">
         <button class="handle" data-drag title="끌어서 순서 바꾸기">⠿</button>
-        <div class="sthumb" style="${src ? `background-image:url('${esc(src)}')` : ''}">${src ? '' : '사진 없음<br>(작품 썸네일로 보여요)'}</div>
+        <div class="sthumb" style="${src && !isVidName(src) ? `background-image:url('${esc(src)}')` : ''}">${src ? (isVidName(src) ? `<video src="${esc(src)}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></video>` : '') : '사진·영상 없음<br>(작품 썸네일로 보여요)'}</div>
         <div class="fields">
           <div class="full"><label>연결할 작품</label><select data-sf="work">${opts(b.work)}</select></div>
           <div><label>큰 제목 (선택 · 사진에 글자가 있으면 비워 두세요)</label><input type="text" data-sf="title" value="${esc(b.title || '')}" maxlength="40"></div>
@@ -664,8 +665,8 @@
           <div class="full"><label>자세히 링크 (선택, https · 작품 없이 이벤트 안내도 돼요)</label><input type="text" data-sf="link" value="${esc(b.link || '')}" placeholder="https://..."></div>
         </div>
         <div class="side">
-          <button class="btn sm" data-sa="img">${src ? '사진 바꾸기' : '사진 올리기'}</button>
-          ${src ? '<button class="btn sm" data-sa="img-del">사진 빼기</button>' : ''}
+          <button class="btn sm" data-sa="img">${src ? '사진·영상 바꾸기' : '사진·영상 올리기'}</button>
+          ${src ? '<button class="btn sm" data-sa="img-del">빼기</button>' : ''}
           <label class="feat"><input type="checkbox" data-sa="on" ${b.on === false ? '' : 'checked'}> 보이기</label>
           ${b.on === false ? '<span class="pill off">숨김</span>' : ''}
           <button class="btn sm danger" data-sa="del">삭제</button>
@@ -692,6 +693,18 @@
   $('#slideFile').addEventListener('change', async () => {
     const f = $('#slideFile').files[0];
     if (!f || !slideFor) return;
+    // 영상(mp4·webm): 그대로 올린다 (소리 없이 반복 재생됨). 8MB까지
+    if (/^video\//.test(f.type) || /\.(mp4|webm)$/i.test(f.name)) {
+      if (f.size > 8 * 1048576) { toast('영상이 너무 커요 (8MB까지). 10초 안쪽·1280px 정도로 줄여 주세요'); return; }
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
+      const ext = /webm/i.test(f.type + f.name) ? 'webm' : 'mp4';
+      const name = 'banner-' + slideFor.id + '-' + Date.now().toString(36) + '.' + ext;
+      slideUp[slideFor.id] = { name, b64, preview: URL.createObjectURL(f) + '#video.' + ext };
+      slideFor.img = name;
+      renderSlides(); markDirty();
+      toast('영상을 넣었어요. 배포하기를 눌러야 올라가요 (앱에선 소리 없이 반복 재생돼요)');
+      return;
+    }
     // 1600px 폭 webp 로 줄여서 올린다 (16:9 가 아니면 가운데 기준으로 잘라 맞춤)
     const img = await createImageBitmap(f);
     const W = Math.min(1600, img.width), H = Math.round(W * 9 / 16);

@@ -192,7 +192,10 @@
       + (c ? `<button class="btn ${big ? 'big glass' : ''}" data-act="play-fresh" data-id="${esc(w.id)}" title="작품 페이지부터 열기">처음 화면</button>` : '');
   }
   // ---------- 오늘의 추천작 슬라이드 ----------
-  const packCoverOf = (w) => { const pk = packFor(w); return (pk && pk.cover) || ''; };
+  const packCoverOf = (w) => { const pk = packFor(w); return (pk && (pk.coverVideo || pk.cover)) || ''; };
+  // 영상(mp4·webm)이면 소리 없이 반복 재생, 아니면 그림
+  const isVid = (u) => /\.(mp4|webm|m4v)(\?|#|$)/i.test(String(u || ''));
+  const mediaTag = (src, opt) => { opt = opt || {}; return isVid(src) ? `<video src="${esc(src)}" ${opt.poster ? `poster="${esc(opt.poster)}"` : ''} autoplay muted loop playsinline ${opt.controls ? 'controls' : ''} preload="${opt.lazy ? 'metadata' : 'auto'}"></video>` : `<img src="${esc(src)}" alt="${esc(opt.alt || '')}" ${opt.lazy ? 'loading="lazy"' : ''}>`; };
   function homeSlides() { return HM.slides(S.catalog, S.works, { packCover: packCoverOf, recent: (S.settings.recent || []) }); }
   function slideHtml(sl, i, cur) {
     const w = sl.work;
@@ -204,8 +207,8 @@
     if (sl.img) {
       // 광고형: 사진이 슬라이드를 꽉 채우고(사진 안에 제목이 있는 경우가 많아서) 아래쪽에 버튼만. 관리 페이지에서 글을 적었으면 같이
       return `<article class="slide wide ${on}" data-i="${i}" aria-hidden="${on ? 'false' : 'true'}">
-        <div class="slide-bg" style="background-image:${cssUrl(sl.img)}"></div>
-        <div class="slide-art"><img src="${esc(sl.img)}" alt="${esc(sl.title)}" ${i ? 'loading="lazy"' : ''}></div>
+        <div class="slide-bg" ${isVid(sl.img) ? '' : `style="background-image:${cssUrl(sl.img)}"`}></div>
+        <div class="slide-art">${mediaTag(sl.img, { alt: sl.title, lazy: !!i })}</div>
         <div class="slide-in"><div class="hero-text">
           <span class="eyebrow">${esc(eb)}</span>
           ${sl.own.title ? `<h2>${esc(sl.title)}${w && w.adult ? ' <span class="adult-dot">19</span>' : ''}</h2>` : `<h2 class="sr">${esc(sl.title)}</h2>`}
@@ -358,7 +361,7 @@
     const w = (p.workId && workById(p.workId)) || S.works.find(x => p.workUrl && x.url && PK.forWork([p], x));
     const st = installed.needsUpdate(p) ? ['update', '업데이트'] : installed.has(p.id) ? ['on', '설치됨'] : ['', '받기'];
     return `<div class="pcard">
-      <button class="pcover" data-act="pack" data-id="${esc(p.id)}">${p.cover ? `<img src="${esc(p.cover)}" alt="" loading="lazy">` : `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(p.name)}, #2a1f1c)">${esc(p.name.slice(0, 1))}</div>`}</button>
+      <button class="pcover" data-act="pack" data-id="${esc(p.id)}">${p.coverVideo ? mediaTag(p.coverVideo, { poster: p.cover, lazy: true }) : p.cover ? `<img src="${esc(p.cover)}" alt="" loading="lazy">` : `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(p.name)}, #2a1f1c)">${esc(p.name.slice(0, 1))}</div>`}</button>
       <div class="pmeta"><button class="name" data-act="pack" data-id="${esc(p.id)}">${esc(p.name)}</button>
         <span>${esc(w ? w.name : p.summary)}</span>
         <div class="ptags">${p.devOnly ? '<i class="dev">개발자 전용</i>' : ''}${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
@@ -401,11 +404,11 @@
       : installed.needsUpdate(p) ? `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}업데이트</button>`
         : inst ? `<button class="btn big" data-act="pack-on" data-id="${esc(p.id)}" data-v="${installed.isOn(p.id) ? 'false' : 'true'}">${installed.isOn(p.id) ? '끄기' : '켜기'}</button><button class="btn big" data-act="pack-remove" data-id="${esc(p.id)}">${I.trash}지우기</button>`
           : `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}받기</button>`;
-    modal(`<div class="pack-head">${p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
+    modal(`<div class="pack-head">${p.coverVideo ? mediaTag(p.coverVideo, { poster: p.cover }) : p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
       <div class="body">
         <div class="pack-title"><div><h3>${esc(p.name)}</h3><span>${esc(p.author)} · v${esc(p.version)}${p.bytes ? ' · ' + (p.bytes / 1048576).toFixed(1) + 'MB' : ''}${w ? ' · ' + esc(w.name) : ''}</span></div>
           <div class="row">${p.ui ? `<button class="btn big" data-act="pack-preview" data-id="${esc(p.id)}">${I.eye}화면 미리보기</button>` : ''}${btn}</div></div>
-        ${p.previews.length ? `<div class="shots">${p.previews.map(s => `<button data-act="view-img" data-src="${esc(s)}"><img src="${esc(s)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
+        ${p.previews.length ? `<div class="shots">${(p.coverVideo ? [p.coverVideo] : []).concat(p.previews).map(s => `<button data-act="view-img" data-src="${esc(s)}">${mediaTag(s, { lazy: true })}</button>`).join('')}</div>` : ''}
         ${p.summary ? `<p class="lead">${esc(p.summary)}</p>` : ''}
         ${p.desc ? `<div class="guide">${mdLite(p.desc)}</div>` : ''}
         ${(w && w.url) || p.workUrl ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-play" data-id="${esc(p.id)}">${I.play}이 작품 플레이</button></div>` : '<p class="muted">연결된 크랙 작품 주소가 아직 없어요. 작품이 등록되면 바로 플레이할 수 있어요.</p>'}
@@ -1319,7 +1322,7 @@
       case 'acct-logout': await syncNow(false); await cloud.signOut(); SY.forget(); BD.reset(); toast('로그아웃했어요. 이 기기의 기록은 그대로예요'); render(); break;
       case 'close-notice': if (S.notice) lsSet(noticeId(S.notice), '1'); refresh(); break;
       case 'open-link': if (el.dataset.url) api.openExternal(el.dataset.url); break;
-      case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
+      case 'view-img': modal(`<div class="lightbox">${mediaTag(el.dataset.src, { controls: true })}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
       case 'forget-cont': { const u = Object.assign({}, S.settings.workUrls); delete u[id]; await save({ workUrls: u }); openInfo(id); refresh(); break; }
       case 'forget-all': await save({ workUrls: {} }); toast('이어하기 기억을 지웠어요'); render(); break;
       // 플레이 화면

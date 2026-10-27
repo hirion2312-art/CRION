@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.summoner-academy-adult",
   "name": "소환수 아카데미 PLUS · 성인판",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "runner": "academy",
   "workName": "소환수 아카데미 PLUS",
   "workUrl": "https://share.crack.wrtn.ai/lw2v3tq",
@@ -16,7 +16,7 @@
     "배틀",
     "도감"
   ],
-  "cover": "cover.webp",
+  "cover": "store/cover.webp",
   "previews": [
     "shot1.webp",
     "shot2.webp",
@@ -230,5 +230,6 @@
     ]
   },
   "adult": true,
-  "plus": true
+  "plus": true,
+  "coverVideo": "store/cover.mp4"
 }

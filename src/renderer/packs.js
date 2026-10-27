@@ -26,7 +26,7 @@
         summary: String(p.summary || ''), desc: String(p.desc || ''), author: String(p.author || '히리온'),
         tags: Array.isArray(p.tags) ? p.tags.map(String).slice(0, 6) : [],
         workId: p.workId ? String(p.workId) : '', workUrl: p.workUrl ? String(p.workUrl) : '',
-        cover: at(p.cover), previews: (Array.isArray(p.previews) ? p.previews : []).map(at).filter(Boolean).slice(0, 8),
+        cover: at(p.cover), coverVideo: at(p.coverVideo), previews: (Array.isArray(p.previews) ? p.previews : []).map(at).filter(Boolean).slice(0, 8),
         ui: at(p.ui), minEngine: p.minEngine || null, bytes: Number(p.bytes) || 0, updated: p.updated || '',
         workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '', adult: !!p.adult, devOnly: !!p.devOnly,
         base: String(p.base), rev: String(p.rev || ''),

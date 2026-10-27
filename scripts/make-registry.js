@@ -64,11 +64,15 @@ for (const id of fs.readdirSync(SRC)) {
   if (!fs.existsSync(mp)) continue;
   const m = JSON.parse(fs.readFileSync(mp, 'utf8'));
   if (m.id !== id) { console.error(`건너뜀: 폴더 이름(${id})과 manifest id(${m.id})가 달라요`); continue; }
-  const d = describe(dir);
-  copyAll(dir, path.join(OUT, 'packs', id), d.files);
+  const all = describe(dir);
+  copyAll(dir, path.join(OUT, 'packs', id), all.files);
+  // store/ 폴더(스토어 표지 사진·영상)는 서버에만 올리고, 팩을 받을 때는 안 받는다
+  const d = { files: all.files.filter(f => !/^store\//.test(f.path)) };
+  d.rev = U.sha256(Buffer.from(d.files.map(f => f.path + f.sha256).join('\n'))).slice(0, 12);
+  d.bytes = d.files.reduce((a, f) => a + f.size, 0);
   // 스토어에 보일 소개 정보도 같이 싣는다 (형식: packs/README.md)
   const info = {};
-  for (const k of ['summary', 'desc', 'author', 'tags', 'workId', 'workUrl', 'workName', 'runner', 'adult', 'cover', 'previews', 'ui', 'updated']) if (m[k] != null) info[k] = m[k];
+  for (const k of ['summary', 'desc', 'author', 'tags', 'workId', 'workUrl', 'workName', 'runner', 'adult', 'cover', 'coverVideo', 'previews', 'ui', 'updated']) if (m[k] != null) info[k] = m[k];
   (m.devOnly ? devPacks : packs).push(Object.assign({ id, name: m.name, version: m.version, minEngine: m.minEngine || null }, info, { rev: d.rev, bytes: d.bytes, base: `${base}packs/${id}/`, files: d.files }));
   console.log(`${m.devOnly ? '개발자 전용 ' : ''}팩 ${m.name} v${m.version} (파일 ${d.files.length}개, ${(d.bytes / 1048576).toFixed(1)}MB, rev ${d.rev})`);
 }

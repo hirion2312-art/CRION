@@ -631,3 +631,10 @@ select.field { height: 42px; }
 .news.has-img .news-h { margin-top: 0; }
 .news-list-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
 .news-list-wide .news { margin: 0; }
+/* 영상 표지·슬라이드 */
+.pcover video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pack-head video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shots video { height: 100%; width: auto; display: block; }
+.lightbox video { max-width: 100%; max-height: calc(100vh - 80px); border-radius: 18px; display: block; }
+.slide-art video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slide.wide .slide-bg:empty { background: #0c0b10; }
