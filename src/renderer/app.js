@@ -97,6 +97,9 @@
   const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : pk.runner === 'univ' ? window.CrionUnivRun : null;
   const packViewLabel = (pk) => pk && pk.runner === 'safehouse' ? '게임 화면' : pk && pk.runner === 'univ' ? '폰 화면' : '수첩 화면';
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
+  // 출시 전 팩(manifest soon): 작품은 보이되 플레이는 막고, 팩은 미리 받아 둘 수 있다(사전 다운로드)
+  const soonPack = (w) => { const pk = w && packFor(w); return pk && pk.soon ? pk : null; };
+  const SOON_NOTE = '출시 준비 중이에요. 플레이팩은 지금 미리 받아 둘 수 있어요';
 
   // ---------- 성인 작품 구분: 설정에서 '성인 작품 보기'를 켠 경우에만 보인다 (만 19세 이상 본인 확인) ----------
   function applyAge() { S.works = (S.worksAll || []).filter(w => P.adult || !w.adult); }
@@ -187,6 +190,8 @@
 
   function playBtns(w, big) {
     if (!w.url) return `<button class="btn ${big ? 'big' : ''}" disabled>준비 중</button>`;
+    const sp = soonPack(w);
+    if (sp) return `<button class="btn ${big ? 'big' : ''} soon" disabled>${esc(sp.soon)}</button><button class="btn primary ${big ? 'big' : ''}" data-act="pack" data-id="${esc(sp.id)}">${installed.has(sp.id) ? I.check + '미리 받아 둠' : I.down + '사전 다운로드'}</button>`;
     const c = hasCont(w);
     return `<button class="btn primary ${big ? 'big' : ''}" data-act="play" data-id="${esc(w.id)}">${I.play}${c && P.openMode === 'continue' ? '이어하기' : '플레이'}</button>`
       + (c ? `<button class="btn ${big ? 'big glass' : ''}" data-act="play-fresh" data-id="${esc(w.id)}" title="작품 페이지부터 열기">처음 화면</button>` : '');
@@ -287,7 +292,7 @@
       <button class="thumb" data-act="${w.url ? 'play' : 'info'}" data-id="${esc(w.id)}" title="${esc(w.name)}">${thumbInner(w)}
         ${w.featured ? '<span class="tag hot">추천</span>' : ''}${ageTag(w)}
         ${pk ? `<span class="tag pack">${installed.has(pk.id) ? '전용 화면' : '플레이팩'}</span>` : ''}
-        ${w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
+        ${pk && pk.soon ? `<span class="tag soon">${esc(pk.soon)}</span>` : w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
       </button>
       <div class="meta"><div class="meta-t"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div>
         <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button></div>
@@ -361,12 +366,12 @@
   // ---------- 스토어 ----------
   function packCard(p) {
     const w = (p.workId && workById(p.workId)) || S.works.find(x => p.workUrl && x.url && PK.forWork([p], x));
-    const st = installed.needsUpdate(p) ? ['update', '업데이트'] : installed.has(p.id) ? ['on', '설치됨'] : ['', '받기'];
+    const st = installed.needsUpdate(p) ? ['update', '업데이트'] : installed.has(p.id) ? ['on', p.soon ? '미리 받아 둠' : '설치됨'] : ['', p.soon ? '사전 다운로드' : '받기'];
     return `<div class="pcard">
       <button class="pcover" data-act="pack" data-id="${esc(p.id)}">${p.coverVideo ? mediaTag(p.coverVideo, { poster: p.cover, lazy: true }) : p.cover ? `<img src="${esc(p.cover)}" alt="" loading="lazy">` : `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(p.name)}, #2a1f1c)">${esc(p.name.slice(0, 1))}</div>`}</button>
       <div class="pmeta"><button class="name" data-act="pack" data-id="${esc(p.id)}">${esc(p.name)}</button>
         <span>${esc(w ? w.name : p.summary)}</span>
-        <div class="ptags">${p.devOnly ? '<i class="dev">개발자 전용</i>' : ''}${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
+        <div class="ptags">${p.soon ? `<i class="soon">${esc(p.soon)}</i>` : ''}${p.devOnly ? '<i class="dev">개발자 전용</i>' : ''}${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
       <button class="btn sm ${st[0] === 'on' ? '' : 'primary'}" data-act="${st[0] === 'on' ? 'pack' : 'pack-install'}" data-id="${esc(p.id)}">${st[0] === 'on' ? I.check : I.down}${st[1]}</button>
     </div>`;
   }
@@ -406,7 +411,7 @@
     const btn = !ok ? '<button class="btn big" disabled>앱 업데이트 후 받을 수 있어요</button>'
       : installed.needsUpdate(p) ? `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}업데이트</button>`
         : inst ? `<button class="btn big" data-act="pack-on" data-id="${esc(p.id)}" data-v="${installed.isOn(p.id) ? 'false' : 'true'}">${installed.isOn(p.id) ? '끄기' : '켜기'}</button><button class="btn big" data-act="pack-remove" data-id="${esc(p.id)}">${I.trash}지우기</button>`
-          : `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}받기</button>`;
+          : `<button class="btn primary big" data-act="pack-install" data-id="${esc(p.id)}">${I.down}${p.soon ? '사전 다운로드' : '받기'}</button>`;
     modal(`<div class="pack-head">${p.coverVideo ? mediaTag(p.coverVideo, { poster: p.cover }) : p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>
       <div class="body">
         <div class="pack-title"><div><h3>${esc(p.name)}</h3><span>${esc(p.author)} · v${esc(p.version)}${p.bytes ? ' · ' + (p.bytes / 1048576).toFixed(1) + 'MB' : ''}${w ? ' · ' + esc(w.name) : ''}</span></div>
@@ -414,7 +419,8 @@
         ${p.previews.length ? `<div class="shots">${(p.coverVideo ? [p.coverVideo] : []).concat(p.previews).map(s => `<button data-act="view-img" data-src="${esc(s)}">${mediaTag(s, { lazy: true })}</button>`).join('')}</div>` : ''}
         ${p.summary ? `<p class="lead">${esc(p.summary)}</p>` : ''}
         ${p.desc ? `<div class="guide">${mdLite(p.desc)}</div>` : ''}
-        ${(w && w.url) || p.workUrl ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-play" data-id="${esc(p.id)}">${I.play}이 작품 플레이</button></div>` : '<p class="muted">연결된 크랙 작품 주소가 아직 없어요. 작품이 등록되면 바로 플레이할 수 있어요.</p>'}
+        ${p.soon ? `<div class="soon-box"><b>${esc(p.soon)}</b><span>${esc(p.soonNote || (inst ? '미리 받아 뒀어요. 출시되면 바로 플레이할 수 있어요.' : '출시 전이라 아직 플레이할 수 없어요. 지금 받아 두면 출시되는 날 바로 시작할 수 있어요.'))}</span></div>`
+          : (w && w.url) || p.workUrl ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-play" data-id="${esc(p.id)}">${I.play}이 작품 플레이</button></div>` : '<p class="muted">연결된 크랙 작품 주소가 아직 없어요. 작품이 등록되면 바로 플레이할 수 있어요.</p>'}
       </div>`, true);
   }
   // 팩 파일 받기 (진행 막대) — 껍데기 변경 없이 화면 엔진에서 받아 이 컴퓨터(IndexedDB)에 저장
@@ -957,6 +963,7 @@
   function openWork(id, fresh, skipHint) {
     const w = workById(id);
     if (!w || !w.url) return;
+    if (soonPack(w)) { toast(SOON_NOTE, 3500); openPack(soonPack(w).id); return; }
     if (!skipHint) {
       const pk0 = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
       if (pk0 && PK.compatible(pk0, S.info.engineVersion) && !installed.has(pk0.id) && lsGet('crion.nohint.' + pk0.id) !== '1') { packHint(w, pk0, fresh); return; }
@@ -1378,7 +1385,7 @@
       case 'hint-skip': { const no = $('#hintNo'); const w = workById(id); const pk = w && (packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id)); if (no && no.checked && pk) lsSet('crion.nohint.' + pk.id, '1'); openWork(id, !!el.dataset.fresh, true); break; }
       case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
       case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
-      case 'pack-play': { const p = S.packs.find(x => x.id === id); const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
+      case 'pack-play': { const p = S.packs.find(x => x.id === id); if (p && p.soon) { toast(SOON_NOTE); break; } const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
       case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); el.classList.toggle('on', S.play.crack); el.innerHTML = S.play.crack ? `${I.book}${packViewLabel(S.play.pack)}` : `${I.page}크랙 화면`; } break;
       // 커뮤니티
       case 'comm-tab': S.commTab = el.dataset.v; if (S.commTab === 'news') markNewsSeen(); render(); break;

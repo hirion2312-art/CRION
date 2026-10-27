@@ -671,3 +671,12 @@ select.field { height: 42px; }
 .age-tg.on i::after { transform: translateX(14px); }
 .age-tg:hover { border-color: #cfd0d6; }
 @media (max-width: 720px) { .topbar { margin: -6px 0 10px; } .age-tg { height: 32px; font-size: 12.5px; } }
+/* 출시 전(준비 중) 플레이팩 */
+.card .tag.soon { height: 28px; position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); top: auto; right: auto; background: rgba(23,21,26,.82); color: #fff; font-weight: 800; padding: 6px 12px; border-radius: 999px; font-size: 12px; white-space: nowrap; backdrop-filter: blur(4px); }
+.ptags i.soon { background: #17151a; color: #fff; }
+.btn.soon[disabled] { opacity: 1; background: rgba(255,255,255,.16); color: #fff; border-color: rgba(255,255,255,.28); cursor: default; }
+.modal .btn.soon[disabled], .page .btn.soon[disabled] { background: #ecebef; color: #5d5a63; border-color: #e1e0e5; }
+.hero .btn.soon[disabled] { background: rgba(255,255,255,.16); color: #fff; border-color: rgba(255,255,255,.28); }
+.soon-box { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; padding: 16px 18px; border-radius: 14px; background: var(--accent-weak); border: 1px solid var(--accent-line); }
+.soon-box b { color: var(--accent-ink); font-size: 15px; }
+.soon-box span { color: var(--ink2); font-size: 13.5px; line-height: 1.6; }

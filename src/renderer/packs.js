@@ -28,7 +28,7 @@
         workId: p.workId ? String(p.workId) : '', workUrl: p.workUrl ? String(p.workUrl) : '',
         cover: at(p.cover), coverVideo: at(p.coverVideo), previews: (Array.isArray(p.previews) ? p.previews : []).map(at).filter(Boolean).slice(0, 8),
         ui: at(p.ui), minEngine: p.minEngine || null, bytes: Number(p.bytes) || 0, updated: p.updated || '',
-        workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '', adult: !!p.adult, devOnly: !!p.devOnly,
+        workName: p.workName ? String(p.workName) : '', runner: p.runner ? String(p.runner) : '', adult: !!p.adult, devOnly: !!p.devOnly, soon: p.soon ? (typeof p.soon === 'string' ? p.soon : '준비 중') : '', soonNote: p.soonNote ? String(p.soonNote) : '',
         base: String(p.base), rev: String(p.rev || ''),
         files: (Array.isArray(p.files) ? p.files : []).filter(f => f && typeof f.path === 'string' && /^[0-9a-f]{64}$/.test(String(f.sha256 || '')) && !f.path.includes('..') && !/^[a-z]+:/i.test(f.path) && !f.path.startsWith('/'))
           .map(f => ({ path: f.path, sha256: f.sha256, size: Number(f.size) || 0 }))
