@@ -3,11 +3,12 @@
   'use strict';
   const BOARDS = { free: '자유', tip: '공략', question: '질문' };
   const STATUS = { new: '새 글', doing: '확인 중', done: '처리 완료', hold: '보류' };
-  const KINDS = { bug: '🐞 오류 신고', idea: '💡 건의', tip: '📘 공략 제보' };
+  const KINDS = { bug: '🐞 오류 신고', idea: '💡 건의', tip: '📘 공략 제보', flag: '🚩 글 신고' };
 
   function create(d) {
     const { S, cloud, esc, ago, modal, closeModal, toast, render, lsGet, lsSet, I } = d;
     const B = {
+      liked: new Set(), editId: null,
       cat: 'all', list: null, loading: false, err: '', post: null, comments: [], pbusy: false,
       my: null, myLoading: false, myErr: '',
       inbox: null, ibusy: false, ierr: '', st: 'all', kd: 'all', tab: 'reports', newCount: 0, loginErr: '', loggingIn: false
@@ -18,16 +19,33 @@
     const pre = (s) => esc(s).replace(/\n/g, '<br>');
     const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
     const isMine = (row) => !!(row && cloud.myUid() && row.uid === cloud.myUid());
+    const member = () => cloud.isAdmin() || !!(cloud.accountUid() && cloud.account() && cloud.account().nick);
+    // 글쓰기·댓글·좋아요는 CRION 계정(닉네임 있음)으로. 아니면 로그인/닉네임 안내
+    function needMember(what) {
+      if (member()) return false;
+      if (cloud.accountUid()) { d.openAccount && d.openAccount('nick'); toast('먼저 닉네임을 정해 주세요'); return true; }
+      modal(`<header><h3>${esc(what)}은 CRION 계정으로</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+        <div class="body"><p>게시판 글·댓글·좋아요는 <b>CRION 계정</b>으로 해요. 이메일로 1분이면 가입돼요.</p>
+        <p class="muted">같은 계정으로 로그인하면 컴퓨터·폰 어디서든 플레이 기록도 이어져요. 크랙 계정과는 따로예요.</p>
+        <div class="form-foot"><button class="btn" data-act="acct-open" data-v="login">로그인</button><button class="btn primary" data-act="acct-open" data-v="signup">가입하기</button></div></div>`);
+      return true;
+    }
 
     // ---------- 게시판 ----------
     async function loadList() {
       B.loading = true; B.err = '';
-      try { B.list = await cloud.listPosts(B.cat); } catch (e) { B.err = errMsg(e); B.list = []; }
+      try {
+        B.list = await cloud.listPosts(B.cat);
+        if (cloud.accountUid()) (await cloud.myLikes(B.list.map(p => p.id)).catch(() => [])).forEach(x => B.liked.add(x));
+      } catch (e) { B.err = errMsg(e); B.list = []; }
       B.loading = false; render();
     }
     async function openPost(id) {
       B.post = { id: Number(id), loading: true }; B.comments = []; render();
-      try { const r = await cloud.getPost(id); B.post = r.post || { id: Number(id), gone: true }; B.comments = r.comments; }
+      try {
+        const r = await cloud.getPost(id); B.post = r.post || { id: Number(id), gone: true }; B.comments = r.comments;
+        if (cloud.accountUid() && r.post) { const l = await cloud.myLikes([r.post.id]).catch(() => []); if (l.length) B.liked.add(r.post.id); else B.liked.delete(r.post.id); }
+      }
       catch (e) { B.post = { id: Number(id), gone: true }; toast(errMsg(e)); }
       render();
     }
@@ -35,12 +53,12 @@
       if (!cloud.enabled()) return '<div class="empty"><b>게시판이 곧 열려요</b><span>팔로워끼리 공략과 이야기를 나누는 곳이에요. 서버 준비가 끝나면 자동으로 열려요.</span></div>';
       if (B.post) return postHtml();
       if (B.list === null && !B.loading) loadList();
-      const cats = [['all', '전체']].concat(Object.entries(BOARDS));
+      const cats = [['all', '전체'], ['hot', '인기']].concat(Object.entries(BOARDS), cloud.accountUid() ? [['mine', '내 글']] : []);
       const rows = (B.list || []).map(p => `<button class="bd-row ${p.hidden ? 'hid' : ''}" data-act="board-open" data-id="${p.id}">
           <div class="bd-t">${p.pinned ? '<i class="bd-pin">고정</i>' : ''}<i class="bd-cat">${esc(BOARDS[p.board] || '')}</i><b>${esc(p.title)}</b>${p.hidden ? '<i class="bd-pin">숨김</i>' : ''}</div>
-          <div class="bd-m">${p.is_admin ? '<i class="bd-adm">히리온</i>' : ''}${esc(p.nick)}${p.work ? ' · ' + esc(p.work) : ''} · ${when(p.created_at)} · 댓글 ${((p.comments && p.comments[0] && p.comments[0].count) || 0)}</div></button>`).join('');
+          <div class="bd-m">${p.is_admin ? '<i class="bd-adm">히리온</i>' : ''}${esc(p.nick)}${p.work ? ' · ' + esc(p.work) : ''} · ${when(p.created_at)} · 댓글 ${((p.comments && p.comments[0] && p.comments[0].count) || 0)}${p.like_count ? ` · <span class="bd-like ${B.liked.has(p.id) ? 'on' : ''}">♥ ${p.like_count}</span>` : ''}</div></button>`).join('');
       return `<div class="bd-bar"><div class="seg">${cats.map(([k, l]) => `<button class="${B.cat === k ? 'on' : ''}" data-act="board-cat" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="row"><button class="btn sm" data-act="board-refresh">${I.reload}새로고침</button><button class="btn primary sm" data-act="board-write">${I.plus}글쓰기</button></div></div>
+        <div class="row">${d.acctChip ? d.acctChip() : ''}<button class="btn sm" data-act="board-refresh">${I.reload}새로고침</button><button class="btn primary sm" data-act="board-write">${I.plus}글쓰기</button></div></div>
         ${B.err ? `<div class="bd-err">${esc(B.err)}</div>` : ''}
         ${B.loading ? '<div class="empty"><span class="spin"></span></div>' : rows ? `<div class="bd-list">${rows}</div>` : '<div class="empty"><b>아직 글이 없어요</b><span>첫 글을 남겨 보세요.</span></div>'}`;
     }
@@ -53,49 +71,54 @@
       const mine = isMine(p);
       const cm = B.comments.map(c => `<div class="bd-cm ${c.hidden ? 'hid' : ''}"><div class="bd-m">${c.is_admin ? '<i class="bd-adm">히리온</i>' : ''}<b>${esc(c.nick)}</b> · ${when(c.created_at)}${c.hidden ? ' · 숨김' : ''}
           ${adm ? `<button class="link" data-act="comment-hide" data-id="${c.id}" data-v="${c.hidden ? 'false' : 'true'}">${c.hidden ? '보이기' : '숨기기'}</button>` : ''}
-          ${(adm || isMine(c)) ? `<button class="link danger" data-act="comment-del" data-id="${c.id}">삭제</button>` : ''}</div><p>${pre(c.body)}</p></div>`).join('');
+          ${(adm || isMine(c)) ? `<button class="link danger" data-act="comment-del" data-id="${c.id}">삭제</button>` : `<button class="link" data-act="flag" data-k="comment" data-id="${c.id}">신고</button>`}</div><p>${pre(c.body)}</p></div>`).join('');
+      const liked = B.liked.has(p.id);
       return `${back}<article class="bd-post">
         <div class="bd-t"><i class="bd-cat">${esc(BOARDS[p.board] || '')}</i>${p.pinned ? '<i class="bd-pin">고정</i>' : ''}${p.hidden ? '<i class="bd-pin">숨김</i>' : ''}</div>
         <h3>${esc(p.title)}</h3>
-        <div class="bd-m">${p.is_admin ? '<i class="bd-adm">히리온</i>' : ''}${esc(p.nick)}${p.work ? ' · ' + esc(p.work) : ''} · ${when(p.created_at)}</div>
+        <div class="bd-m">${p.is_admin ? '<i class="bd-adm">히리온</i>' : ''}${esc(p.nick)}${p.work ? ' · ' + esc(p.work) : ''} · ${when(p.created_at)}${p.edited_at ? ' · 고침' : ''}</div>
         <p class="bd-body">${pre(p.body)}</p>
-        <div class="row">${(adm || mine) ? `<button class="btn sm danger" data-act="post-del" data-id="${p.id}">${I.trash}삭제</button>` : ''}
-          ${adm ? `<button class="btn sm" data-act="post-pin" data-id="${p.id}" data-v="${p.pinned ? 'false' : 'true'}">${p.pinned ? '고정 풀기' : '맨 위 고정'}</button><button class="btn sm" data-act="post-hide" data-id="${p.id}" data-v="${p.hidden ? 'false' : 'true'}">${p.hidden ? '보이기' : '숨기기'}</button>` : ''}</div>
+        <div class="row"><button class="btn sm bd-likebtn ${liked ? 'on' : ''}" data-act="post-like" data-id="${p.id}" ${B.pbusy ? 'disabled' : ''}>${liked ? '♥' : '♡'} 좋아요 ${p.like_count || 0}</button>
+          ${mine ? `<button class="btn sm" data-act="post-edit" data-id="${p.id}">${I.edit || ''}고치기</button>` : ''}
+          ${(adm || mine) ? `<button class="btn sm danger" data-act="post-del" data-id="${p.id}">${I.trash}삭제</button>` : `<button class="btn sm ghost" data-act="flag" data-k="post" data-id="${p.id}">신고</button>`}
+          ${adm ? `<button class="btn sm" data-act="post-pin" data-id="${p.id}" data-v="${p.pinned ? 'false' : 'true'}">${p.pinned ? '고정 풀기' : '맨 위 고정'}</button><button class="btn sm" data-act="post-hide" data-id="${p.id}" data-v="${p.hidden ? 'false' : 'true'}">${p.hidden ? '보이기' : '숨기기'}</button>${!p.is_admin && !mine ? `<button class="btn sm" data-act="user-ban" data-id="${esc(p.uid)}">이 사람 글쓰기 막기</button>` : ''}` : ''}</div>
       </article>
       <h4 class="bd-h">댓글 ${B.comments.length}</h4>
       <div class="bd-cms">${cm || '<div class="muted">아직 댓글이 없어요</div>'}</div>
-      <div class="bd-cform"><input id="cmNick" class="field" maxlength="20" placeholder="닉네임" value="${esc(nick())}"><textarea id="cmBody" class="field" rows="3" maxlength="800" placeholder="댓글을 적어 주세요"></textarea>
-        <button class="btn primary" data-act="comment-send" data-id="${p.id}" ${B.pbusy ? 'disabled' : ''}>댓글 남기기</button></div>`;
+      ${member() ? `<div class="bd-cform"><textarea id="cmBody" class="field" rows="3" maxlength="800" placeholder="${esc((cloud.account() && cloud.account().nick) || '히리온')}(으)로 댓글 남기기"></textarea>
+        <button class="btn primary" data-act="comment-send" data-id="${p.id}" ${B.pbusy ? 'disabled' : ''}>댓글 남기기</button></div>`
+        : `<div class="bd-cform bd-locked"><span class="muted">댓글은 CRION 계정으로 남길 수 있어요</span><button class="btn sm" data-act="acct-open" data-v="login">로그인</button><button class="btn sm primary" data-act="acct-open" data-v="signup">가입하기</button></div>`}`;
     }
-    function writeModal() {
-      modal(`<header><h3>글쓰기</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+    function writeModal(edit) {
+      if (needMember('글쓰기')) return;
+      B.editId = edit ? edit.id : null;
+      const e = edit || {};
+      const brd = e.board || (['all', 'hot', 'mine'].includes(B.cat) ? 'free' : B.cat);
+      modal(`<header><h3>${edit ? '글 고치기' : '글쓰기'}</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
         <div class="body"><div class="form">
-          <label class="f"><span>게시판</span><select id="wBoard" class="field">${Object.entries(BOARDS).map(([k, l]) => `<option value="${k}" ${k === (B.cat === 'all' ? 'free' : B.cat) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-          <label class="f"><span>제목</span><input id="wTitle" class="field" maxlength="80"></label>
-          <label class="f"><span>내용</span><textarea id="wBody" class="field" rows="7" maxlength="3000"></textarea></label>
-          <label class="f"><span>작품 (선택)</span><input id="wWork" class="field" maxlength="100" placeholder="어떤 작품 이야기인가요?"></label>
-          <label class="f"><span>닉네임</span><input id="wNick" class="field" maxlength="20" value="${esc(nick())}"></label>
-          <div class="form-foot"><span class="muted">가입 없이 올려요. 운영 규칙에 어긋나는 글은 숨겨질 수 있어요.</span><button class="btn primary" data-act="board-post">올리기</button></div>
+          <label class="f"><span>게시판</span><select id="wBoard" class="field">${Object.entries(BOARDS).map(([k, l]) => `<option value="${k}" ${k === brd ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="f"><span>제목</span><input id="wTitle" class="field" maxlength="80" value="${esc(e.title || '')}"></label>
+          <label class="f"><span>내용</span><textarea id="wBody" class="field" rows="7" maxlength="3000">${esc(e.body || '')}</textarea></label>
+          <label class="f"><span>작품 (선택)</span><input id="wWork" class="field" maxlength="100" placeholder="어떤 작품 이야기인가요?" value="${esc(e.work || '')}"></label>
+          <div class="form-foot"><span class="muted">${esc((cloud.account() && cloud.account().nick) || '히리온')}(으)로 올려요. 운영 규칙에 어긋나는 글은 숨겨질 수 있어요.</span><button class="btn primary" data-act="board-post">${edit ? '고치기' : '올리기'}</button></div>
         </div></div>`);
     }
     async function submitPost() {
-      const f = { board: val('wBoard'), title: val('wTitle'), body: val('wBody'), work: val('wWork'), nick: val('wNick') };
+      const f = { board: val('wBoard'), title: val('wTitle'), body: val('wBody'), work: val('wWork'), nick: (cloud.account() && cloud.account().nick) || '히리온' };
       if (!f.title || !f.body) return toast('제목과 내용을 적어 주세요');
-      if (!f.nick) return toast('닉네임을 적어 주세요');
-      lsSet('crion.nick', f.nick);
       const btn = document.querySelector('[data-act=board-post]'); if (btn) { btn.disabled = true; btn.textContent = '올리는 중…'; }
       try {
+        if (B.editId) { const id = B.editId; await cloud.editPost(id, f); B.editId = null; closeModal(); toast('고쳤어요'); B.list = null; await openPost(id); return; }
         const r = await cloud.addPost(f);
         closeModal(); toast('올렸어요');
         B.cat = f.board; B.list = null;
         if (r && r[0]) await openPost(r[0].id); else render();
-      } catch (e) { toast(errMsg(e)); if (btn) { btn.disabled = false; btn.textContent = '올리기'; } }
+      } catch (e) { toast(errMsg(e)); if (btn) { btn.disabled = false; btn.textContent = B.editId ? '고치기' : '올리기'; } }
     }
     async function sendComment(id) {
-      const f = { body: val('cmBody'), nick: val('cmNick') };
+      if (needMember('댓글')) return;
+      const f = { body: val('cmBody'), nick: (cloud.account() && cloud.account().nick) || '히리온' };
       if (!f.body) return toast('댓글을 적어 주세요');
-      if (!f.nick) return toast('닉네임을 적어 주세요');
-      lsSet('crion.nick', f.nick);
       B.pbusy = true; render();
       try { await cloud.addComment(id, f); const r = await cloud.getPost(id); B.post = r.post || B.post; B.comments = r.comments; B.list = null; }
       catch (e) { toast(errMsg(e)); }
@@ -145,7 +168,7 @@
       const head = (right) => `<main class="page"><div class="page-in narrow">
         <header class="page-h"><div><h1>신고함</h1><p>오류 신고·건의·공략 제보와 게시판을 여기서 관리해요.</p></div><div class="page-h-r">${right || ''}</div></header>`;
       if (!cloud.enabled()) {
-        return head() + `<div class="empty"><b>서버가 아직 연결되지 않았어요</b><span>저장소의 <code>supabase/README.md</code> 순서대로 서버를 만들고 주소·키를 Claude에게 알려 주면 연결돼요.</span></div></div></main>`;
+        return head() + `<div class="empty"><b>서버가 아직 연결되지 않았어요</b><span>관리 페이지의 <b>서버 연결</b> 칸에서 순서대로 하면 연결돼요 (<code>supabase/README.md</code>).</span></div></div></main>`;
       }
       if (!cloud.isAdmin()) {
         return head() + `<div class="ad-login form"><b>관리자 로그인</b><span class="muted">Supabase에 만든 관리자 이메일·비밀번호예요. (비밀번호는 저장하지 않아요)</span>
@@ -166,13 +189,14 @@
           <div class="rp-h"><b>${esc(KINDS[r.kind] || r.kind)}</b><i class="st st-${r.status}">${STATUS[r.status] || ''}</i><span>${when(r.created_at)}</span></div>
           <h4>${esc(r.title)}</h4><p>${pre(r.body)}</p>
           ${r.steps ? `<p class="rp-s"><b>어떻게 하다가</b> ${pre(r.steps)}</p>` : ''}
+          ${r.target && /^post:/.test(r.target) ? `<button class="btn sm" data-act="rep-open" data-v="${esc(r.target)}">신고된 글 보기</button>` : r.target ? `<div class="rp-m">대상 ${esc(r.target)}</div>` : ''}
           <div class="rp-m">${r.work ? `작품 ${esc(r.work)} · ` : ''}${r.nick ? `보낸 사람 ${esc(r.nick)} · ` : ''}${esc(r.app || '')}</div>
           ${r.diag ? `<details><summary>화면 진단</summary><pre>${esc(r.diag)}</pre><button class="btn sm" data-act="rep-copy" data-id="${r.id}">진단 복사</button></details>` : ''}
           <div class="rp-act">${Object.entries(STATUS).map(([k, l]) => `<button class="btn sm ${r.status === k ? 'primary' : ''}" data-act="rep-status" data-id="${r.id}" data-v="${k}">${l}</button>`).join('')}
             <button class="btn sm danger" data-act="rep-del" data-id="${r.id}">${I.trash}삭제</button></div>
           <div class="rp-rep"><textarea id="rep-${r.id}" class="field" rows="2" maxlength="1000" placeholder="보낸 사람에게 보일 답변 (선택)">${esc(r.reply || '')}</textarea><button class="btn sm" data-act="rep-save" data-id="${r.id}">답변 저장</button></div></article>`).join('');
         body = `<div class="bd-bar">${seg('st', [['all', '전체'], ['new', '새 글'], ['doing', '확인 중'], ['done', '처리 완료'], ['hold', '보류']], B.st)}
-          ${seg('kd', [['all', '모든 종류'], ['bug', '오류'], ['idea', '건의'], ['tip', '공략']], B.kd)}</div>
+          ${seg('kd', [['all', '모든 종류'], ['bug', '오류'], ['idea', '건의'], ['tip', '공략'], ['flag', '글 신고']], B.kd)}</div>
           ${B.ierr ? `<div class="bd-err">${esc(B.ierr)}</div>` : ''}
           ${B.ibusy && !(B.inbox || []).length ? '<div class="empty"><span class="spin"></span></div>' : cards ? `<div class="rp-list">${cards}</div>` : '<div class="empty"><b>해당하는 글이 없어요</b></div>'}`;
       }
@@ -189,6 +213,28 @@
         case 'board-open': openPost(id); return true;
         case 'board-back': B.post = null; B.list = null; render(); return true;
         case 'board-write': writeModal(); return true;
+        case 'post-edit': if (B.post && isMine(B.post)) writeModal(B.post); return true;
+        case 'post-like': {
+          if (needMember('좋아요')) return true;
+          const pid = Number(id), on = B.liked.has(pid);
+          B.pbusy = true; render();
+          (on ? cloud.unlikePost(pid) : cloud.likePost(pid)).then(() => { if (on) B.liked.delete(pid); else B.liked.add(pid); if (B.post && B.post.id === pid) B.post.like_count = Math.max(0, (B.post.like_count || 0) + (on ? -1 : 1)); B.list = null; })
+            .catch(e => toast(errMsg(e))).then(() => { B.pbusy = false; render(); });
+          return true;
+        }
+        case 'flag': modal(`<header><h3>신고하기</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body"><div class="form">
+            <label class="f"><span>어떤 문제인가요?</span><select id="flagWhy" class="field"><option>광고·도배</option><option>욕설·비하</option><option>성적인 내용</option><option>개인정보 노출</option><option>기타</option></select></label>
+            <label class="f"><span>덧붙일 말 (선택)</span><textarea id="flagMore" class="field" rows="3" maxlength="500"></textarea></label>
+            <div class="form-foot"><span class="muted">히리온의 신고함으로 가요. 누가 신고했는지는 상대에게 보이지 않아요.</span><button class="btn primary" data-act="flag-send" data-k="${esc(el.dataset.k)}" data-id="${esc(id)}">보내기</button></div></div></div>`); return true;
+        case 'flag-send': {
+          const why = val('flagWhy') + (val('flagMore') ? ' — ' + val('flagMore') : '');
+          const title = el.dataset.k === 'comment' ? '댓글 신고' : `글 신고: ${(B.post && B.post.title) || ''}`;
+          cloud.flagPost(el.dataset.k, id, why, title).then(() => { closeModal(); toast('신고했어요. 고마워요'); }).catch(e => toast(errMsg(e)));
+          return true;
+        }
+        case 'user-ban': modal(`<header><h3>글쓰기 막기</h3></header><div class="body"><p>이 사람은 앞으로 글·댓글·좋아요를 못 해요. 이미 쓴 글은 따로 숨겨 주세요.</p><div class="row"><button class="btn" data-act="close-modal">취소</button><button class="btn danger" data-act="user-ban-ok" data-id="${esc(id)}">막기</button></div></div>`); return true;
+        case 'user-ban-ok': closeModal(); cloud.banUser(id, true).then(() => toast('글쓰기를 막았어요')).catch(e => toast(errMsg(e))); return true;
+        case 'rep-open': { const m = /^(post|comment):(\d+)/.exec(el.dataset.v || ''); if (m && m[1] === 'post') { B.tab = 'posts'; openPost(m[2]); } return true; }
         case 'board-post': submitPost(); return true;
         case 'comment-send': sendComment(id); return true;
         case 'post-del': modal(`<header><h3>글 삭제</h3></header><div class="body"><p>이 글과 댓글이 모두 지워져요.</p><div class="row"><button class="btn" data-act="close-modal">취소</button><button class="btn danger" data-act="post-del-ok" data-id="${esc(id)}">삭제</button></div></div>`); return true;

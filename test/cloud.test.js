@@ -80,19 +80,67 @@ test('관리자 아니면 관리 함수는 실패', async () => {
   const c = new Cloud(CFG, { fetch: fake(() => R([])).f, storage: mem() });
   await assert.rejects(c.listReports(), /관리자 로그인/);
 });
-test('게시판: 목록·글쓰기·댓글', async () => {
-  const s = fake(c => c.url.endsWith('/signup') ? R(tok(2)) : c.method === 'GET' ? R([{ id: 1 }]) : R([{ id: 7 }], 201));
+test('게시판: 목록은 공개, 글쓰기는 CRION 계정', async () => {
+  const s = fake(c => c.url.includes('grant_type=password') ? R(tok(2)) : c.url.includes('/profiles') ? R([{ nick: '팬1', banned: false }]) : c.method === 'GET' ? R([{ id: 1 }]) : R([{ id: 7 }], 201));
   const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
   await c.listPosts('tip');
   const l = s.calls[0];
-  assert.ok(l.url.includes('board=eq.tip') && l.url.includes('comments(count)'));
-  assert.strictEqual(l.h.Authorization, 'Bearer ' + CFG.anonKey, '읽기는 공개 키');
+  assert.ok(l.url.includes('board=eq.tip') && l.url.includes('comments(count)') && l.url.includes('like_count'));
+  assert.strictEqual(l.h.apikey, CFG.anonKey, '읽기는 공개 키');
+  assert.strictEqual(l.h.Authorization, undefined, '새 방식 키(sb_publishable)는 Authorization 에 안 넣음');
+  const old = fake(() => R([]));
+  await new Cloud({ url: CFG.url, anonKey: 'eyJ' + 'a'.repeat(40) }, { fetch: old.f, storage: mem() }).listPosts('all');
+  assert.strictEqual(old.calls[0].h.Authorization, 'Bearer eyJ' + 'a'.repeat(40), '옛 anon 키(eyJ…)는 넣음');
+  await assert.rejects(c.addPost({ board: 'free', title: '안녕', body: '내용' }), /CRION 계정/);
+  await c.signIn('fan@example.com', 'password1');
+  assert.strictEqual(c.account().nick, '팬1');
   await c.addPost({ board: 'free', title: '안녕', body: '내용', nick: '팬1' });
   const w = s.calls.find(x => x.method === 'POST' && x.url.endsWith('/posts'));
   assert.strictEqual(w.h.Authorization, 'Bearer A2');
-  assert.strictEqual(w.body.nick, '팬1');
   const g = await c.getPost(7);
   assert.ok(g.post && Array.isArray(g.comments));
+  await c.likePost(7);
+  assert.ok(s.calls.find(x => x.method === 'POST' && x.url.endsWith('/post_likes') && x.body.post_id === 7));
+  await c.listPosts('mine');
+  assert.ok(s.calls[s.calls.length - 1].url.includes('uid=eq.u2'), '내 글 = 계정 uid');
+});
+test('가입: 세션 저장 + 닉네임 만들기, 다시 켜도 로그인 유지, 로그아웃', async () => {
+  const s = fake(c => c.url.endsWith('/auth/v1/signup') ? R(tok(5)) : c.url.includes('/profiles') && c.method === 'GET' ? R([]) : R(null, 201));
+  const ls = mem();
+  const c = new Cloud(CFG, { fetch: s.f, storage: ls });
+  await assert.rejects(c.signUp('nope', 'password1', '닉'), /이메일/);
+  await assert.rejects(c.signUp('a@b.co', 'short', '닉네임'), /8자/);
+  const r = await c.signUp('a@b.co', 'password1', '하루');
+  assert.ok(r.ok && !r.nickError);
+  const su = s.calls.find(x => x.url.endsWith('/signup'));
+  assert.strictEqual(su.body.email, 'a@b.co');
+  const pr = s.calls.find(x => x.method === 'POST' && x.url.endsWith('/profiles'));
+  assert.strictEqual(pr.body.nick, '하루'); assert.strictEqual(pr.h.Authorization, 'Bearer A5');
+  const c2 = new Cloud(CFG, { fetch: s.f, storage: ls });
+  assert.strictEqual(c2.accountUid(), 'u5', '다시 켜도 계정 유지');
+  assert.strictEqual((await c2.ensureUser()).uid, 'u5', '계정이 있으면 신고도 계정으로');
+  await c2.signOut();
+  assert.strictEqual(c2.accountUid(), null);
+  assert.ok(s.calls.find(x => x.url.endsWith('/auth/v1/logout')));
+});
+test('가입했는데 이메일 확인이 켜져 있으면 안내 / 서버 오류 문구 한국어로', async () => {
+  const s = fake(c => c.url.endsWith('/signup') ? R({ id: 'x', email: 'a@b.co' }) : R({ code: '23505', message: 'duplicate key value violates unique constraint "profiles_nick"' }, 409));
+  const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
+  await assert.rejects(c.signUp('a@b.co', 'password1', '하루'), /Confirm email/);
+  const s2 = fake(() => R({ error: 'invalid_grant', error_description: 'Invalid login credentials' }, 400));
+  await assert.rejects(new Cloud(CFG, { fetch: s2.f, storage: mem() }).signIn('a@b.co', 'x'), /맞지 않아요/);
+});
+test('기록 동기화 주소: 커서 이후만 받기 · 덮어쓰기로 올리기', async () => {
+  const s = fake(c => c.url.includes('grant_type=password') ? R(tok(3)) : c.url.includes('/profiles') ? R([]) : R([]));
+  const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
+  await assert.rejects(c.syncPull(''), /로그인/);
+  await c.signIn('a@b.co', 'password1');
+  await c.syncPull('2026-10-27T10:00:00.123456+00:00');
+  const g = s.calls[s.calls.length - 1];
+  assert.ok(g.url.includes('sync_items?') && g.url.includes('updated_at=gt.2026-10-27T10%3A00%3A00.123456%2B00%3A00') && g.url.includes('order=updated_at.asc'));
+  await c.syncPush([{ key: 'crion.w.a', val: { raw: '{}' }, deleted: false }]);
+  const p = s.calls[s.calls.length - 1];
+  assert.ok(p.url.includes('sync_items?on_conflict=uid,key') && /merge-duplicates/.test(p.h.Prefer) && /representation/.test(p.h.Prefer) && p.h.Authorization === 'Bearer A3');
 });
 
 (async () => {

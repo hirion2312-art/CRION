@@ -75,6 +75,11 @@
   .sthumb { width: 220px; aspect-ratio: 16/9; border-radius: 10px; background: #2a2d38 center/cover no-repeat; display: grid; place-items: center; color: #c9ccd6; font-size: 12px; font-weight: 700; text-align: center; padding: 8px; }
   select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: #fafbfc; font: inherit; font-size: 14px; }
   .pill.off { background: #eef0f3; color: var(--muted); }
+  .pill.on { background: #dcfce7; color: #15803d; }
+  .srv-steps li { margin-bottom: 4px; }
+  .srv-checks { margin-top: 12px; font-size: 13px; line-height: 1.9; }
+  .srv-checks .ok { color: var(--ok); font-weight: 700; } .srv-checks .bad { color: var(--bad); font-weight: 700; } .srv-checks .warn { color: var(--warn); font-weight: 700; }
+  code { background: #f1f2f5; padding: 1px 6px; border-radius: 5px; font-size: 12px; }
   #works.compact .work { padding: 6px 0; align-items: center; }
   #works.compact .thumb { width: 36px; font-size: 14px; }
   #works.compact .work { grid-template-columns: 26px 36px 1fr; }
@@ -108,6 +113,31 @@
   </section>
 
   <div id="main" class="hidden">
+    <!-- 서버 연결 -->
+    <section class="card" id="srvCard">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div><h2>서버 연결 (CRION 계정 · 기록 동기화 · 게시판 · 신고함)</h2>
+          <p class="sub">무료 Supabase 서버를 한 번 만들어 연결하면 열려요. 컴퓨터를 켜 둘 필요 없고, 서버는 Supabase가 돌려요. 아래 순서대로 하고 마지막에 <b>연결 점검 → 저장하고 배포</b>.</p></div>
+        <span class="pill" id="srvState">확인 중</span>
+      </div>
+      <ol class="steps srv-steps">
+        <li><a href="https://supabase.com/dashboard/new" target="_blank" rel="noopener">Supabase 새 프로젝트</a> (GitHub로 가입) → 이름 <code>crion</code>, Region <b>Northeast Asia (Seoul)</b>, 데이터베이스 비밀번호는 아무거나(메모) → Create. 1~2분 기다려요.</li>
+        <li>왼쪽 <b>Authentication → Sign In / Providers</b>: <b>Allow anonymous sign-ins</b> 켜기 · <b>Email</b> 안의 <b>Confirm email</b> 끄기 → Save.</li>
+        <li><b>Authentication → URL Configuration</b>: Site URL 과 Redirect URLs 에 <code id="resetUrl">https://hirion2312-art.github.io/CRION/reset.html</code> <button class="btn sm" data-copy-el="resetUrl">복사</button> 넣기 (비밀번호 찾기 메일용).</li>
+        <li><b>Authentication → Users → Add user → Create new user</b>: 히리온 관리자 이메일·비밀번호, <b>Auto Confirm User</b> 체크.</li>
+        <li><b>SQL Editor → New query</b> 에 설계도를 붙여넣고 <b>Run</b> <button class="btn sm" id="copySql">설계도 복사</button> <span class="sub" id="sqlInfo" style="margin:0"></span><br><span class="sub" style="margin:0">4번에서 만든 계정이 자동으로 관리자가 돼요. 나중에 설계도가 바뀌면 이것만 다시 Run 하면 돼요.</span></li>
+        <li><b>Project Settings → API Keys</b> 에서 <b>Publishable key</b>(<code>sb_publishable_…</code>) 또는 Legacy 탭의 <b>anon public</b>(<code>eyJ…</code>)을 복사, <b>Project Settings → Data API</b>(또는 Connect)에서 <b>Project URL</b> 을 복사해 아래에 붙여 넣기. <b>secret · service_role 키는 절대 넣지 마세요.</b></li>
+      </ol>
+      <div class="fields" style="margin-top:12px">
+        <div class="full"><label>Project URL</label><input type="text" id="srvUrl" placeholder="https://abcdefgh.supabase.co"></div>
+        <div class="full"><label>Publishable(또는 anon) 키</label><input type="text" id="srvKey" placeholder="sb_publishable_… 또는 eyJ…"></div>
+        <div><label>관리자 이메일 (점검용, 저장 안 함)</label><input type="text" id="srvAdmEmail" autocomplete="off"></div>
+        <div><label>관리자 비밀번호 (점검용, 저장 안 함)</label><input type="password" id="srvAdmPw" autocomplete="off"></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="srvTest">연결 점검</button><button class="btn main" id="srvSave" disabled>저장하고 배포</button><button class="btn danger" id="srvOff">연결 끊기</button></div>
+      <div class="srv-checks" id="srvChecks"></div>
+    </section>
+
     <!-- 홈 슬라이드 -->
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
@@ -230,6 +260,7 @@
       $('#who').innerHTML = `${esc(repo.full_name)} · <a href="#" id="logout">열쇠 지우기</a>`;
       $('#logout').onclick = (e) => { e.preventDefault(); try { localStorage.removeItem('crion.admin.token'); } catch (er) { /* 무시 */ } location.reload(); };
       await load();
+      loadSrv();
       loadRuns();
     } catch (e) {
       $('#loginErr').textContent = '연결 실패: ' + (/401|Bad credentials/.test(e.message) ? '열쇠가 틀렸거나 만료됐어요' : /404/.test(e.message) ? '이 열쇠로 CRION 저장소를 볼 수 없어요 (Repository access에서 CRION 선택)' : e.message);
@@ -468,6 +499,92 @@
   };
   $('#compact').onclick = () => { const on = $('#works').classList.toggle('compact'); $('#compact').classList.toggle('on', on); $('#compact').textContent = on ? '✓ 순서만 보기 끄기' : '↕ 순서만 보기'; };
   $('#revert').onclick = () => { if (confirm('바꾼 내용을 모두 되돌릴까요?')) load(); };
+
+  // ---------- 서버 연결 (config/app.json 의 cloud) ----------
+  let appCfg = null, appSha = null, srvOk = false;
+  const sbUrl = (u) => String(u || '').trim().replace(/\/+$/, '').replace(/\/(rest|auth)\/v1.*$/, '');
+  const srvH = (key, tok) => Object.assign({ apikey: key, 'Content-Type': 'application/json' }, tok ? { Authorization: 'Bearer ' + tok } : /^eyJ/.test(key) ? { Authorization: 'Bearer ' + key } : {});
+  async function loadSrv() {
+    try {
+      const f = await getFile('config/app.json'); appSha = f.sha; appCfg = JSON.parse(f.text);
+      const c = appCfg.cloud || {};
+      $('#srvUrl').value = c.url || ''; $('#srvKey').value = c.anonKey || '';
+      const on = !!(c.url && c.anonKey);
+      $('#srvState').textContent = on ? '연결됨' : '아직 연결 안 됨'; $('#srvState').className = 'pill ' + (on ? 'on' : 'off');
+      $('#srvOff').classList.toggle('hidden', !on);
+    } catch (e) { $('#srvState').textContent = '설정을 못 읽음'; }
+  }
+  $('#copySql').onclick = async () => {
+    try {
+      const r = await gh('/contents/supabase/schema.sql?ref=' + BRANCH);
+      const sql = dec(r.content);
+      await navigator.clipboard.writeText(sql);
+      $('#sqlInfo').textContent = `복사했어요 (${sql.split('\n').length}줄). SQL Editor 에 붙여넣고 Run.`;
+    } catch (e) { toast('복사하지 못했어요: ' + e.message); }
+  };
+  document.querySelectorAll('[data-copy-el]').forEach(b => b.onclick = () => { navigator.clipboard.writeText($('#' + b.dataset.copyEl).textContent).then(() => toast('복사했어요')); });
+  ['#srvUrl', '#srvKey'].forEach(x => $(x).addEventListener('input', () => { srvOk = false; $('#srvSave').disabled = true; }));
+  $('#srvTest').onclick = async () => {
+    const url = sbUrl($('#srvUrl').value), key = $('#srvKey').value.trim();
+    const out = [], line = (cls, t) => out.push(`<div><span class="${cls}">${cls === 'ok' ? '✓' : cls === 'warn' ? '!' : '✕'}</span> ${t}</div>`);
+    const show = () => { $('#srvChecks').innerHTML = out.join(''); };
+    srvOk = false; $('#srvSave').disabled = true;
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) { line('bad', 'Project URL 모양이 아니에요 (https://○○○.supabase.co)'); return show(); }
+    if (/^sb_secret_/.test(key) || /service_role/.test(atobSafe(key))) { line('bad', '이건 secret(service_role) 키예요! 절대 쓰면 안 돼요. Publishable 또는 anon 키를 넣어 주세요.'); return show(); }
+    if (key.length < 20) { line('bad', '키가 너무 짧아요'); return show(); }
+    $('#srvChecks').innerHTML = '점검 중…';
+    let fatal = false;
+    try {
+      const st = await (await fetch(url + '/auth/v1/settings', { headers: srvH(key) })).json();
+      if (st && st.external) {
+        line('ok', '서버에 연결됨');
+        st.external.anonymous_users ? line('ok', '익명 로그인 켜짐 (가입 없이 신고)') : (line('bad', '2번: Allow anonymous sign-ins 가 꺼져 있어요'), fatal = true);
+        st.external.email ? line('ok', '이메일 로그인 켜짐') : (line('bad', 'Email 로그인이 꺼져 있어요'), fatal = true);
+        st.mailer_autoconfirm ? line('ok', 'Confirm email 꺼짐 (가입 즉시 로그인)') : (line('bad', '2번: Confirm email 을 꺼 주세요 (켜져 있으면 가입 후 바로 로그인이 안 돼요)'), fatal = true);
+        st.disable_signup ? (line('bad', '새 가입이 막혀 있어요 (Allow new users to sign up 켜기)'), fatal = true) : line('ok', '새 가입 가능');
+      } else { line('bad', '서버 응답이 이상해요 (URL·키 확인)'); fatal = true; }
+    } catch (e) { line('bad', '서버에 연결하지 못했어요: ' + e.message); fatal = true; }
+    try {
+      const r = await fetch(url + '/rest/v1/rpc/crion_schema_version', { method: 'POST', headers: srvH(key), body: '{}' });
+      const v = r.ok ? Number(await r.json()) : 0;
+      v >= 2 ? line('ok', `설계도 적용됨 (v${v})`) : (line('bad', '5번: 설계도(SQL)를 아직 Run 하지 않았어요' + (r.status === 404 ? '' : ` (${r.status})`)), fatal = true);
+    } catch (e) { line('bad', '설계도 확인 실패: ' + e.message); fatal = true; }
+    const em = $('#srvAdmEmail').value.trim(), pw = $('#srvAdmPw').value;
+    if (em && pw) {
+      try {
+        const t = await fetch(url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: srvH(key), body: JSON.stringify({ email: em, password: pw }) });
+        const j = await t.json();
+        if (!t.ok) line('bad', '관리자 로그인 실패: ' + (j.error_description || j.msg || j.message || t.status));
+        else {
+          const a = await (await fetch(url + '/rest/v1/admins?select=uid', { headers: srvH(key, j.access_token) })).json();
+          Array.isArray(a) && a.length ? line('ok', '관리자 계정 확인 (앱 신고함 로그인용)') : line('warn', '로그인은 되지만 관리자로 등록 안 됨 — 4번 계정을 만든 뒤 5번 설계도를 다시 Run 하세요');
+        }
+      } catch (e) { line('bad', '관리자 확인 실패: ' + e.message); }
+    } else line('warn', '관리자 이메일·비밀번호를 넣으면 관리자 등록까지 확인해요 (선택)');
+    srvOk = !fatal;
+    if (srvOk) line('ok', '<b>준비 끝! 저장하고 배포를 누르세요</b>');
+    $('#srvSave').disabled = !srvOk;
+    show();
+  };
+  function atobSafe(k) { try { return atob(String(k).split('.')[1] || ''); } catch (e) { return ''; } }
+  async function saveSrv(cloudVal, msg) {
+    const f = await getFile('config/app.json');
+    const cfg = JSON.parse(f.text);
+    cfg.cloud = cloudVal;
+    await putFile('config/app.json', enc(JSON.stringify(cfg, null, 2) + '\n'), msg, f.sha);
+    toast('저장했어요. 1~2분 뒤 모든 앱에 계정·게시판이 열려요');
+    await loadSrv(); setTimeout(loadRuns, 4000);
+  }
+  $('#srvSave').onclick = async () => {
+    if (!srvOk) return;
+    $('#srvSave').disabled = true;
+    try { await saveSrv({ url: sbUrl($('#srvUrl').value), anonKey: $('#srvKey').value.trim() }, '관리 페이지: 서버(Supabase) 연결'); }
+    catch (e) { toast('실패: ' + e.message); $('#srvSave').disabled = false; }
+  };
+  $('#srvOff').onclick = async () => {
+    if (!confirm('서버 연결을 끊을까요? 앱의 계정·게시판·기록 동기화가 잠시 꺼져요 (서버의 글·기록은 그대로 남아요).')) return;
+    try { await saveSrv({ url: '', anonKey: '' }, '관리 페이지: 서버 연결 끊기'); } catch (e) { toast('실패: ' + e.message); }
+  };
 
   // ---------- 카테고리 ----------
   function renderCats() {

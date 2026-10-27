@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRION 비밀번호 바꾸기</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#15171c; --muted:#6b7280; --main:#7c5cff; --bad:#dc2626; --ok:#16a34a; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1115; --card:#181b22; --ink:#eceef3; --muted:#9aa0ab; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:16px; box-sizing:border-box; }
+  .card { background:var(--card); border-radius:16px; padding:28px 24px; width:100%; max-width:380px; box-shadow:0 8px 30px rgba(0,0,0,.08); }
+  h1 { font-size:20px; margin:0 0 6px; } p { color:var(--muted); margin:0 0 16px; font-size:14px; }
+  input { width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid #c9ced8; font-size:15px; margin-bottom:10px; background:transparent; color:inherit; }
+  button { width:100%; padding:12px; border:0; border-radius:10px; background:var(--main); color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+  button:disabled { opacity:.5; } .msg { margin-top:12px; font-size:14px; } .bad { color:var(--bad); } .ok { color:var(--ok); }
+</style></head>
+<body><div class="card">
+  <h1>CRION 비밀번호 바꾸기</h1>
+  <p id="intro">새 비밀번호를 두 번 넣어 주세요 (6자 이상).</p>
+  <form id="f">
+    <input type="password" id="p1" placeholder="새 비밀번호" autocomplete="new-password">
+    <input type="password" id="p2" placeholder="한 번 더" autocomplete="new-password">
+    <button id="go">바꾸기</button>
+  </form>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const say = (t, c) => { $('#msg').textContent = t; $('#msg').className = 'msg ' + (c || ''); };
+  const h = new URLSearchParams(location.hash.slice(1));
+  const tok = h.get('access_token');
+  if (h.get('error_description')) { $('#f').hidden = true; return say('링크가 만료되었거나 이미 쓰였어요. 앱에서 비밀번호 찾기를 다시 눌러 주세요.', 'bad'); }
+  if (!tok) { $('#f').hidden = true; return say('메일로 받은 링크로 들어와 주세요.', 'bad'); }
+  history.replaceState(null, '', location.pathname);
+  let cloud = null;
+  try { cloud = (await (await fetch('catalog.json', { cache: 'no-store' })).json()).cloud; } catch (e) {}
+  if (!cloud || !cloud.url) { $('#f').hidden = true; return say('서버 정보를 읽지 못했어요. 잠시 뒤 다시 열어 주세요.', 'bad'); }
+  $('#f').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const p = $('#p1').value;
+    if (p.length < 6) return say('6자 이상으로 해 주세요.', 'bad');
+    if (p !== $('#p2').value) return say('두 칸이 달라요.', 'bad');
+    $('#go').disabled = true; say('바꾸는 중…');
+    try {
+      const r = await fetch(cloud.url.replace(/\/+$/, '') + '/auth/v1/user', { method: 'PUT', headers: { apikey: cloud.anonKey, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.msg || j.error_description || j.message || r.status); }
+      $('#f').hidden = true; $('#intro').hidden = true;
+      say('바뀌었어요! CRION 앱에서 새 비밀번호로 로그인하세요.', 'ok');
+    } catch (e) { $('#go').disabled = false; say('바꾸지 못했어요: ' + e.message + ' (링크가 만료됐으면 앱에서 다시 요청)', 'bad'); }
+  };
+})();
+</script></body></html>

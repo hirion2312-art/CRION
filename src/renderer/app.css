@@ -604,3 +604,16 @@ select.field { height: 42px; }
   .tabs button { font-size: 14px; height: 42px; }
 }
 @media (max-width: 720px) { .section-h h2 { white-space: nowrap; } }
+
+/* CRION 계정 */
+.acct-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 8px; border-radius: 999px; background: var(--accent-weak); color: var(--accent-ink); font-size: 12.5px; font-weight: 700; }
+.acct-chip.off { background: #f3f3f5; color: var(--ink2); }
+.acct-chip svg { width: 15px; height: 15px; }
+.acct-form .err { color: #c8381a; font-size: 13px; font-weight: 600; }
+.acct-form .form-foot { gap: 10px; flex-wrap: wrap; }
+.acct-form .form-foot .link { font-size: 13px; }
+.bd-like { color: var(--muted); }
+.bd-like.on { color: #e0245e; font-weight: 700; }
+.bd-likebtn.on { color: #e0245e; border-color: #f7c1d1; background: #fff0f5; }
+.bd-locked { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px; border-radius: 12px; background: #f7f7f9; }
+.bd-locked .muted { flex: 1; min-width: 180px; }

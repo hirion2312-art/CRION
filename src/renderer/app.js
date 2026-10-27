@@ -587,7 +587,7 @@
     const list = S.works.map(w => ({ w, r: store.get(w.id) })).filter(x => x.r.lastAt || x.r.playMs).sort((a, b) => b.r.lastAt - a.r.lastAt);
     const stats = [['플레이한 작품', t.played + '개'], ['함께한 시간', fmtTime(t.playMs)], ['작품을 연 횟수', (t.opens || 0) + '번'], ['플레이팩', S.packs.filter(p => installed.has(p.id)).length + '개']];
     return `<main class="page"><div class="page-in narrow">
-      ${pageHead('내 기록', '이 기기에서 플레이한 기록이에요.')}
+      ${pageHead('내 기록', acctOn() ? '모든 기기에서 플레이한 기록이에요.' : '이 기기에서 플레이한 기록이에요.')}
       <div class="stats">${stats.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
       <div class="section-h"><h2>작품별</h2></div>
       ${list.length ? `<div class="rec-list">${list.map(({ w, r }) => `<div class="rec">
@@ -596,7 +596,7 @@
             <div class="bar"><i style="width:${t.playMs ? Math.max(3, Math.round(r.playMs / t.playMs * 100)) : 0}%"></i></div></div>
           <div class="row">${playBtns(w, false)}</div></div>`).join('')}</div>`
         : '<div class="empty"><b>아직 기록이 없어요</b><span>작품을 플레이하면 시간과 이어하기 정보가 여기에 쌓여요.</span><button class="btn primary" data-act="go" data-v="home">작품 보러 가기</button></div>'}
-      <p class="muted note-line">기록은 이 기기에만 저장돼요. 나중에 CRION 계정이 생기면 다른 기기에서도 이어지게 할 예정이에요.</p>
+      <p class="muted note-line">${acctOn() ? 'CRION 계정으로 로그인돼 있어서 다른 기기와 기록이 맞춰져요.' : `기록은 이 기기에 저장돼요. ${cloud.enabled() ? '<button class="link" data-act="acct-open" data-v="login">CRION 계정으로 로그인</button>하면 컴퓨터·폰 어디서 켜도 같은 기록이에요.' : 'CRION 계정이 열리면 다른 기기와 맞출 수 있어요.'}`}</p>
     </div></main>`;
   }
 
@@ -610,6 +610,9 @@
     const nCont = Object.keys(S.settings.workUrls || {}).length;
     return `<main class="page"><div class="page-in narrow">
       ${pageHead('설정', '')}
+      <section class="set-group" id="acctSet"><h3>CRION 계정 · 기록 동기화</h3>
+        ${acctSection()}
+      </section>
       <section class="set-group"><h3>플레이</h3>
         ${row('작품을 열 때', '이어하기: 마지막으로 보던 대화로 · 처음 화면: 항상 작품 페이지부터', pseg('openMode', [['continue', '이어하기'], ['page', '처음 화면']]))}
         ${row('성인 작품 보기', P.adult ? '성인 작품(19)과 성인 플레이팩이 함께 보여요' : '전연령 작품만 보여요 · 만 19세 이상만 켤 수 있어요', `<span class="seg"><button data-act="adult-off" class="${P.adult ? '' : 'on'}">끄기</button><button data-act="adult-ask" class="${P.adult ? 'on' : ''}">켜기</button></span>`)}
@@ -622,7 +625,7 @@
         ${row('왼쪽 메뉴', '', pseg('navSmall', [[false, '넓게'], [true, '아이콘만']])).replace('class="set"', 'class="set desk-only"')}
       </section>
       <section class="set-group"><h3>크랙 계정</h3>
-        ${row('크랙 로그인', '한 번 로그인하면 모든 작품에서 유지돼요', `<button class="btn sm" data-act="go" data-v="login">${I.user}로그인 화면 열기</button>`)}
+        ${row('크랙 로그인', '한 번 로그인하면 모든 작품에서 유지돼요 · 기기마다 한 번씩 로그인해요 (CRION 계정과 따로)', `<button class="btn sm" data-act="go" data-v="login">${I.user}로그인 화면 열기</button>`)}
       </section>
       <section class="set-group"><h3>업데이트</h3>
         ${row('자동 업데이트', '새 화면·작품 목록을 알아서 받아요', seg('autoUpdate', [['true', '켜기'], ['false', '끄기']]))}
@@ -1075,7 +1078,114 @@
       y0 = null; m = null;
     });
   })();
-  const BD = window.CrionBoard.create({ S, cloud, esc, ago, modal, closeModal, toast, render, lsGet, lsSet, I, copy });
+  const BD = window.CrionBoard.create({ S, cloud, esc, ago, modal, closeModal, toast, render, lsGet, lsSet, I, copy, openAccount: (m) => acctModal(m), acctChip: () => acctChip() });
+
+  // ---------- CRION 계정 · 플레이 기록 동기화 ----------
+  //  크랙 계정과는 따로. 이메일·비밀번호로 가입하면 컴퓨터·폰 어디서 켜도 같은 기록 + 게시판 글쓰기
+  const SY = new window.CrionSync.Sync({ storage: ls, cloud, getSettings: () => S.settings || {}, setSettings: (p) => save(p), device: '' });
+  const ACC = { busy: false, err: '', mode: 'login' };
+  const acctOn = () => cloud.enabled() && !!cloud.accountUid();
+  function acctChip() {
+    if (!cloud.enabled()) return '';
+    const a = cloud.account();
+    return a ? `<button class="acct-chip" data-act="go" data-v="settings" title="CRION 계정">${I.user}<span>${esc(a.nick || '닉네임 정하기')}</span></button>`
+      : `<button class="acct-chip off" data-act="acct-open" data-v="login">${I.user}<span>로그인</span></button>`;
+  }
+  async function syncNow(manual) {
+    if (!acctOn()) return null;
+    if (SY.busy) { if (manual) toast('맞추는 중이에요'); return null; }
+    try {
+      const r = await SY.run({ pull: S.view !== 'play' });
+      if (r && r.keys.length) { store.cache = {}; Object.assign(P, loadPrefs()); if (S.view !== 'play' && !$('#layer > *')) render(); }
+      if (manual) toast(!r ? '맞추는 중이에요' : (r.pulled + r.merged) ? `기록을 맞췄어요 · 받음 ${r.pulled + r.merged} · 올림 ${r.pushed}` : r.pushed ? `기록을 올렸어요 (${r.pushed}칸)` : '이미 최신이에요');
+      if (S.view === 'settings' && !$('#layer > *')) render();
+      return r;
+    } catch (e) {
+      if (manual) toast('기록을 맞추지 못했어요: ' + ((e && e.message) || ''));
+      if (/로그인이 끝났/.test((e && e.message) || '')) { SY.forget(); render(); }
+      return null;
+    }
+  }
+  setInterval(() => { syncNow(false); }, 3 * 60 * 1000);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest && e.target.closest('.acct-form') && e.target.tagName === 'INPUT') { const b = document.querySelector('[data-act=acct-submit]'); if (b && !b.disabled) b.click(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncNow(false); });
+  function acctSection() {
+    if (!cloud.enabled()) return row('CRION 계정', '서버 준비가 끝나면 열려요 · 컴퓨터·폰 어디서 켜도 같은 기록, 게시판 글쓰기', '<button class="btn sm" disabled>준비 중</button>');
+    const a = cloud.account();
+    if (!a) return row('CRION 계정', '로그인하면 컴퓨터·폰 어디서 켜도 <b>같은 플레이 기록</b>이에요 · 게시판 글쓰기·좋아요도 이 계정으로', `<button class="btn sm" data-act="acct-open" data-v="login">로그인</button><button class="btn sm primary" data-act="acct-open" data-v="signup">가입하기</button>`);
+    const last = SY.lastAt ? ago(SY.lastAt) + ' 맞춤' : SY.err ? '맞추지 못함 · ' + esc(SY.err) : '곧 맞춰요';
+    return row(esc(a.nick || '닉네임을 정해 주세요'), `${esc(a.email)} · 기록 동기화 켜짐 · ${last}`, `<button class="btn sm" data-act="acct-sync" ${SY.busy ? 'disabled' : ''}>${I.reload}지금 맞추기</button><button class="btn sm" data-act="acct-open" data-v="nick">닉네임</button><button class="btn sm" data-act="acct-logout">로그아웃</button>`)
+      + row('계정 지우기', '서버에 있는 동기화 기록과 닉네임을 지워요 · 이 기기의 기록은 남아요', '<button class="btn sm ghost danger" data-act="acct-open" data-v="delete">계정 지우기</button>');
+  }
+  function acctModal(mode) {
+    ACC.mode = mode; ACC.err = ''; ACC.busy = false;
+    const a = cloud.account();
+    const em = (a && a.email) || lsGet('crion.cloud.acctEmail') || '';
+    const foot = (btn) => `${ACC.err ? `<div class="err" id="acctErr">${esc(ACC.err)}</div>` : '<div class="err" id="acctErr" hidden></div>'}<div class="form-foot">${btn}</div>`;
+    let title, body;
+    if (mode === 'signup') {
+      title = 'CRION 계정 만들기';
+      body = `<p class="muted">크랙 계정과는 따로예요. 이메일은 로그인과 비밀번호 찾기에만 써요.</p>
+        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" autocomplete="email" value="${esc(em)}"></label>
+        <label class="f"><span>비밀번호 (8자 이상)</span><input id="acPw" class="field" type="password" autocomplete="new-password"></label>
+        <label class="f"><span>닉네임 (2~16자 · 게시판에 보여요)</span><input id="acNick" class="field" maxlength="16" value="${esc(lsGet('crion.nick') || '')}"></label>
+        ${foot('<button class="link" data-act="acct-open" data-v="login">이미 계정이 있어요</button><button class="btn primary" data-act="acct-submit" data-v="signup">가입하고 기록 맞추기</button>')}`;
+    } else if (mode === 'reset') {
+      title = '비밀번호 찾기';
+      body = `<p class="muted">가입한 이메일로 새 비밀번호를 정하는 링크를 보내요.</p>
+        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" value="${esc(em)}"></label>
+        ${foot('<button class="link" data-act="acct-open" data-v="login">로그인으로</button><button class="btn primary" data-act="acct-submit" data-v="reset">메일 보내기</button>')}`;
+    } else if (mode === 'nick') {
+      title = '닉네임';
+      body = `<p class="muted">게시판에 보이는 이름이에요. 다른 사람이 쓰는 닉네임은 못 써요.</p>
+        <label class="f"><span>닉네임 (2~16자)</span><input id="acNick" class="field" maxlength="16" value="${esc((a && a.nick) || lsGet('crion.nick') || '')}"></label>
+        ${foot('<button class="btn primary" data-act="acct-submit" data-v="nick">저장</button>')}`;
+    } else if (mode === 'delete') {
+      title = '계정 지우기';
+      body = `<p>서버에 있는 <b>동기화 기록과 닉네임</b>이 지워지고, 쓴 글은 '탈퇴한 사용자'로 남아요. 되돌릴 수 없어요.</p><p class="muted">이 기기에 있는 플레이 기록은 그대로예요.</p>
+        ${foot('<button class="btn" data-act="close-modal">취소</button><button class="btn danger-fill" data-act="acct-submit" data-v="delete">계정 지우기</button>')}`;
+    } else {
+      title = 'CRION 계정 로그인';
+      body = `<p class="muted">로그인하면 이 기기의 기록과 다른 기기의 기록을 합쳐서 맞춰요.</p>
+        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" autocomplete="email" value="${esc(em)}"></label>
+        <label class="f"><span>비밀번호</span><input id="acPw" class="field" type="password" autocomplete="current-password"></label>
+        ${foot('<button class="link" data-act="acct-open" data-v="reset">비밀번호를 잊었어요</button><button class="link" data-act="acct-open" data-v="signup">가입하기</button><button class="btn primary" data-act="acct-submit" data-v="login">로그인</button>')}`;
+    }
+    modal(`<header><h3>${title}</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body"><div class="form acct-form">${body}</div></div>`);
+    setTimeout(() => { const f = $('#acEmail') || $('#acNick'); if (f) f.focus(); }, 30);
+  }
+  async function acctSubmit(mode) {
+    const v = (id) => ((document.getElementById(id) || {}).value || '').trim();
+    const btn = document.querySelector('[data-act=acct-submit]');
+    const errEl = $('#acctErr');
+    const fail = (e) => { if (errEl) { errEl.hidden = false; errEl.textContent = (e && e.message) || '문제가 생겼어요'; } if (btn) btn.disabled = false; };
+    if (btn) btn.disabled = true;
+    try {
+      if (mode === 'signup') {
+        lsSet('crion.cloud.acctEmail', v('acEmail'));
+        const r = await cloud.signUp(v('acEmail'), (document.getElementById('acPw') || {}).value || '', v('acNick'));
+        lsSet('crion.nick', v('acNick'));
+        SY.forget(); closeModal();
+        toast(r.nickError ? '가입했어요. 닉네임은 다시 정해 주세요: ' + r.nickError : '가입했어요. 기록을 맞추는 중이에요');
+        BD.reset(); render(); await syncNow(true);
+        if (r.nickError) acctModal('nick');
+      } else if (mode === 'login') {
+        lsSet('crion.cloud.acctEmail', v('acEmail'));
+        await cloud.signIn(v('acEmail'), (document.getElementById('acPw') || {}).value || '');
+        SY.forget(); closeModal(); toast('로그인했어요. 기록을 맞추는 중이에요');
+        BD.reset(); render(); await syncNow(true);
+        if (!cloud.account().nick) acctModal('nick');
+      } else if (mode === 'reset') {
+        await cloud.resetPassword(v('acEmail'), regBase() ? regBase() + 'reset.html' : '');
+        closeModal(); toast('메일을 보냈어요. 메일의 링크에서 새 비밀번호를 정해 주세요', 5000);
+      } else if (mode === 'nick') {
+        await cloud.setNick(v('acNick')); lsSet('crion.nick', v('acNick'));
+        closeModal(); toast('닉네임을 저장했어요'); BD.reset(); render();
+      } else if (mode === 'delete') {
+        await cloud.deleteAccount(); SY.forget(); closeModal(); toast('계정을 지웠어요'); BD.reset(); render();
+      }
+    } catch (e) { fail(e); }
+  }
 
   // ---------- 처음 사용법 (튜토리얼) ----------
   const TUT = [
@@ -1128,7 +1238,7 @@
     if (tutI >= 0) showTut(tutI);
   }
   function go(view) {
-    if (S.view === 'play' && view !== 'play') { if (runner) { runner.destroy(); runner = null; } if (bgm) bgm.stop(); S.play = null; }
+    if (S.view === 'play' && view !== 'play') { if (runner) { runner.destroy(); runner = null; } if (bgm) bgm.stop(); S.play = null; setTimeout(() => syncNow(false), 300); }
     if (view !== S.view) BD.reset();
     S.view = view;
     if (view === 'community' && S.commTab === 'news') markNewsSeen();
@@ -1165,6 +1275,10 @@
       case 'sl-step': slideTo(S.slide + Number(el.dataset.d || 1)); slLast = Date.now(); break;
       case 'sl-go': slideTo(Number(el.dataset.i) || 0); slLast = Date.now(); break;
       case 'home-cat': { S.homeCat = el.dataset.v || 'all'; lsSet('crion.homeCat', S.homeCat); const l = $('#homeList'); if (l) l.innerHTML = homeListHtml(); else refresh(); break; }
+      case 'acct-open': acctModal(el.dataset.v || 'login'); break;
+      case 'acct-submit': acctSubmit(el.dataset.v); break;
+      case 'acct-sync': syncNow(true); render(); break;
+      case 'acct-logout': await syncNow(false); await cloud.signOut(); SY.forget(); BD.reset(); toast('로그아웃했어요. 이 기기의 기록은 그대로예요'); render(); break;
       case 'close-notice': if (S.notice) lsSet(noticeId(S.notice), '1'); refresh(); break;
       case 'open-link': if (el.dataset.url) api.openExternal(el.dataset.url); break;
       case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
@@ -1279,9 +1393,12 @@
     S.info = await api.info();
     S.settings = await api.getSettings();
     if (!S.settings.workUrls) S.settings.workUrls = {};
+    SY.o.device = String(S.info.platform || '');
     await Promise.all([loadCatalog(), loadPacks()]);
     if (!S.works.length) await loadShellWorks();
+    if (acctOn()) { await cloud.loadProfile().catch(() => null); }
     render();
+    if (acctOn()) syncNow(false);
     api.engineReady();
     hideSplash();
     setInterval(() => loadCatalog().then(refresh), 30 * 60 * 1000);

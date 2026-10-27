@@ -4,7 +4,9 @@ from playwright.async_api import async_playwright
 OUT = '/home/claude/crion/test/out/'
 works = json.load(open('/home/claude/crion/config/works.json', encoding='utf-8'))
 pkg = json.load(open('/home/claude/crion/package.json'))
-files = {'config/works.json': json.dumps(works, ensure_ascii=False, indent=1), 'package.json': json.dumps(pkg, indent=2)}
+files = {'config/works.json': json.dumps(works, ensure_ascii=False, indent=1), 'package.json': json.dumps(pkg, indent=2),
+         'config/app.json': open('/home/claude/crion/config/app.json', encoding='utf-8').read(), 'supabase/schema.sql': open('/home/claude/crion/supabase/schema.sql', encoding='utf-8').read()}
+SB = {'confirm': True}
 puts = []
 SONG = os.path.join(tempfile.gettempdir(), 'crion_test_song.mp3')
 open(SONG, 'wb').write(b'ID3' + b'\0' * 2000)
@@ -39,6 +41,16 @@ async def handle(route, req):
                 files[p] = content.decode('utf-8')
             return await route.fulfill(json={'content': {'sha': 'new'}})
     await route.fulfill(status=404, json={'message': 'x'})
+
+
+async def supa(route, req):
+    u = req.url.split('.supabase.co')[1]
+    if u.startswith('/auth/v1/settings'):
+        return await route.fulfill(json={'external': {'anonymous_users': True, 'email': True}, 'mailer_autoconfirm': not SB['confirm'], 'disable_signup': False})
+    if u.startswith('/rest/v1/rpc/crion_schema_version'): return await route.fulfill(json=2)
+    if u.startswith('/auth/v1/token'): return await route.fulfill(json={'access_token': 'T'})
+    if u.startswith('/rest/v1/admins'): return await route.fulfill(json=[{'uid': 'a'}])
+    await route.fulfill(status=404, json={})
 
 
 async def main():
@@ -110,6 +122,20 @@ async def main():
         print('saved notice:', saved.get('notice'), '| w0 url:', saved['works'][0]['url'], '| w1 thumb:', saved['works'][1]['thumb'])
         print('슬라이드:', saved.get('banners'), '| 카테고리 수:', len(saved.get('categories', [])), '| 맨 위 작품:', saved['works'][0]['name'], saved['works'][0].get('cats'))
         print('state after:', await page.inner_text('#state'))
+        # 서버 연결 카드
+        await page.route('https://*.supabase.co/**', supa)
+        await page.eval_on_selector('#srvCard', 'e => e.scrollIntoView()')
+        await page.fill('#srvUrl', 'https://abcd.supabase.co/'); await page.fill('#srvKey', 'sb_secret_xxxxxxxxxxxxxxxxxxxxxxxx'); await page.click('#srvTest'); await page.wait_for_timeout(300)
+        print('secret 키 막힘:', 'secret' in await page.inner_text('#srvChecks'), await page.is_disabled('#srvSave'))
+        await page.fill('#srvKey', 'sb_publishable_abcdefghijklmnopqrstuv'); await page.click('#srvTest'); await page.wait_for_timeout(600)
+        print('Confirm email 켜짐 경고:', 'Confirm email' in await page.inner_text('#srvChecks'), await page.is_disabled('#srvSave'))
+        SB['confirm'] = False
+        await page.fill('#srvAdmEmail', 'boss@x.com'); await page.fill('#srvAdmPw', 'pw')
+        await page.click('#srvTest'); await page.wait_for_timeout(600)
+        await page.eval_on_selector('#srvCard', 'e => e.scrollIntoView()')
+        await page.screenshot(path=OUT + 'a5_server.png')
+        await page.click('#srvSave'); await page.wait_for_timeout(800)
+        print('저장된 cloud:', json.loads(files['config/app.json'])['cloud'], '| 상태:', await page.inner_text('#srvState'))
         await page.click('#bump'); await page.wait_for_timeout(800)
         print('version now:', json.loads(files['package.json'])['version'])
         await page.wait_for_timeout(4500)
