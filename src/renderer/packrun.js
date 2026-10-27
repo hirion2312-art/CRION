@@ -948,10 +948,10 @@
     const REG = [['잿불 화구', 18, 30, '화'], ['천년 서고 폐허', 22, 62, '화·어둠'], ['청람 호수·서리숲', 80, 70, '수'], ['풍차 고원·구름 절벽', 82, 26, '풍'], ['수정 협곡·버섯숲', 16, 80, '지'], ['유리 성당 언덕', 70, 14, '빛'], ['황혼 묘원', 86, 50, '어둠'], ['심연의 균열(금지)', 50, 6, '금지'], ['빛의 성역(금지)', 30, 10, '금지']];
     function mapHtml() {
       const here = ((R.status && R.status.place) || '').replace(/\s/g, '');
-      return `<div class="ak-map"><div class="ak-island">
+      return `<div class="ak-map"><div class="ak-islandwrap"><div class="ak-island">
         ${PINS.map(([n, x, y, k]) => `<div class="pin ${here.includes(k) || here.includes(n.replace(/\s/g, '')) ? 'here' : ''}" style="left:${x}%;top:${y}%"><i>📍</i><span>${esc(n)}</span></div>`).join('')}
         ${REG.map(([n, x, y, e]) => `<div class="reg ${e === '금지' ? 'ban' : ''}" style="left:${x}%;top:${y}%"><b>${esc(n)}</b><span>${esc(e)}</span></div>`).join('')}
-        <div class="spire"></div></div>
+        <div class="spire"></div></div></div><p class="ak-swipe">← 지도를 옆으로 밀어 보세요 →</p>
         <div class="ak-map-side"><h5>현재 위치</h5><p><b>📍 ${esc((R.status && R.status.place) || '알 수 없음')}</b></p>
         <h5>서식지와 야생 레벨</h5><p class="ak-small">${esc(String(data.regions || '').replace(/^서식지\(기본체 기준\)\.\s*/, '')).replace(/\.\s/g, '.<br>')}</p></div></div>`;
     }
@@ -987,12 +987,21 @@
         <label>음량 <b id="akVolV">${M.prefs.vol}</b></label><input type="range" min="0" max="100" value="${M.prefs.vol}" id="akVol">
         <label>화면 효과 (흔들림·번쩍임·계절)</label>${sel('fx', [['true', '켜기'], ['false', '끄기']])}
         <hr><button class="ak-btn" data-ak="crack">크랙 화면 잠깐 보기</button> <button class="ak-btn" data-ak="pack-off">이 작품 플레이팩 끄기</button> <button class="ak-btn" data-ak="diag">화면 진단 복사</button>
-        <p class="ak-muted">플레이팩을 꺼도 지우지 않아요. 스토어에서 다시 켤 수 있어요. 도감·인물 기록은 이 컴퓨터에만 저장돼요.</p></div>`;
+        <p class="ak-muted">플레이팩을 꺼도 지우지 않아요. 스토어에서 다시 켤 수 있어요. 도감·인물 기록은 이 기기에만 저장돼요.</p></div>`;
     }
     function openModal(k) {
       if (k === 'm-dex') modal('📖 도감', codexHtml(), 'wide');
       else if (k === 'm-people') modal('👥 인물록', peopleHtml(), 'wide');
-      else if (k === 'm-map') modal('🗺️ 에테르나 섬', mapHtml(), 'wide');
+      else if (k === 'm-map') {
+        modal('🗺️ 에테르나 섬', mapHtml(), 'wide');
+        // 폰: 넓은 지도를 현재 위치(없으면 가운데)로 맞춰 둔다
+        setTimeout(() => { try {
+          const w = $('.ak-islandwrap'); if (!w || w.scrollWidth <= w.clientWidth) return;
+          const h = w.querySelector('.pin.here'), isl = w.querySelector('.ak-island');
+          const x = h ? h.offsetLeft : isl.offsetWidth / 2;
+          w.scrollLeft = Math.max(0, x - w.clientWidth / 2);
+        } catch (e) { /* 없음 */ } }, 30);
+      }
       else if (k === 'm-bag') modal('🎒 주머니', bagHtml());
       else if (k === 'm-badge') modal('🏅 배지 회랑', badgeHtml(), 'wide');
       else if (k === 'log') modal('📜 지난 대사', logHtml());

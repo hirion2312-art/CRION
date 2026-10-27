@@ -1,6 +1,6 @@
 name: 안드로이드 APK 빌드
 
-# android/ · 화면 엔진 · 작품 목록이 바뀌어 main 에 올라오면 APK 를 만들어 '안드로이드 시험판' 릴리스(미리보기)에 올린다
+# android/ · 화면 엔진 · 작품 목록이 바뀌어 main 에 올라오면 APK 를 만들어 'CRION 안드로이드' 릴리스(미리보기, 태그 android-app)에 올린다
 # 실패하면 빌드 오류 줄을 '주석(annotation)'으로 남긴다 (세션이 gh api 로 읽을 수 있게)
 on:
   workflow_dispatch:
@@ -60,7 +60,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk CRION-android.apk
-          gh release view android-test >/dev/null 2>&1 || gh release create android-test --prerelease --title "CRION 안드로이드 시험판" --notes "자동으로 만든 시험판이에요. 아직 화면이 컴퓨터용이라 폰에서는 불편할 수 있어요."
-          gh release upload android-test CRION-android.apk --clobber
+          # 사이트의 안드로이드 다운로드 링크: releases/download/android-app/CRION-android.apk (미리보기 릴리스라 PC판 '최신'에는 안 섞임)
+          gh release view android-app >/dev/null 2>&1 || gh release create android-app --prerelease --title "CRION 안드로이드" --notes "휴대폰(안드로이드)용 CRION 이에요. CRION-android.apk 를 받아 설치하세요. 화면은 앱을 열 때 자동으로 최신이 돼요."
+          gh release upload android-app CRION-android.apk --clobber
           echo "빌드 ${{ github.run_number }} · $(date -u +%FT%TZ)" > build-info.txt
-          gh release upload android-test build-info.txt --clobber
+          gh release upload android-app build-info.txt --clobber

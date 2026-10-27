@@ -177,7 +177,7 @@ class Shell(private val ctx: Context) {
                 val v = e.optString("version")
                 if (cmpVer(appVersion, e.optString("minShell", "0")) < 0 || e.optInt("apiLevel", API_LEVEL) != API_LEVEL) {
                     result.put("engine", JSONObject().put("state", "shell-old").put("version", v))
-                    emit(JSONObject().put("type", "shell-old").put("version", v).put("url", appConfig.optString("downloadUrl")))
+                    emit(JSONObject().put("type", "shell-old").put("version", v).put("url", appConfig.optString("androidDownloadUrl", "https://github.com/hirion2312-art/CRION/releases/download/android-app/CRION-android.apk")))
                 } else if (auto) {
                     val dest = File(userEngines, v)
                     if (!File(dest, "engine.json").exists()) syncDir(e, dest, running)

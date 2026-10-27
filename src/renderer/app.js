@@ -358,7 +358,7 @@
       toast(`${p.name}을(를) 받았어요`);
     } catch (err) {
       // 저장이 안 되는 컴퓨터: 온라인 재생으로 설치 표시 (플레이할 때 서버에서 바로 읽음)
-      if (String(err && err.message) === 'no-idb') { installed.install(p); toast('이 컴퓨터에 저장하지 못해 인터넷으로 재생해요'); }
+      if (String(err && err.message) === 'no-idb') { installed.install(p); toast('이 기기에 저장하지 못해 인터넷으로 재생해요'); }
       else toast('받지 못했어요: ' + (err && err.message || err), 4000);
     }
     S.installing = null;
@@ -518,7 +518,7 @@
     const list = S.works.map(w => ({ w, r: store.get(w.id) })).filter(x => x.r.lastAt || x.r.playMs).sort((a, b) => b.r.lastAt - a.r.lastAt);
     const stats = [['플레이한 작품', t.played + '개'], ['함께한 시간', fmtTime(t.playMs)], ['작품을 연 횟수', (t.opens || 0) + '번'], ['플레이팩', S.packs.filter(p => installed.has(p.id)).length + '개']];
     return `<main class="page"><div class="page-in narrow">
-      ${pageHead('내 기록', '이 컴퓨터에서 플레이한 기록이에요.')}
+      ${pageHead('내 기록', '이 기기에서 플레이한 기록이에요.')}
       <div class="stats">${stats.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
       <div class="section-h"><h2>작품별</h2></div>
       ${list.length ? `<div class="rec-list">${list.map(({ w, r }) => `<div class="rec">
@@ -527,7 +527,7 @@
             <div class="bar"><i style="width:${t.playMs ? Math.max(3, Math.round(r.playMs / t.playMs * 100)) : 0}%"></i></div></div>
           <div class="row">${playBtns(w, false)}</div></div>`).join('')}</div>`
         : '<div class="empty"><b>아직 기록이 없어요</b><span>작품을 플레이하면 시간과 이어하기 정보가 여기에 쌓여요.</span><button class="btn primary" data-act="go" data-v="home">작품 보러 가기</button></div>'}
-      <p class="muted note-line">기록은 이 컴퓨터에만 저장돼요. 나중에 CRION 계정이 생기면 다른 기기에서도 이어지게 할 예정이에요.</p>
+      <p class="muted note-line">기록은 이 기기에만 저장돼요. 나중에 CRION 계정이 생기면 다른 기기에서도 이어지게 할 예정이에요.</p>
     </div></main>`;
   }
 

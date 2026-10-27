@@ -103,7 +103,7 @@
   @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
   .step { padding: 24px; border-radius: 18px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); counter-increment: s; }
   .step::before { content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); margin-bottom: 14px; }
-  .step b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .step > b { display: block; font-size: 17px; margin-bottom: 6px; }
   .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
   .note { margin-top: 16px; padding: 18px 20px; border-radius: 14px; font-size: 14.5px; color: #e9dcc0; background: rgba(242,213,138,.07); box-shadow: inset 0 0 0 1px rgba(242,213,138,.25); }
   .note b { color: var(--gold); }
@@ -138,9 +138,9 @@
 </div></nav>
 
 <header class="hero" id="top"><div class="wrap">
-  <span class="badge"><i></i><span id="ver">무료 · Windows · Mac</span></span>
+  <span class="badge"><i></i><span id="ver">무료 · Windows · Mac · Android</span></span>
   <h1>크랙 작품을,<br><em>게임처럼</em> 플레이하세요</h1>
-  <p class="lead">채팅창 대신 배경·대사창·상태창·선택지가 있는 게임 화면으로. 크리에이터 히리온의 작품을 가장 생생하게 즐기는 무료 PC 앱이에요.</p>
+  <p class="lead">채팅창 대신 배경·대사창·상태창·선택지가 있는 게임 화면으로. 크리에이터 히리온의 작품을 가장 생생하게 즐기는 무료 앱이에요. PC와 안드로이드 폰에서 쓸 수 있어요.</p>
   <div class="dl">
     <a class="btn main" id="dlMain" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
@@ -149,8 +149,9 @@
       <a class="btn ghost" data-os="win" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-Setup.exe">Windows</a>
       <a class="btn ghost" data-os="mac-arm" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-arm64.dmg">Mac (Apple 칩)</a>
       <a class="btn ghost" data-os="mac-x64" href="https://github.com/hirion2312-art/CRION/releases/latest/download/CRION-mac-x64.dmg">Mac (Intel)</a>
+      <a class="btn ghost" data-os="android" href="https://github.com/hirion2312-art/CRION/releases/download/android-app/CRION-android.apk">Android</a>
     </div>
-    <div class="meta" id="meta">Windows 10/11 64비트 · macOS · 설치 후 자동 업데이트</div>
+    <div class="meta" id="meta">Windows 10/11 64비트 · macOS · Android 8 이상 · 설치 후 자동 업데이트</div>
   </div>
   <div class="shot reveal"><div class="bar"><i></i><i></i><i></i></div><img src="shots/title.webp" alt="CRION 플레이팩 「소환수 아카데미」 첫 화면" width="1440" height="846"></div>
 </div></header>
@@ -223,7 +224,7 @@
   <div class="center reveal">
     <div class="eyebrow">Install</div>
     <h2>설치는 1분이면 끝나요</h2>
-    <div class="tabs" role="tablist"><button class="on" data-tab="win" role="tab">Windows</button><button data-tab="mac" role="tab">Mac</button></div>
+    <div class="tabs" role="tablist"><button class="on" data-tab="win" role="tab">Windows</button><button data-tab="mac" role="tab">Mac</button><button data-tab="android" role="tab">Android</button></div>
   </div>
   <div data-pane="win">
     <div class="steps">
@@ -241,6 +242,14 @@
     </div>
     <div class="note"><b>“손상되었기 때문에 열 수 없습니다”라고 뜨면</b> — 터미널을 열고 아래 한 줄을 붙여 넣은 뒤 Enter를 눌러요.<br><code id="xattr">xattr -cr /Applications/CRION.app</code><button class="copy" data-copy="xattr">복사</button></div>
   </div>
+  <div data-pane="android" hidden>
+    <div class="steps">
+      <div class="step"><b>받기</b><p>폰에서 이 페이지를 열고 <b>Android</b>(또는 안드로이드용 무료 다운로드)를 눌러 <code>CRION-android.apk</code>를 받아요.</p></div>
+      <div class="step"><b>설치</b><p>다운로드 알림이나 <b>내 파일 → 다운로드</b>에서 받은 파일을 눌러요. <b>“출처를 알 수 없는 앱”</b> 안내가 뜨면 <b>설정 → 이 출처 허용</b>을 켜고 돌아와 설치를 눌러요.</p></div>
+      <div class="step"><b>로그인하고 플레이</b><p>아래 메뉴의 <b>크랙 로그인</b>으로 로그인한 뒤 작품을 골라 시작해요. 폰은 세로 화면 전용이에요.</p></div>
+    </div>
+    <div class="note"><b>“Play 프로텍트” 경고가 뜨면</b> — 개인이 만든 앱이라 Play 스토어를 거치지 않아서 뜨는 안내예요. <b>세부정보 → 무시하고 설치</b>를 누르면 돼요. 화면은 앱을 열 때 자동으로 최신이 되고, 앱 자체를 새로 받아야 할 때는 앱 안에서 알려 드려요.</div>
+  </div>
 </div></section>
 
 <section id="faq" style="background:var(--bg2)"><div class="wrap">
@@ -250,7 +259,7 @@
     <details><summary>크랙 계정이 꼭 필요한가요? 비밀번호는 안전한가요?</summary><p>네, 크랙 계정이 필요해요. 로그인은 CRION 안에 열린 크랙 공식 로그인 화면에서 직접 해요. CRION은 비밀번호를 따로 받거나 저장하지 않아요.</p></details>
     <details><summary>제 대신 마음대로 메시지를 보내지는 않나요?</summary><p>보내지 않아요. 선택지나 버튼은 입력칸을 채워 줄 뿐이고, <b>보내기를 한 번 누르면 딱 한 번</b>만 보내요. 자동으로 반복해서 보내는 기능은 없어요.</p></details>
     <details><summary>모든 크랙 작품에서 쓸 수 있나요?</summary><p>CRION은 히리온의 작품을 위해 만든 앱이에요. 홈 화면에 히리온의 작품이 모여 있고, 플레이팩이 있는 작품은 전용 화면으로, 없는 작품은 크랙 화면 그대로 플레이해요.</p></details>
-    <details><summary>휴대폰에서도 되나요?</summary><p>지금은 Windows와 Mac용 PC 앱만 있어요. 휴대폰에서는 크랙 앱으로 같은 대화를 이어서 할 수 있어요.</p></details>
+    <details><summary>휴대폰에서도 되나요?</summary><p>안드로이드 폰은 돼요. 이 페이지를 폰에서 열고 <b>Android</b>를 눌러 <code>CRION-android.apk</code>를 받아 설치하세요 (아래 설치 방법의 Android 탭). 아이폰용은 아직 없어요 — 아이폰에서는 크랙 앱으로 같은 대화를 이어서 할 수 있어요.</p></details>
     <details><summary>성인 작품도 볼 수 있나요?</summary><p>설정에서 성인 작품 보기를 켠 경우에만 보여요. 크랙에서도 성인 인증을 마친 계정이어야 플레이할 수 있어요.</p></details>
     <details><summary>오류가 나거나 건의하고 싶어요</summary><p>앱 왼쪽 메뉴의 <b>커뮤니티</b>에서 버그 신고와 건의를 바로 보낼 수 있어요. 화면 진단 정보도 함께 붙일 수 있어 빠르게 고칠 수 있어요.</p></details>
   </div>
@@ -270,28 +279,36 @@
 <script>
 (function () {
   var REL = 'https://github.com/hirion2312-art/CRION/releases/latest/download/';
-  var FILES = { win: ['CRION-Setup.exe', 'Windows용 무료 다운로드'], 'mac-arm': ['CRION-mac-arm64.dmg', 'Mac (Apple 칩)용 무료 다운로드'], 'mac-x64': ['CRION-mac-x64.dmg', 'Mac (Intel)용 무료 다운로드'] };
+  var APK = 'https://github.com/hirion2312-art/CRION/releases/download/android-app/CRION-android.apk';
+  var FILES = { win: ['CRION-Setup.exe', 'Windows용 무료 다운로드'], 'mac-arm': ['CRION-mac-arm64.dmg', 'Mac (Apple 칩)용 무료 다운로드'], 'mac-x64': ['CRION-mac-x64.dmg', 'Mac (Intel)용 무료 다운로드'], android: ['CRION-android.apk', '안드로이드용 무료 다운로드'] };
   var ua = navigator.userAgent || '', os = 'win';
   if (/Mac/i.test(ua) && !/iPhone|iPad/i.test(ua)) {
     os = 'mac-arm';
     try { var c = document.createElement('canvas').getContext('webgl'); var d = c && c.getExtension('WEBGL_debug_renderer_info'); var r = d ? c.getParameter(d.UNMASKED_RENDERER_WEBGL) : ''; if (/Intel/i.test(r)) os = 'mac-x64'; } catch (e) {}
   }
-  var mobile = /Android|iPhone|iPad/i.test(ua);
+  if (/Android/i.test(ua)) os = 'android';
+  var mobile = /iPhone|iPad/i.test(ua);
   var main = document.getElementById('dlMain');
-  main.href = REL + FILES[os][0];
-  document.getElementById('dlLabel').textContent = mobile ? 'PC에서 다운로드하세요' : FILES[os][1];
+  main.href = os === 'android' ? APK : REL + FILES[os][0];
+  document.getElementById('dlLabel').textContent = mobile ? '아이폰은 아직 없어요 · PC·안드로이드에서 받아요' : FILES[os][1];
   if (mobile) main.removeAttribute('href');
-  document.querySelectorAll('[data-dl-label]').forEach(function (x) { x.textContent = mobile ? 'PC에서 다운로드' : FILES[os][1]; });
+  document.querySelectorAll('[data-dl-label]').forEach(function (x) { x.textContent = mobile ? 'PC·안드로이드에서 다운로드' : FILES[os][1]; });
   document.querySelectorAll('[data-os]').forEach(function (a) { if (a.dataset.os === os) a.style.display = 'none'; });
   if (/^mac/.test(os)) setTimeout(function () { showTab('mac'); }, 0);
+  if (os === 'android') setTimeout(function () { showTab('android'); }, 0);
 
   // 최신 버전 표시
   fetch('https://api.github.com/repos/hirion2312-art/CRION/releases/latest').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
     if (!j || !j.tag_name) return;
     var dt = j.published_at ? new Date(j.published_at) : null;
     document.getElementById('ver').textContent = '최신 ' + j.tag_name.replace(/^v?/, 'v') + (dt ? ' · ' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일 업데이트' : '');
+    if (os === 'android') return;
     var a = (j.assets || []).filter(function (x) { return x.name === FILES[os][0]; })[0];
     if (a && a.size) document.getElementById('meta').innerHTML = '<b>' + (a.size / 1048576).toFixed(0) + 'MB</b> · Windows 10/11 64비트 · macOS · 설치 후 자동 업데이트';
+  }).catch(function () {});
+  if (os === 'android') fetch('https://api.github.com/repos/hirion2312-art/CRION/releases/tags/android-app').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    var a = j && (j.assets || []).filter(function (x) { return x.name === 'CRION-android.apk'; })[0];
+    if (a && a.size) document.getElementById('meta').innerHTML = '<b>' + (a.size / 1048576).toFixed(0) + 'MB</b> · Android 8 이상 · 세로 화면 · 화면 자동 업데이트';
   }).catch(function () {});
 
   // 설치 탭

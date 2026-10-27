@@ -487,7 +487,11 @@ select.field { height: 42px; }
   .hero-poster { width: 132px; align-self: center; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
   .pgrid, .continue, .links { grid-template-columns: 1fr; }
-  .explain { grid-template-columns: 1fr; gap: 8px; margin-bottom: 18px; }
+  .explain { display: flex; gap: 8px; margin: 0 -16px 16px; padding: 0 16px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .explain::-webkit-scrollbar, .tabs::-webkit-scrollbar { display: none; }
+  .explain div { flex: 0 0 78%; scroll-snap-align: start; padding: 12px 14px; }
+  .explain i { width: 32px; height: 32px; }
+  .tabs { scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .start-card { flex-direction: column; align-items: stretch; }
   .start-card .steps { grid-template-columns: 1fr; }
