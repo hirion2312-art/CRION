@@ -10,7 +10,7 @@ async def main():
         b = await p.chromium.launch(args=['--allow-file-access-from-files'])
         page = await b.new_page(viewport={'width': 390, 'height': 844})
         page.on('pageerror', lambda e: errs.append(str(e)))
-        await page.add_init_script("window.__engineVersion='0.9.0'")
+        await page.add_init_script("window.__engineVersion='0.9.0'; window.__autoDomReady=false")
         await T.setup(page)
         await page.goto(T.BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(2000)
         await page.evaluate("window.__crion.S.dev.repo = { loadWorks: async () => ({ data: { works: [], hidden: [] } }), lastDeploy: async () => null }")

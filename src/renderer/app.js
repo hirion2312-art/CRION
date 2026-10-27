@@ -302,6 +302,8 @@
   function homeListHtml() {
     return `${catTabsHtml()}<div id="homeGrid">${gridHtml()}</div>`;
   }
+  // 오른쪽 위 성인 모드 켜고 끄기 (켤 때는 나이 확인 창)
+  const ageBar = () => `<div class="topbar"><button class="age-tg ${P.adult ? 'on' : ''}" data-act="adult-toggle" aria-pressed="${P.adult ? 'true' : 'false'}" title="${P.adult ? '성인 작품이 보여요 · 누르면 꺼져요' : '전연령 작품만 보여요 · 누르면 켜요'}"><b>19</b><span>성인 모드</span><i></i></button></div>`;
   function homeHtml() {
     const recent = (S.settings.recent || []).map(workById).filter(w => w && w.url).slice(0, 4);
     const cont = recent.length ? `<div class="section-h"><h2>이어하기</h2><span class="sub">마지막으로 보던 대화로 바로 열려요</span></div>
@@ -314,7 +316,7 @@
         <div class="steps"><div><i>1</i><b>크랙 로그인</b><span>한 번만 하면 계속 유지돼요</span></div><div><i>2</i><b>작품 고르기</b><span>크랙 화면 그대로 열려요</span></div><div><i>3</i><b>이어하기</b><span>보던 대화를 기억해 둬요</span></div></div>
         <button class="btn primary" data-act="go" data-v="login">${I.user}크랙 로그인하기</button></div>` : '';
     return `<main class="page"><div class="page-in">
-      ${noticeHtml()}${first}${heroHtml()}${cont}
+      ${ageBar()}${noticeHtml()}${first}${heroHtml()}${cont}
       <div class="section-h"><h2>작품</h2><span class="sub">${S.works.length}개</span>
         <label class="search right">${I.search}<input id="homeQ" placeholder="작품 찾기" value="${esc(S.homeQ)}"></label></div>
       <div id="homeList">${homeListHtml()}</div>
@@ -370,9 +372,10 @@
   }
   function storeHtml() {
     const list = PK.filter(S.packs.filter(p => P.adult || !isAdultPack(p)), { tab: S.storeTab, q: S.storeQ }, installed);
-    const nInst = S.packs.filter(p => installed.has(p.id)).length;
-    const nUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
-    const tabs = [['all', `전체 ${S.packs.length}`], ['installed', `설치됨 ${nInst}`], ['update', `업데이트 ${nUpd}`]];
+    const vis = S.packs.filter(p => P.adult || !isAdultPack(p));   // 성인 모드를 끄면 성인 팩은 개수에서도 뺀다
+    const nInst = vis.filter(p => installed.has(p.id)).length;
+    const nUpd = vis.filter(p => installed.needsUpdate(p)).length;
+    const tabs = [['all', `전체 ${vis.length}`], ['installed', `설치됨 ${nInst}`], ['update', `업데이트 ${nUpd}`]];
     let body;
     if (S.packsState === 'loading') body = '<div class="empty"><span class="spin"></span><b>스토어를 여는 중이에요</b></div>';
     else if (S.packsState === 'err' || S.packsState === 'off') body = '<div class="empty"><b>스토어에 연결하지 못했어요</b><span>인터넷 연결을 확인하고 다시 눌러 주세요.</span><button class="btn" data-act="store-reload">다시 시도</button></div>';
@@ -384,7 +387,7 @@
     else if (!list.length) body = `<div class="empty"><b>${S.storeTab === 'installed' ? '설치한 플레이팩이 없어요' : S.storeTab === 'update' ? '모두 최신이에요' : '찾는 플레이팩이 없어요'}</b></div>`;
     else body = `<div class="pgrid">${list.map(packCard).join('')}</div>`;
     return `<main class="page"><div class="page-in">
-      ${pageHead('스토어', '작품 전용 플레이 화면(플레이팩)을 둘러보고 받을 수 있어요.', `<label class="search">${I.search}<input id="storeQ" placeholder="플레이팩 찾기" value="${esc(S.storeQ)}"></label>`)}
+      ${ageBar()}${pageHead('스토어', '작품 전용 플레이 화면(플레이팩)을 둘러보고 받을 수 있어요.', `<label class="search">${I.search}<input id="storeQ" placeholder="플레이팩 찾기" value="${esc(S.storeQ)}"></label>`)}
       <div class="explain">
         <div><i>${I.store}</i><b>플레이팩이란?</b><span>작품에 맞춘 상태창·대사창·연출이 들어 있는 전용 화면이에요.</span></div>
         <div><i>${I.eye}</i><b>미리 보고 받기</b><span>받기 전에 화면 미리보기로 어떻게 생겼는지 볼 수 있어요.</span></div>
@@ -970,12 +973,33 @@
     const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
     const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && runnerOf(pk) && PK.compatible(pk, S.info.engineVersion) ? pk : null;
     S.play = { work: w, url: useSaved && !usePack ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false, gate: true };
+    S.play.shareLoad = isShare(S.play.url);
     S.view = 'play';
     store.recordOpen(w.id);
     save({ recent: [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8) });
     render();
     if (usePack) { startPack(); return; }
     if (w.bgm && bgm && P.bgmAuto) { bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100); bgm.play(w.bgm); setTimeout(updMusicBtn, 50); }
+  }
+  // 작품 화면(크랙 detail) 주소: 공유 링크를 연 뒤 처음 나온 작품 화면만 이 작품 것으로 기억한다 (이 기기에만, 동기화 안 함)
+  //  예전엔 팩이 작품 화면이면 아무 주소나 기억해서, 앞 작품(소환수 아카데미) 화면이 섞이면 '처음 시작'이 엉뚱한 작품을 열었다
+  const isShare = (u) => /^https:\/\/share\./.test(String(u || ''));
+  const crackDetail = (u) => /^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(String(u || '')) && !isShare(u);
+  const nUrl = (u) => { try { const x = new URL(u); return (x.origin + x.pathname).replace(/\/$/, ''); } catch (e) { return String(u || ''); } };
+  function workDetail(id) {
+    if (!id) return '';
+    const u = lsGet('crion.detail.' + id) || '';
+    return crackDetail(u) ? u : '';
+  }
+  function rememberDetail(id, u) {
+    if (!id || !crackDetail(u)) return;
+    try {
+      for (let i = window.localStorage.length - 1; i >= 0; i--) {
+        const k = window.localStorage.key(i);
+        if (k && k.startsWith('crion.detail.') && k !== 'crion.detail.' + id && nUrl(lsGet(k)) === nUrl(u)) window.localStorage.removeItem(k);
+      }
+    } catch (e) { /* 정리 못 해도 계속 */ }
+    lsSet('crion.detail.' + id, u);
   }
   // 플레이팩 실행
   let runner = null;
@@ -995,8 +1019,9 @@
         send: (text) => { const v = wv(); if (v) v.send('crion:send', { text }); },
         action: (name) => { const v = wv(); if (v) v.send('crion:action', name); },
         click: (id) => { const v = wv(); if (v) v.send('crion:click', Number(id)); },
-        load: (u) => { const v = wv(); if (v && /^https:\/\//.test(String(u))) v.loadURL(u); },
+        load: (u) => { const v = wv(); if (v && /^https:\/\//.test(String(u))) { if (S.play) { S.play.gate = true; if (isShare(u)) S.play.shareLoad = true; } v.loadURL(u); } },
         workUrl: S.play.work.url,
+        detailUrl: () => workDetail(S.play && S.play.work.id),
         rescan: () => { const v = wv(); let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } if (v) v.send('crion:config', { play: true, learned, rules: {}, modes: (S.play && S.play.startModes) || [] }); },
         toast, copy: (t) => copy(t, '복사했어요: ' + t.slice(0, 40)), openExternal: (u) => api.openExternal(u),
         showCrack: () => { const b = $('[data-act=pk-crack]'); if (b && !(S.play && S.play.crack)) b.click(); },
@@ -1041,6 +1066,8 @@
     v.addEventListener('ipc-message', (e) => {
       const d = e.args && e.args[0];
       if (S.play && S.play.gate && /^crion:(reply|state|sent|url)$/.test(e.channel)) return;   // 앞 작품 화면에서 온 것
+      if (S.play && S.play.shareLoad && e.channel === 'crion:state' && d && d.page === 'detail' && crackDetail(d.url)) { S.play.shareLoad = false; rememberDetail(S.play.work.id, d.url); }
+      else if (S.play && S.play.shareLoad && e.channel === 'crion:state' && d && d.page === 'chat') S.play.shareLoad = false;
       if (S.play && S.play.pack && /^crion:(reply|state|sent|url)$/.test(e.channel)) {
         if (e.channel === 'crion:url' && d) S.play.cur = d.url;   // 플레이팩: 이어하기 주소는 팩 세이브가 따로 기억
         if (runner) runner.onIpc(e.channel, d); else (S.play.pendingIpc = S.play.pendingIpc || []).push([e.channel, d]);
@@ -1359,6 +1386,7 @@
       case 'form-send': sendForm(el.dataset.kind); break;
       // 설정
       case 'adult-ask': if (!P.adult) askAdult(); break;
+      case 'adult-toggle': if (P.adult) { savePref('adult', false); applyAge(); render(); toast('전연령 작품만 보여요'); } else askAdult(); break;
       case 'adult-yes': savePref('adult', true); applyAge(); closeModal(); toast('성인 작품이 보여요'); render(); break;
       case 'adult-off': savePref('adult', false); applyAge(); render(); break;
       case 'pref': { let v = el.dataset.v; if (v === 'true' || v === 'false') v = v === 'true'; savePref(el.dataset.k, v); render(); break; }

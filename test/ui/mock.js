@@ -22,6 +22,6 @@
   window.__sent = [];
   HTMLElement.prototype.send = function (ch, d) { window.__sent.push([ch, d]); }; // webview 흉내
   window.__loads = [];
-  HTMLElement.prototype.loadURL = function (u) { window.__loads.push(u); };
+  HTMLElement.prototype.loadURL = function (u) { window.__loads.push(u); if (window.__autoDomReady !== false) { const el = this; setTimeout(() => el.dispatchEvent(new Event('dom-ready')), 0); } };   // 진짜처럼 새 문서가 열리면 dom-ready
   HTMLElement.prototype.canGoBack = function () { return false; };
 })();

@@ -1136,7 +1136,7 @@
     }
     // 새 게임은 기억해 둔 크랙 작품 화면 주소로 연다 (공유 링크 share.crack.wrtn.ai 는 폰에서 '앱으로 열기'로 넘어가려 해서 멈춤)
     function startUrl() {
-      const d = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      const d = o.detailUrl ? o.detailUrl() : '';   // 앱이 이 작품 공유 링크에서 확인한 작품 화면 주소만
       return (typeof d === 'string' && /^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(d) && !/^https:\/\/share\./.test(d)) ? d : o.workUrl;
     }
     function startNew() {
@@ -1172,7 +1172,7 @@
       if (cf && nf.clicked && !nf.confirmed) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
       const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
       if (st.page === 'detail') {
-        if (st.url) lsSet(`crion.pk.${PK_ID}.detail.${WORK}`, st.url);   // 작품 화면 주소 기억 (크랙이 예전 대화로 바로 갈 때 돌아올 곳)
+        /* 작품 화면 주소는 앱이 공유 링크로 확인해 기억한다 (o.detailUrl) */
         const a = (st.actions || []).find(x => x.kind === 'new');
         if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
         banner('new');
@@ -1196,7 +1196,7 @@
       const a = (st.actions || []).find(x => x.kind === 'new');
       if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
       if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
-      const detail = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      const detail = o.detailUrl ? o.detailUrl() : '';
       if (detail && !nf.triedDetail && normUrl(detail) !== u) { nf.triedDetail = true; nf.clicked = false; o.load(detail); banner('new'); return; }
       banner('old');
     }

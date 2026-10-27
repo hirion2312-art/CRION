@@ -93,6 +93,10 @@
   .pack p { margin: 0; color: #c7cbf0; }
   .pack .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
   .pack .chips span { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.08); }
+  .pack.sh { margin-top: 24px; background: linear-gradient(135deg, #2a1012, #120a0b); box-shadow: 0 0 0 1px rgba(229,50,42,.35), 0 30px 80px rgba(0,0,0,.5); }
+  .pack.sh .art { background-image: url(shots/safehouse.webp); }
+  .pack.sh .tag { background: #e5322a; color: #fff; }
+  .pack.sh p { color: #e3c9c4; }
   @media (max-width: 860px) { .pack { grid-template-columns: 1fr; } .pack .art { min-height: 220px; } .pack .body { padding: 28px; } }
 
   /* 설치 */
@@ -207,7 +211,7 @@
   <div class="center reveal">
     <div class="eyebrow">Play Pack</div>
     <h2>작품마다, 그 작품만의 화면</h2>
-    <p class="sub">플레이팩은 작품에 맞춰 만든 전용 화면이에요. 첫 번째 팩을 만나 보세요.</p>
+    <p class="sub">플레이팩은 작품에 맞춰 만든 전용 화면이에요. 스토어에서 골라 받고, 언제든 끌 수 있어요.</p>
   </div>
   <div class="pack reveal">
     <div class="art" role="img" aria-label="소환수 아카데미"></div>
@@ -215,7 +219,16 @@
       <span class="tag">플레이팩 · 무료</span>
       <h3>소환수 아카데미</h3>
       <p>안개 너머 외딴섬의 소환 아카데미. 첫 파트너와 함께 실습·과제·배틀을 거쳐 일곱 교수의 배지와 300년간 아무도 완성하지 못한 도감에 도전해요.</p>
-      <div class="chips"><span>🎓 학생 수첩</span><span>⚔️ 전투 패널</span><span>📖 도감 80칸</span><span>🌟 진화 연출</span><span>🎵 OST</span></div>
+      <div class="chips"><span>🎓 학생 수첩</span><span>⚔️ 전투 패널</span><span>📖 도감 80칸</span><span>🌟 진화 연출</span><span>🎵 OST</span><span>🔞 PLUS 성인판 팩 따로</span></div>
+    </div>
+  </div>
+  <div class="pack sh reveal">
+    <div class="art" role="img" aria-label="아포칼립스 안전지대의 관리자"></div>
+    <div class="body">
+      <span class="tag">플레이팩 · 무료</span>
+      <h3>아포칼립스 안전지대의 관리자</h3>
+      <p>좀비가 뒤덮은 해령시, 유일하게 버티는 석벽빌라의 관리인이 되어 주민을 받고, 물자를 모으고, 100일을 살아남아요.</p>
+      <div class="chips"><span>📱 관리인 스마트폰</span><span>🏢 빌라 도면</span><span>🗺️ 파견 지도</span><span>🧟 생존자 도감</span><span>🎵 BGM</span></div>
     </div>
   </div>
 </div></section>

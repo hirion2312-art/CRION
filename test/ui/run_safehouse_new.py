@@ -10,7 +10,7 @@ NEW = {'id': 0, 'kind': 'new', 'label': '새로하기'}
 MODES = [{'id': 1, 'kind': 'mode', 'label': '기본모드'}, {'id': 2, 'kind': 'mode', 'label': '하드모드'}]
 
 async def open_pack(page):
-    await page.add_init_script("window.__engineVersion='0.8.2'"); await T.setup(page)
+    await page.add_init_script("window.__engineVersion='0.9.18'"); await T.setup(page)
     await page.goto(T.BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(1800)
     await page.evaluate("window.__crion.S.dev.repo = { loadWorks: async () => ({ data: { works: [], hidden: [] } }), lastDeploy: async () => null }")
     await page.click('.nav [data-v=store]'); await page.wait_for_timeout(700)
@@ -21,6 +21,7 @@ async def open_pack(page):
         if await page.evaluate("!!JSON.parse(localStorage.getItem('crion.packs')||'{}')['hirion.safehouse']"): break
     await page.wait_for_timeout(300); await page.click('.modal [data-act=pack-play]'); await page.wait_for_timeout(1200)
     await page.wait_for_function("!!document.querySelector('.sh')"); await page.wait_for_timeout(2600)
+    await page.evaluate("""(()=>{const w=document.querySelector('#crack');w.dispatchEvent(new Event('dom-ready'));})()""")
 
 clicks = lambda page: page.evaluate("window.__sent.filter(x => x[0] === 'crion:click').map(x => x[1])")
 st = lambda page, d: T.ipc(page, 'crion:state', d)
@@ -85,4 +86,5 @@ async def main():
         await b.close()
     print('\n오류:', errs or '없음', '/ 실패:', fails or '없음')
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

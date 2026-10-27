@@ -1145,7 +1145,7 @@
     function showTitle() { R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false); renderTitle(); }
     function loading(msg) { const d = $('#uv-dlg'); d.className = 'uv-dlg k-wait'; d.innerHTML = `<div class="uv-typing"><span><i></i><i></i><i></i></span><b>${esc(msg)}</b></div>`; }
     function startUrl() {
-      const d = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      const d = o.detailUrl ? o.detailUrl() : '';   // 앱이 이 작품 공유 링크에서 확인한 작품 화면 주소만
       return (typeof d === 'string' && /^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(d) && !/^https:\/\/share\./.test(d)) ? d : o.workUrl;
     }
     function startNew() {
@@ -1198,7 +1198,7 @@
       if (cf && st.page !== 'chat' && nf.clicked && !nf.confirmed && !(R.sm && (R.sm.picked || R.sm.viaCrack))) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
       const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
       if (st.page === 'detail') {
-        if (st.url) lsSet(`crion.pk.${PK_ID}.detail.${WORK}`, st.url);
+        /* 작품 화면 주소는 앱이 공유 링크로 확인해 기억한다 (o.detailUrl) */
         const a = (st.actions || []).find(x => x.kind === 'new');
         if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; if (R.sm) R.sm.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
         banner('new');
@@ -1220,7 +1220,7 @@
       const a = (st.actions || []).find(x => x.kind === 'new');
       if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; if (R.sm) R.sm.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
       if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
-      const detail = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      const detail = o.detailUrl ? o.detailUrl() : '';
       if (detail && !nf.triedDetail && normUrl(detail) !== u) { nf.triedDetail = true; nf.clicked = false; o.load(detail); banner('new'); return; }
       banner('old');
     }

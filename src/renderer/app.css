@@ -641,3 +641,33 @@ select.field { height: 42px; }
 /* 가로로 긴 썸네일은 잘리지 않게 (틀 안에 맞추고 남는 곳은 어둡게) */
 .card .thumb img.land, .hero-poster img.land, .info-poster img.land, .mini img.land { object-fit: contain; background: #1d1a1f; }
 .slide.wide .slide-art video { object-fit: contain; }
+/* 폰: 광고형 슬라이드는 PC처럼 16:9 그림 한 장 안에 글·단추를 얹는다 (아래 검은 칸 없이) */
+@media (max-width: 720px) {
+  .slider:has(.slide.wide.on) { height: auto; aspect-ratio: 16 / 9; min-height: 0; max-height: none; }
+  .slide.wide .slide-art { inset: 0; bottom: 0; aspect-ratio: auto; height: 100%; }
+  .slide.wide .slide-art img, .slide.wide .slide-art video { object-fit: cover; }
+  .slide.wide::after { background: linear-gradient(0deg, rgba(10,8,8,.9) 0, rgba(10,8,8,.5) 24%, rgba(10,8,8,0) 50%); }
+  .slide.wide .slide-in { padding: 0 12px 11px; flex-direction: row; align-items: flex-end; }
+  .slide.wide .hero-text { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 3px 10px; width: 100%; }
+  .slide.wide .hero-text .eyebrow { grid-column: 1; justify-self: start; height: 18px; padding: 0 7px; font-size: 9.5px; }
+  .slide.wide h2, .slide.wide h2.sr { grid-column: 1; margin: 0; font-size: 15.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slide.wide h2 .adult-dot { transform: scale(.8); }
+  .slide.wide .desc { display: none; }
+  .slider .slide.wide .hero-btns { grid-column: 2; grid-row: 1 / span 2; margin: 0; flex-wrap: nowrap; gap: 6px; }
+  .slider .slide.wide .hero-btns .btn.big { flex: none; height: 34px; padding: 0 13px; font-size: 13px; border-radius: 999px; }
+  .slider .slide.wide .hero-btns [data-act=play-fresh] { display: none; }
+  .slider .slide.wide .hero-btns .btn.big[data-act=info], .slider .slide.wide .hero-btns .btn.big[data-act=open-link].glass { width: 34px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+  .slider:has(.slide.wide.on) .sl-dots { left: auto; right: 10px; top: 6px; bottom: auto; justify-content: flex-end; }
+}
+/* 오른쪽 위 성인 모드 스위치 */
+.topbar { display: flex; justify-content: flex-end; margin: -16px 0 12px; }
+.age-tg { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px 0 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink2); box-shadow: var(--shadow); }
+.age-tg b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #c9c7cf; color: #fff; font-size: 10.5px; font-weight: 900; transition: background .2s; }
+.age-tg i { position: relative; width: 34px; height: 20px; border-radius: 999px; background: #dcdbe1; transition: background .2s; }
+.age-tg i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.age-tg.on { border-color: #f7b4b8; color: #c81e2b; }
+.age-tg.on b { background: #e11d2e; }
+.age-tg.on i { background: #e11d2e; }
+.age-tg.on i::after { transform: translateX(14px); }
+.age-tg:hover { border-color: #cfd0d6; }
+@media (max-width: 720px) { .topbar { margin: -6px 0 10px; } .age-tg { height: 32px; font-size: 12.5px; } }
