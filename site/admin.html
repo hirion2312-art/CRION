@@ -60,6 +60,29 @@
   #toast.on { opacity: 1; }
   @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } .work { grid-template-columns: 64px 1fr; } .work .side { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; } .thumb { width: 64px; } }
   .feat.adult { color: #e11d48; font-weight: 700; }
+  .work { grid-template-columns: 26px 84px 1fr auto; }
+  .handle { width: 26px; height: 52px; border: 0; border-radius: 8px; background: none; color: #a3a8b3; font-size: 20px; cursor: grab; touch-action: none; user-select: none; align-self: center; }
+  .handle:hover { background: #f1f2f5; color: var(--ink2); }
+  .dragging { position: relative; z-index: 3; background: #fff; box-shadow: 0 14px 34px rgba(20,22,27,.16); border-radius: 12px; outline: 2px solid var(--accent); }
+  .dragging .handle { cursor: grabbing; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { height: 28px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 12px; font-weight: 700; color: var(--ink2); cursor: pointer; }
+  .chips button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .cat-row { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid #eef0f3; }
+  .cat-row:first-child { border-top: 0; }
+  .cat-row .n { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .slide-row { grid-template-columns: 26px 220px 1fr auto; }
+  .sthumb { width: 220px; aspect-ratio: 16/9; border-radius: 10px; background: #2a2d38 center/cover no-repeat; display: grid; place-items: center; color: #c9ccd6; font-size: 12px; font-weight: 700; text-align: center; padding: 8px; }
+  select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: #fafbfc; font: inherit; font-size: 14px; }
+  .pill.off { background: #eef0f3; color: var(--muted); }
+  #works.compact .work { padding: 6px 0; align-items: center; }
+  #works.compact .thumb { width: 36px; font-size: 14px; }
+  #works.compact .work { grid-template-columns: 26px 36px 1fr; }
+  #works.compact .fields { display: block; }
+  #works.compact .fields > :not(:first-child), #works.compact .fields label, #works.compact .side { display: none; }
+  #works.compact .handle { height: 36px; }
+  #compact.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  @media (max-width: 640px) { .work, .slide-row { grid-template-columns: 26px 64px 1fr; } .slide-row .sthumb { width: 64px; aspect-ratio: 1; } .work .side { grid-column: 1 / -1; } }
 </style>
 </head>
 <body>
@@ -85,11 +108,29 @@
   </section>
 
   <div id="main" class="hidden">
+    <!-- 홈 슬라이드 -->
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div><h2>홈 슬라이드 · 오늘의 추천작</h2><p class="sub">앱 홈 맨 위에서 6초마다 넘어가는 큰 배너예요. 사진은 <b>가로 16:9 (1600×900 권장)</b>. 연결한 작품의 플레이·작품 정보 버튼이 같이 나와요.<br>하나도 없으면 앱이 <b>홈 추천 작품 + 플레이팩 작품</b>으로 자동으로 만들어요. 왼쪽 ⠿ 를 잡고 끌어서 순서를 바꿔요.</p></div>
+        <button class="btn" id="addSlide">+ 슬라이드 추가</button>
+      </div>
+      <div id="slides"></div>
+    </section>
+
+    <!-- 카테고리 -->
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div><h2>카테고리</h2><p class="sub">앱 홈 작품 목록 위에 나오는 칸이에요. <b>전체</b>(플레이팩 작품이 맨 위)와 <b>플레이팩</b> 칸은 자동이에요. 작품마다 아래 작품 목록에서 여러 개 고를 수 있고, 작품이 하나도 없는 칸은 앱에 안 보여요.</p></div>
+        <button class="btn" id="addCat">+ 카테고리 추가</button>
+      </div>
+      <div id="cats"></div>
+    </section>
+
     <!-- 작품 -->
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소. <b>홈 추천</b>을 고른 작품이 앱 홈 맨 위 큰 배너에 나와요. <b>음악</b>은 그 작품을 플레이하는 동안 반복 재생돼요(Suno mp3).</p></div>
-        <div class="row"><label class="feat" style="margin:0"><input type="checkbox" id="profileSync"> 작가 프로필에서 자동으로 불러오기</label><button class="btn" id="add">+ 작품 추가</button></div>
+        <div><h2>작품 목록</h2><p class="sub">앱 홈에 보이는 작품이에요. 앱은 작가 프로필에서도 작품을 자동으로 찾지만, 여기 적은 이름·장르·썸네일이 우선이에요.<br>주소는 크랙 작품 페이지 주소, 썸네일은 이미지 올리기 또는 이미지 주소. <b>홈 추천</b>을 고른 작품은 슬라이드가 비었을 때 맨 앞에 나와요. 왼쪽 ⠿ 를 잡고 끌어서 순서를 바꾼 뒤 <b>배포하기</b>를 누르면 저장돼요. <b>음악</b>은 그 작품을 플레이하는 동안 반복 재생돼요(Suno mp3).</p></div>
+        <div class="row"><label class="feat" style="margin:0"><input type="checkbox" id="profileSync"> 작가 프로필에서 자동으로 불러오기</label><button class="btn" id="compact">↕ 순서만 보기</button><button class="btn" id="add">+ 작품 추가</button></div>
       </div>
       <div id="works"></div>
     </section>
@@ -141,6 +182,7 @@
 </div>
 <div id="toast"></div>
 <input type="file" id="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+<input type="file" id="slideFile" accept="image/png,image/jpeg,image/webp" class="hidden">
 <input type="file" id="bgmFile" accept="audio/mpeg,.mp3" class="hidden">
 
 <script>
@@ -152,7 +194,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let token = '';
-  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {}, bgmUp = {};
+  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {}, bgmUp = {}, slideUp = {};
   const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2600); };
   const dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
   const enc = (str) => { const bytes = new TextEncoder().encode(str); let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
@@ -205,7 +247,10 @@
     data = JSON.parse(f.text);
     data.works = data.works || [];
     data.hidden = data.hidden || [];
+    data.categories = Array.isArray(data.categories) ? data.categories : [];
+    data.banners = Array.isArray(data.banners) ? data.banners : [];
     uploads = {};
+    slideUp = {};
     bgmUp = {};
     const p = await getFile('package.json');
     pkg = JSON.parse(p.text); pkgSha = p.sha;
@@ -223,6 +268,8 @@
     renderNews();
     base = collect();               // 비교 기준은 이 페이지가 쓰는 모양으로 맞춘다
     renderWorks();
+    renderCats();
+    renderSlides();
     markDirty();
   }
 
@@ -234,6 +281,7 @@
     $('#works').innerHTML = data.works.map((w, i) => {
       const src = thumbSrc(w);
       return `<div class="work" data-i="${i}">
+        <button class="handle" data-drag title="끌어서 순서 바꾸기">⠿</button>
         <div class="thumb" style="${src ? `background-image:url('${esc(src)}')` : 'background-color:#3a3f52'}">${src ? '' : esc((w.name || '?').slice(0, 1))}</div>
         <div class="fields">
           <div><label>제목</label><input type="text" data-f="name" value="${esc(w.name)}"></div>
@@ -241,6 +289,7 @@
           <div class="full"><label>소개 (앱 홈 배너·작품 정보에 보여요)</label><textarea data-f="desc" rows="2" placeholder="두세 문장으로 작품을 소개해 주세요">${esc(w.desc || '')}</textarea></div>
           <div class="full"><label>크랙 작품 주소</label><input type="text" data-f="url" value="${esc(w.url || '')}" placeholder="https://crack.wrtn.ai/..."></div>
           <div class="full"><label>공략 (선택 · 앱의 '공략' 버튼에 보여요 · # 제목, - 목록, **굵게** 사용 가능)</label><textarea data-f="guide" rows="3" placeholder="예) # 시작 팁&#10;- 첫날은 식량부터 확보하세요">${esc(w.guide || '')}</textarea></div>
+          ${data.categories.length ? `<div class="full"><label>카테고리 (여러 개)</label><div class="chips">${data.categories.map(c => `<button type="button" class="${(w.cats || []).includes(c.id) ? 'on' : ''}" data-a="cat" data-c="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div></div>` : ''}
           <div class="full"><label>썸네일 (이미지 주소 또는 올린 파일 이름)</label><input type="text" data-f="thumb" value="${esc(uploads[w.id] ? uploads[w.id].name : (w.thumb || ''))}" placeholder="비우면 앱이 프로필에서 찾은 썸네일을 써요"></div>
         </div>
         <div class="side">
@@ -249,8 +298,6 @@
           ${bgmName(w) ? `<span class="bgm-name" title="${esc(bgmName(w))}">♪ ${esc(bgmName(w))}</span><button class="btn sm" data-a="bgm-del">음악 빼기</button>` : ''}
           <label class="feat"><input type="radio" name="featured" data-a="featured" ${w.featured ? 'checked' : ''}> 홈 추천</label>
           <label class="feat adult"><input type="checkbox" data-a="adult" ${w.adult ? 'checked' : ''}> 성인(19)</label>
-          <button class="btn sm" data-a="up" ${i === 0 ? 'disabled' : ''}>▲ 위로</button>
-          <button class="btn sm" data-a="down" ${i === data.works.length - 1 ? 'disabled' : ''}>▼ 아래로</button>
           <button class="btn sm" data-a="hide">${isHidden(w) ? '다시 보이기' : '숨기기'}</button>
           <button class="btn sm danger" data-a="del">삭제</button>
           ${isHidden(w) ? '<span class="pill hid">숨김</span>' : ''}
@@ -311,6 +358,12 @@
     out.news = (out.news || []).filter(n => n.title || n.text).map(n => Object.assign(n, { link: /^https:\/\//.test(n.link || '') ? n.link : '' }));
     ['links', 'report'].forEach(k => { if (!Object.keys(out[k]).length) delete out[k]; });
     if (!out.news.length) delete out.news;
+    out.categories = (out.categories || []).filter(c => c.name && c.name.trim()).map(c => ({ id: c.id, name: c.name.trim() }));
+    const catIds = new Set(out.categories.map(c => c.id));
+    out.works.forEach(w => { if (w.cats) { w.cats = w.cats.filter(c => catIds.has(c)); if (!w.cats.length) delete w.cats; } });
+    if (!out.categories.length) delete out.categories;
+    out.banners = (out.banners || []).filter(b => b.img || b.work).map(b => { const o = { id: b.id }; ['img', 'work', 'title', 'eyebrow', 'sub', 'link'].forEach(k => { const v = String(b[k] || '').trim(); if (v) o[k] = v; }); if (o.link && !/^https:\/\//.test(o.link)) delete o.link; if (b.on === false) o.on = false; return o; });
+    if (!out.banners.length) delete out.banners;
     const text = $('#noticeText').value.trim();
     const link = $('#noticeLink').value.trim();
     if (text) out.notice = { text, link: /^https:\/\//.test(link) ? link : '', id: String(Date.parse(new Date().toDateString())) + '-' + text.length };
@@ -320,7 +373,7 @@
     return JSON.stringify(out, null, 2) + '\n';
   }
   function markDirty() {
-    const dirty = collect() !== base || Object.keys(uploads).length > 0 || Object.keys(bgmUp).length > 0;
+    const dirty = collect() !== base || Object.keys(uploads).length > 0 || Object.keys(bgmUp).length > 0 || Object.keys(slideUp).length > 0;
     $('#state').textContent = dirty ? '바뀐 내용이 있어요 · 배포하기를 눌러야 앱에 반영돼요' : '바뀐 내용 없음';
     $('#state').classList.toggle('dirty', dirty);
     $('#deploy').disabled = !dirty;
@@ -349,8 +402,15 @@
     const i = Number(b.closest('.work').dataset.i);
     const w = data.works[i];
     const a = b.dataset.a;
-    if (a === 'up' && i > 0) [data.works[i - 1], data.works[i]] = [data.works[i], data.works[i - 1]];
-    if (a === 'down' && i < data.works.length - 1) [data.works[i + 1], data.works[i]] = [data.works[i], data.works[i + 1]];
+    if (a === 'cat') {
+      const c = b.dataset.c, l = (w.cats || []).filter(x => x !== c);
+      if (!(w.cats || []).includes(c)) l.push(c);
+      // 카테고리 목록 순서대로 정리
+      const ord = data.categories.map(x => x.id);
+      w.cats = l.sort((x, y) => ord.indexOf(x) - ord.indexOf(y));
+      if (!w.cats.length) delete w.cats;
+      b.classList.toggle('on'); renderCats(); markDirty(); return;
+    }
     if (a === 'hide') {
       if (!w.url) { toast('주소가 있는 작품만 숨길 수 있어요'); return; }
       data.hidden = isHidden(w) ? data.hidden.filter(u => u !== w.url) : data.hidden.concat(w.url);
@@ -359,6 +419,7 @@
       if (!confirm(`「${w.name}」을(를) 목록에서 지울까요?\n(프로필에 있는 작품이면 앱이 다시 찾아 넣어요. 완전히 안 보이게 하려면 '숨기기')`)) return;
       data.works.splice(i, 1);
       delete uploads[w.id];
+      data.banners.forEach(x => { if (x.work === w.id) delete x.work; });
     }
     if (a === 'upload') { uploadFor = w; $('#file').value = ''; $('#file').click(); return; }
     if (a === 'bgm') { uploadFor = w; $('#bgmFile').value = ''; $('#bgmFile').click(); return; }
@@ -405,7 +466,134 @@
     const first = document.querySelector('.work input[data-f=name]');
     if (first) { first.focus(); first.select(); }
   };
+  $('#compact').onclick = () => { const on = $('#works').classList.toggle('compact'); $('#compact').classList.toggle('on', on); $('#compact').textContent = on ? '✓ 순서만 보기 끄기' : '↕ 순서만 보기'; };
   $('#revert').onclick = () => { if (confirm('바꾼 내용을 모두 되돌릴까요?')) load(); };
+
+  // ---------- 카테고리 ----------
+  function renderCats() {
+    $('#cats').innerHTML = data.categories.map((c, i) => {
+      const n = data.works.filter(w => (w.cats || []).includes(c.id)).length;
+      return `<div class="cat-row" data-i="${i}" data-id="${esc(c.id)}"><button class="handle" data-drag title="끌어서 순서 바꾸기">⠿</button>
+        <input type="text" data-cf="name" value="${esc(c.name)}" maxlength="16" placeholder="카테고리 이름">
+        <span class="n">작품 ${n}개</span><button class="btn sm danger" data-ca="del">삭제</button></div>`;
+    }).join('') || '<p class="sub" style="margin:0">카테고리가 없어요. + 카테고리 추가를 눌러 주세요.</p>';
+  }
+  $('#cats').addEventListener('input', (e) => {
+    const row = e.target.closest('.cat-row'); if (!row) return;
+    data.categories[Number(row.dataset.i)].name = e.target.value;
+    markDirty();
+  });
+  $('#cats').addEventListener('change', () => renderWorks());
+  $('#cats').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ca=del]'); if (!b) return;
+    const i = Number(b.closest('.cat-row').dataset.i), c = data.categories[i];
+    if (!confirm(`카테고리 「${c.name || '이름 없음'}」을(를) 지울까요? 작품에서도 빠져요.`)) return;
+    data.categories.splice(i, 1);
+    data.works.forEach(w => { if (w.cats) { w.cats = w.cats.filter(x => x !== c.id); if (!w.cats.length) delete w.cats; } });
+    renderCats(); renderWorks(); markDirty();
+  });
+  $('#addCat').onclick = () => {
+    data.categories.push({ id: 'c' + Date.now().toString(36), name: '' });
+    renderCats(); markDirty();
+    const f = document.querySelector('#cats .cat-row:last-child input'); if (f) f.focus();
+  };
+
+  // ---------- 홈 슬라이드 ----------
+  const slideSrc = (b) => slideUp[b.id] ? slideUp[b.id].preview : !b.img ? '' : /^https?:/.test(b.img) ? b.img : RAW('config/thumbs/' + b.img);
+  function renderSlides() {
+    const opts = (sel) => '<option value="">(연결 안 함 · 사진·글만)</option>' + data.works.map(w => `<option value="${esc(w.id)}" ${w.id === sel ? 'selected' : ''}>${esc(w.name)}${w.adult ? ' (19)' : ''}</option>`).join('');
+    $('#slides').innerHTML = data.banners.map((b, i) => {
+      const src = slideSrc(b);
+      return `<div class="work slide-row" data-i="${i}" data-id="${esc(b.id)}">
+        <button class="handle" data-drag title="끌어서 순서 바꾸기">⠿</button>
+        <div class="sthumb" style="${src ? `background-image:url('${esc(src)}')` : ''}">${src ? '' : '사진 없음<br>(작품 썸네일로 보여요)'}</div>
+        <div class="fields">
+          <div class="full"><label>연결할 작품</label><select data-sf="work">${opts(b.work)}</select></div>
+          <div><label>큰 제목 (선택 · 사진에 글자가 있으면 비워 두세요)</label><input type="text" data-sf="title" value="${esc(b.title || '')}" maxlength="40"></div>
+          <div><label>작은 표시 (예: 신작 · 이벤트)</label><input type="text" data-sf="eyebrow" value="${esc(b.eyebrow || '')}" maxlength="16"></div>
+          <div class="full"><label>설명 (선택 · 폰에선 비우면 작품 이름이 나와요)</label><textarea data-sf="sub" rows="2" maxlength="160">${esc(b.sub || '')}</textarea></div>
+          <div class="full"><label>자세히 링크 (선택, https · 작품 없이 이벤트 안내도 돼요)</label><input type="text" data-sf="link" value="${esc(b.link || '')}" placeholder="https://..."></div>
+        </div>
+        <div class="side">
+          <button class="btn sm" data-sa="img">${src ? '사진 바꾸기' : '사진 올리기'}</button>
+          ${src ? '<button class="btn sm" data-sa="img-del">사진 빼기</button>' : ''}
+          <label class="feat"><input type="checkbox" data-sa="on" ${b.on === false ? '' : 'checked'}> 보이기</label>
+          ${b.on === false ? '<span class="pill off">숨김</span>' : ''}
+          <button class="btn sm danger" data-sa="del">삭제</button>
+        </div></div>`;
+    }).join('') || '<p class="sub" style="margin:0">슬라이드가 없어요 · 앱은 지금 <b>자동 슬라이드</b>(홈 추천 + 플레이팩 작품)를 보여 줘요.</p>';
+  }
+  $('#slides').addEventListener('input', (e) => {
+    const row = e.target.closest('.slide-row'), f = e.target.dataset.sf;
+    if (!row || !f) return;
+    data.banners[Number(row.dataset.i)][f] = e.target.value;
+    markDirty();
+  });
+  $('#slides').addEventListener('change', (e) => { if (e.target.dataset.sf === 'work') markDirty(); });
+  let slideFor = null;
+  $('#slides').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sa]'); if (!b) return;
+    const i = Number(b.closest('.slide-row').dataset.i), x = data.banners[i], a = b.dataset.sa;
+    if (a === 'img') { slideFor = x; $('#slideFile').value = ''; $('#slideFile').click(); return; }
+    if (a === 'img-del') { delete x.img; delete slideUp[x.id]; }
+    if (a === 'on') { if (b.checked) delete x.on; else x.on = false; }
+    if (a === 'del') { if (!confirm('이 슬라이드를 지울까요?')) return; data.banners.splice(i, 1); delete slideUp[x.id]; }
+    renderSlides(); markDirty();
+  });
+  $('#slideFile').addEventListener('change', async () => {
+    const f = $('#slideFile').files[0];
+    if (!f || !slideFor) return;
+    // 1600px 폭 webp 로 줄여서 올린다 (16:9 가 아니면 가운데 기준으로 잘라 맞춤)
+    const img = await createImageBitmap(f);
+    const W = Math.min(1600, img.width), H = Math.round(W * 9 / 16);
+    const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    c.getContext('2d').drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, W, H);
+    const url = c.toDataURL('image/webp', 0.86);
+    const name = 'banner-' + slideFor.id + '-' + Date.now().toString(36) + '.webp';
+    slideUp[slideFor.id] = { name, b64: url.split(',')[1], preview: url };
+    slideFor.img = name;
+    renderSlides(); markDirty();
+    toast('사진을 넣었어요. 배포하기를 눌러야 올라가요');
+  });
+  $('#addSlide').onclick = () => {
+    data.banners.push({ id: 's' + Date.now().toString(36), work: '' });
+    renderSlides(); markDirty();
+  };
+
+  // ---------- 끌어서 순서 바꾸기 (작품·카테고리·슬라이드 공통, 마우스·터치) ----------
+  const LISTS = { works: () => data.works, cats: () => data.categories, slides: () => data.banners };
+  const RENDER = { works: () => renderWorks(), cats: () => { renderCats(); renderWorks(); }, slides: () => renderSlides() };
+  let drag = null;
+  document.addEventListener('pointerdown', (e) => {
+    const h = e.target.closest('[data-drag]'); if (!h) return;
+    const list = h.closest('#works, #cats, #slides'); if (!list) return;
+    e.preventDefault();
+    const row = h.parentElement;
+    drag = { row, list, id: e.pointerId };
+    row.classList.add('dragging');
+    try { h.setPointerCapture(e.pointerId); } catch (er) { /* 없음 */ }
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const rows = [...drag.list.children].filter(r => r !== drag.row && r.dataset.i != null);
+    const after = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+    if (after) { if (drag.row.nextElementSibling !== after) drag.list.insertBefore(drag.row, after); }
+    else if (drag.list.lastElementChild !== drag.row) drag.list.appendChild(drag.row);
+    if (e.clientY < 60) window.scrollBy(0, -14); else if (e.clientY > innerHeight - 90) window.scrollBy(0, 14);
+  });
+  const dragEnd = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.row.classList.remove('dragging');
+    const key = drag.list.id, arr = LISTS[key]();
+    const order = [...drag.list.children].map(r => r.dataset.i).filter(x => x != null).map(Number);
+    drag = null;
+    const next = order.map(i => arr[i]);
+    if (next.length === arr.length && order.some((v, k) => v !== k)) { arr.splice(0, arr.length, ...next); toast('순서를 바꿨어요. 배포하기를 눌러야 저장돼요'); }
+    RENDER[key](); markDirty();
+  };
+  document.addEventListener('pointerup', dragEnd);
+  document.addEventListener('pointercancel', dragEnd);
 
   // ---------- 배포 ----------
   $('#deploy').onclick = async () => {
@@ -419,6 +607,13 @@
         let old = null;
         try { old = (await gh('/contents/config/thumbs/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
         await putFile('config/thumbs/' + u.name, u.b64, `썸네일: ${u.name}`, old);
+      }
+      for (const id of Object.keys(slideUp)) {
+        const u = slideUp[id];
+        let old = null;
+        try { old = (await gh('/contents/config/thumbs/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
+        btn.textContent = '슬라이드 사진 올리는 중…';
+        await putFile('config/thumbs/' + u.name, u.b64, `슬라이드 사진: ${u.name}`, old);
       }
       for (const id of Object.keys(bgmUp)) {
         const u = bgmUp[id];

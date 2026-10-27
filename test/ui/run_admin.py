@@ -1,11 +1,13 @@
 # 관리 페이지 점검 (GitHub를 흉내 내서): python3 test/ui/run_admin.py
-import asyncio, json, base64
+import asyncio, json, base64, tempfile, os
 from playwright.async_api import async_playwright
 OUT = '/home/claude/crion/test/out/'
 works = json.load(open('/home/claude/crion/config/works.json', encoding='utf-8'))
 pkg = json.load(open('/home/claude/crion/package.json'))
 files = {'config/works.json': json.dumps(works, ensure_ascii=False, indent=1), 'package.json': json.dumps(pkg, indent=2)}
 puts = []
+SONG = os.path.join(tempfile.gettempdir(), 'crion_test_song.mp3')
+open(SONG, 'wb').write(b'ID3' + b'\0' * 2000)
 
 
 def b64(s):
@@ -52,25 +54,52 @@ async def main():
         await page.fill('#tok', 'github_pat_test'); await page.click('#connect'); await page.wait_for_timeout(800)
         print('state at load:', await page.inner_text('#state'))
         await page.screenshot(path=OUT + 'a2_main.png', full_page=True)
-        await page.fill('.work[data-i="0"] input[data-f=url]', 'https://crack.wrtn.ai/detail/abc')
+        await page.fill('#works .work[data-i="0"] input[data-f=url]', 'https://crack.wrtn.ai/detail/abc')
         await page.fill('#noticeText', '신작이 열렸어요!')
         await page.set_input_files('#file', '/home/claude/crion/test/ui/img/t2.png') if False else None
         # 업로드: 버튼 → 파일 선택
         async with page.expect_file_chooser() as fc:
-            await page.click('.work[data-i="1"] [data-a=upload]')
+            await page.click('#works .work[data-i="1"] [data-a=upload]')
         await (await fc.value).set_files('/home/claude/crion/test/ui/img/t2.png')
         await page.wait_for_timeout(600)
         async with page.expect_file_chooser() as fc2:
-            await page.click('.work[data-i="2"] [data-a=bgm]')
-        await (await fc2.value).set_files('/tmp/claude-0/-home-claude/9feaab8b-b1b3-5b5d-992e-a0b1e127bd78/scratchpad/song.mp3')
+            await page.click('#works .work[data-i="2"] [data-a=bgm]')
+        await (await fc2.value).set_files(SONG)
         await page.wait_for_timeout(400)
-        await page.click('.work[data-i="2"] [data-a=featured]')
-        await page.fill('.work[data-i="2"] textarea[data-f=desc]', '이종족 길드 소개 문장')
+        await page.click('#works .work[data-i="2"] [data-a=featured]')
+        await page.fill('#works .work[data-i="2"] textarea[data-f=desc]', '이종족 길드 소개 문장')
         await page.fill('#lkDiscord', 'https://discord.gg/abc')
         await page.fill('#hook', 'https://discord.com/api/webhooks/123/abc-DEF')
         await page.click('#addNews'); await page.wait_for_timeout(100)
         await page.fill('#news input[data-nf=title]', 'CRION 0.3.7 업데이트')
         await page.fill('#news textarea[data-nf=text]', '소통 화면이 생겼어요')
+        # 카테고리: 0번 작품에 첫 카테고리 켜기 / 새 카테고리
+        await page.click('#works .work[data-i="0"] [data-a=cat]')
+        await page.click('#addCat'); await page.fill('#cats .cat-row:last-child input', '새 칸')
+        # 슬라이드 추가: 사진 + 작품 연결
+        await page.click('#addSlide'); await page.wait_for_timeout(100)
+        async with page.expect_file_chooser() as fc3:
+            await page.click('#slides .slide-row:last-child [data-sa=img]')
+        await (await fc3.value).set_files('/home/claude/crion/test/ui/img/t2.png')
+        await page.wait_for_timeout(500)
+        await page.select_option('#slides .slide-row:last-child select[data-sf=work]', index=2)
+        await page.fill('#slides .slide-row:last-child input[data-sf=title]', '이번 주 추천')
+        # 끌어서 순서: 3번 작품을 맨 위로
+        names_before = await page.eval_on_selector_all('#works .work input[data-f=name]', 'l => l.map(x => x.value)')
+        await page.set_viewport_size({'width': 1100, 'height': 1700})
+        await page.eval_on_selector('#works .work[data-i="0"]', 'e => e.scrollIntoView()'); await page.wait_for_timeout(100)
+        h = await page.query_selector('#works .work[data-i="2"] [data-drag]')
+        top = await page.query_selector('#works .work[data-i="0"]')
+        hb = await h.bounding_box(); tb = await top.bounding_box()
+        await page.mouse.move(hb['x'] + 10, hb['y'] + 10); await page.mouse.down()
+        for k in range(1, 9):
+            await page.mouse.move(hb['x'] + 10, hb['y'] + 10 - (hb['y'] - tb['y'] + 20) * k / 8); await page.wait_for_timeout(30)
+        await page.mouse.up(); await page.wait_for_timeout(200)
+        names_after = await page.eval_on_selector_all('#works .work input[data-f=name]', 'l => l.map(x => x.value)')
+        print('끌기:', names_before[2], '→ 맨 위:', names_after[0] == names_before[2], '| 개수 같음:', len(names_after) == len(names_before))
+        await page.set_viewport_size({'width': 1100, 'height': 900})
+        await page.eval_on_selector('#slides', 'e => e.scrollIntoView()'); await page.wait_for_timeout(100)
+        await page.screenshot(path=OUT + 'a2b_slides.png', full_page=False)
         print('state dirty:', await page.inner_text('#state'))
         await page.screenshot(path=OUT + 'a3_dirty.png')
         await page.click('#deploy'); await page.wait_for_timeout(1500)
@@ -79,6 +108,7 @@ async def main():
         print('bgm/featured/desc:', saved['works'][2].get('bgm'), saved['works'][2].get('featured'), saved['works'][2].get('desc'), [w.get('featured') for w in saved['works']])
         print('소통 설정:', saved.get('links'), saved.get('report'), [(n['title'], n['date']) for n in saved.get('news', [])])
         print('saved notice:', saved.get('notice'), '| w0 url:', saved['works'][0]['url'], '| w1 thumb:', saved['works'][1]['thumb'])
+        print('슬라이드:', saved.get('banners'), '| 카테고리 수:', len(saved.get('categories', [])), '| 맨 위 작품:', saved['works'][0]['name'], saved['works'][0].get('cats'))
         print('state after:', await page.inner_text('#state'))
         await page.click('#bump'); await page.wait_for_timeout(800)
         print('version now:', json.loads(files['package.json'])['version'])

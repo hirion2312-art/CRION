@@ -94,6 +94,14 @@ if (fs.existsSync(thumbDir)) {
     w.thumb = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + v;   // 같은 이름으로 바꿔 올려도 새 그림이 보이게
   }
 }
+// 홈 슬라이드 사진 (config/thumbs/ 에 올린 파일 이름 → 서버 주소)
+for (const b of works.banners || []) {
+  if (!b.img || /^https?:/.test(b.img)) continue;
+  const name = b.img.replace(/^.*\//, '');
+  const file = path.join(thumbDir, name);
+  if (!fs.existsSync(file)) { console.error(`슬라이드 사진 없음: ${name}`); delete b.img; continue; }
+  b.img = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + U.sha256(fs.readFileSync(file)).slice(0, 8);
+}
 // 작품별 음악 (config/bgm/*.mp3)
 const bgmDir = path.join(ROOT, 'config', 'bgm');
 for (const w of works.works || []) {

@@ -64,12 +64,14 @@
   const CM = window.CrionCommunity;
   const cloud = new window.CrionCloud.Cloud(null, { storage: (() => { try { return localStorage; } catch (e) { return null; } })() });
 
+  const lsGetSafe = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const HM = window.CrionHome;
   const S = {
     info: null, settings: null, works: [], creatorUrl: '',
     cat: { links: {}, news: [], report: {} }, notice: null,
     packs: [], packsState: 'loading',
     view: 'home', play: null,
-    homeQ: '', storeTab: 'all', storeQ: '', commTab: 'news', form: { kind: 'bug' },
+    homeQ: '', homeCat: lsGetSafe('crion.homeCat') || 'all', slide: 0, catalog: {}, storeTab: 'all', storeQ: '', commTab: 'news', form: { kind: 'bug' },
     update: null, diagText: '', waitDiag: false,
     dev: { repo: null, data: null, busy: false, deploy: null, fails: 0, lockUntil: 0, previews: {} }
   };
@@ -109,6 +111,7 @@
   // ---------- 작품 목록: 관리 페이지(catalog.json)만 쓴다 ----------
   function setCatalog(c) {
     const hidden = new Set((c.hidden || []).map(u => String(u).replace(/\/$/, '')));
+    S.catalog = { categories: c.categories || [], banners: c.banners || [] };
     S.worksAll = (c.works || []).filter(w => w && w.id && w.name && !(w.url && hidden.has(String(w.url).replace(/\/$/, ''))));
     applyAge();
     if (c.creatorUrl) S.creatorUrl = c.creatorUrl;
@@ -181,33 +184,97 @@
       ${n.link && /^https:\/\//.test(n.link) ? `<button class="btn sm" data-act="open-link" data-url="${esc(n.link)}">자세히</button>` : ''}
       <button class="icon-btn sm" data-act="close-notice" title="닫기">${I.x}</button></div>`;
   }
-  function featuredWork() {
-    return S.works.find(w => w.featured && w.url) || (S.settings.recent || []).map(workById).find(w => w && w.url) || S.works.find(w => w.thumb && w.url) || S.works[0] || null;
-  }
+
   function playBtns(w, big) {
     if (!w.url) return `<button class="btn ${big ? 'big' : ''}" disabled>준비 중</button>`;
     const c = hasCont(w);
     return `<button class="btn primary ${big ? 'big' : ''}" data-act="play" data-id="${esc(w.id)}">${I.play}${c && P.openMode === 'continue' ? '이어하기' : '플레이'}</button>`
       + (c ? `<button class="btn ${big ? 'big glass' : ''}" data-act="play-fresh" data-id="${esc(w.id)}" title="작품 페이지부터 열기">처음 화면</button>` : '');
   }
-  function heroHtml() {
-    const w = featuredWork();
-    if (!w) return '';
-    const rec = store.get(w.id);
-    return `<section class="hero">
-      <div class="hero-bg" ${w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
-      <div class="hero-in">
-        <button class="hero-poster" data-act="info" data-id="${esc(w.id)}">${thumbInner(w)}</button>
+  // ---------- 오늘의 추천작 슬라이드 ----------
+  const packCoverOf = (w) => { const pk = packFor(w); return (pk && pk.cover) || ''; };
+  function homeSlides() { return HM.slides(S.catalog, S.works, { packCover: packCoverOf, recent: (S.settings.recent || []) }); }
+  function slideHtml(sl, i, cur) {
+    const w = sl.work;
+    const rec = w ? store.get(w.id) : {};
+    const eb = ['오늘의 추천작', sl.eyebrow].filter(Boolean).join(' · ');
+    const btns = (w ? playBtns(w, true) + `<button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info}작품 정보</button>` : '')
+      + (sl.link ? `<button class="btn big ${w ? 'glass' : 'primary'}" data-act="open-link" data-url="${esc(sl.link)}">${I.ext}자세히</button>` : '');
+    const on = i === cur ? 'on' : '';
+    if (sl.img) {
+      // 광고형: 사진이 슬라이드를 꽉 채우고(사진 안에 제목이 있는 경우가 많아서) 아래쪽에 버튼만. 관리 페이지에서 글을 적었으면 같이
+      return `<article class="slide wide ${on}" data-i="${i}" aria-hidden="${on ? 'false' : 'true'}">
+        <div class="slide-bg" style="background-image:${cssUrl(sl.img)}"></div>
+        <div class="slide-art"><img src="${esc(sl.img)}" alt="${esc(sl.title)}" ${i ? 'loading="lazy"' : ''}></div>
+        <div class="slide-in"><div class="hero-text">
+          <span class="eyebrow">${esc(eb)}</span>
+          ${sl.own.title ? `<h2>${esc(sl.title)}${w && w.adult ? ' <span class="adult-dot">19</span>' : ''}</h2>` : `<h2 class="sr">${esc(sl.title)}</h2>`}
+          ${sl.own.sub ? `<p class="desc">${esc(sl.sub)}</p>` : ''}
+          ${btns ? `<div class="hero-btns">${btns}</div>` : ''}
+        </div></div>
+      </article>`;
+    }
+    return `<article class="slide poster ${on}" data-i="${i}" aria-hidden="${on ? 'false' : 'true'}">
+      <div class="slide-bg" ${w && w.thumb ? `style="background-image:${cssUrl(w.thumb)}"` : ''}></div>
+      <div class="slide-in">
+        ${w ? `<button class="hero-poster" data-act="info" data-id="${esc(w.id)}">${thumbInner(w)}</button>` : ''}
         <div class="hero-text">
-          <span class="eyebrow">${w.featured ? '추천 작품' : rec.lastAt ? '최근 플레이' : '오늘의 작품'}</span>
-          <h2>${esc(w.name)}${w.adult ? ' <span class="adult-dot">19</span>' : ''}</h2>
-          ${w.genre ? `<p class="genre">${esc(w.genre)}</p>` : ''}
-          ${w.desc ? `<p class="desc">${esc(w.desc)}</p>` : ''}
-          <div class="hero-btns">${playBtns(w, true)}<button class="btn big glass" data-act="info" data-id="${esc(w.id)}">${I.info}작품 정보</button></div>
-          ${rec.lastAt ? `<p class="hero-meta">마지막 플레이 ${ago(rec.lastAt)}${rec.playMs > 60000 ? ' · 함께한 시간 ' + fmtTime(rec.playMs) : ''}</p>` : ''}
+          <span class="eyebrow">${esc(eb)}</span>
+          <h2>${esc(sl.title)}${w && w.adult ? ' <span class="adult-dot">19</span>' : ''}</h2>
+          ${w && w.genre && sl.sub !== w.genre ? `<p class="genre">${esc(w.genre)}</p>` : ''}
+          ${sl.sub ? `<p class="desc">${esc(sl.sub)}</p>` : ''}
+          ${btns ? `<div class="hero-btns">${btns}</div>` : ''}
+          ${rec && rec.lastAt ? `<p class="hero-meta">마지막 플레이 ${ago(rec.lastAt)}${rec.playMs > 60000 ? ' · 함께한 시간 ' + fmtTime(rec.playMs) : ''}</p>` : ''}
         </div>
       </div>
+    </article>`;
+  }
+  function heroHtml() {
+    const sl = homeSlides();
+    if (!sl.length) return '';
+    if (S.slide >= sl.length) S.slide = 0;
+    const many = sl.length > 1;
+    return `<section class="hero slider ${many ? 'many' : ''}" id="slider" data-n="${sl.length}">
+      <div class="slides">${sl.map((x, i) => slideHtml(x, i, S.slide)).join('')}</div>
+      ${many ? `<button class="sl-nav prev" data-act="sl-step" data-d="-1" aria-label="이전">${I.back}</button><button class="sl-nav next" data-act="sl-step" data-d="1" aria-label="다음">${I.fwd}</button>
+      <div class="sl-dots">${sl.map((x, i) => `<button class="${i === S.slide ? 'on' : ''}" data-act="sl-go" data-i="${i}" aria-label="${i + 1}번째"><i></i></button>`).join('')}</div>` : ''}
     </section>`;
+  }
+  function slideTo(i) {
+    const el = $('#slider');
+    if (!el) return;
+    const n = Number(el.dataset.n) || 1;
+    S.slide = ((i % n) + n) % n;
+    el.querySelectorAll('.slide').forEach((x, k) => { x.classList.toggle('on', k === S.slide); x.setAttribute('aria-hidden', k === S.slide ? 'false' : 'true'); });
+    el.querySelectorAll('.sl-dots button').forEach((x, k) => x.classList.toggle('on', k === S.slide));
+    el.classList.remove('tick'); void el.offsetWidth; el.classList.add('tick');
+  }
+  // 6초마다 넘김. 마우스를 올리거나 다른 화면·창이 가려지면 멈춤
+  let slHover = false, slLast = Date.now();
+  setInterval(() => {
+    if (S.view !== 'home' || slHover || document.hidden || $('#layer > *')) { slLast = Date.now(); return; }
+    if (Date.now() - slLast < 6000) return;
+    slLast = Date.now();
+    const el = $('#slider'); if (el && el.classList.contains('many')) slideTo(S.slide + 1);
+  }, 500);
+  document.addEventListener('pointerover', (e) => { slHover = !!(e.target.closest && e.target.closest('#slider')) && e.pointerType === 'mouse'; });
+  // 폰: 옆으로 밀어 넘기기
+  let slX = null, slY = 0;
+  document.addEventListener('touchstart', (e) => { const el = e.target.closest && e.target.closest('#slider.many'); slX = el ? e.touches[0].clientX : null; slY = el ? e.touches[0].clientY : 0; }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (slX == null) return;
+    const dx = e.changedTouches[0].clientX - slX, dy = e.changedTouches[0].clientY - slY;
+    slX = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) { slideTo(S.slide + (dx < 0 ? 1 : -1)); slLast = Date.now(); }
+  }, { passive: true });
+
+  // ---------- 카테고리 ----------
+  const hasPackW = (w) => !!packFor(w);
+  function catTabsHtml() {
+    const tabs = HM.tabs(S.catalog, S.works, hasPackW);
+    if (!tabs.some(t => t.id === S.homeCat)) S.homeCat = 'all';
+    if (tabs.length < 2) return '';
+    return `<nav class="cats" role="tablist">${tabs.map(t => `<button class="${t.id === S.homeCat ? 'on' : ''} ${t.id === 'pack' ? 'pk' : ''}" data-act="home-cat" data-v="${esc(t.id)}" role="tab">${esc(t.name)}<em>${t.n}</em></button>`).join('')}</nav>`;
   }
   function cardHtml(w) {
     const rec = store.get(w.id);
@@ -224,11 +291,13 @@
     </div>`;
   }
   function gridHtml() {
-    const q = S.homeQ.trim().toLowerCase();
-    const list = q ? S.works.filter(w => [w.name, w.genre, w.desc].join(' ').toLowerCase().includes(q)) : S.works;
     if (!S.works.length) return `<div class="empty"><b>작품 목록을 불러오는 중이에요</b><span>인터넷 연결을 확인해 주세요. 계속 비어 있으면 커뮤니티에서 알려 주세요.</span></div>`;
-    if (!list.length) return `<div class="empty"><b>“${esc(S.homeQ)}” 작품이 없어요</b><span>다른 말로 찾아보세요.</span></div>`;
+    const list = HM.list(S.works, { cat: S.homeCat, q: S.homeQ, hasPack: hasPackW });
+    if (!list.length) return S.homeQ.trim() ? `<div class="empty"><b>“${esc(S.homeQ)}” 작품이 없어요</b><span>다른 말로 찾아보세요.</span></div>` : '<div class="empty"><b>이 카테고리에는 아직 작품이 없어요</b></div>';
     return `<div class="grid">${list.map(cardHtml).join('')}</div>`;
+  }
+  function homeListHtml() {
+    return `${catTabsHtml()}<div id="homeGrid">${gridHtml()}</div>`;
   }
   function homeHtml() {
     const recent = (S.settings.recent || []).map(workById).filter(w => w && w.url).slice(0, 4);
@@ -243,9 +312,9 @@
         <button class="btn primary" data-act="go" data-v="login">${I.user}크랙 로그인하기</button></div>` : '';
     return `<main class="page"><div class="page-in">
       ${noticeHtml()}${first}${heroHtml()}${cont}
-      <div class="section-h"><h2>전체 작품</h2><span class="sub">${S.works.length}개</span>
+      <div class="section-h"><h2>작품</h2><span class="sub">${S.works.length}개</span>
         <label class="search right">${I.search}<input id="homeQ" placeholder="작품 찾기" value="${esc(S.homeQ)}"></label></div>
-      <div id="homeGrid">${gridHtml()}</div>
+      <div id="homeList">${homeListHtml()}</div>
     </div></main>`;
   }
 
@@ -700,16 +769,17 @@
     let body;
     if (!d) body = `<div class="empty"><span class="spin"></span><b>저장소에서 작품 목록을 받는 중이에요</b></div>`;
     else if (!d.works.length) body = `<div class="empty"><b>작품이 없어요</b><button class="btn primary" data-act="dev-edit">${I.plus}작품 추가</button></div>`;
-    else body = `<div class="dev-list">${d.works.map((w, i) => {
+    else body = `${S.dev.order ? `<div class="dev-order"><b>순서를 바꿨어요</b><span>저장을 눌러야 모든 사람 앱에 반영돼요</span><button class="btn sm" data-act="dev-order-undo">되돌리기</button><button class="btn sm primary" data-act="dev-order-save" ${S.dev.busy ? 'disabled' : ''}>순서 저장</button></div>` : '<p class="muted dev-tip">왼쪽 ⠿ 손잡이를 잡고 끌어서 순서를 바꾼 뒤 <b>순서 저장</b>을 눌러요.</p>'}
+      <div class="dev-list" id="devList">${devOrdered(d).map((w, i) => {
       const hid = w.url && d.hidden.includes(w.url);
       const th = thumbOf(w);
-      return `<div class="dev-row ${hid ? 'hid' : ''}">
+      const cn = (w.cats || []).map(c => (HM.categories(d).find(x => x.id === c) || {}).name).filter(Boolean);
+      return `<div class="dev-row ${hid ? 'hid' : ''}" data-id="${esc(w.id)}">
+        <button class="drag" data-drag title="끌어서 순서 바꾸기" aria-label="끌어서 순서 바꾸기">⠿</button>
         <div class="mini">${thumbInner({ name: w.name, thumb: th })}</div>
         <div class="dev-t"><b>${esc(w.name)}</b><span>${esc(w.url || '주소 없음 · 앱에서 "준비 중"으로 보여요')}</span>
-          <div class="dev-tags">${w.genre ? `<i>${esc(w.genre)}</i>` : ''}${w.featured ? '<i class="hot">홈 추천</i>' : ''}${w.adult ? '<i class="adult">19 성인</i>' : ''}${hid ? '<i>숨김</i>' : ''}${w.bgm ? '<i>음악</i>' : ''}${w.guide ? '<i>공략</i>' : ''}</div></div>
+          <div class="dev-tags">${w.genre ? `<i>${esc(w.genre)}</i>` : ''}${w.featured ? '<i class="hot">홈 추천</i>' : ''}${w.adult ? '<i class="adult">19 성인</i>' : ''}${hid ? '<i>숨김</i>' : ''}${w.bgm ? '<i>음악</i>' : ''}${w.guide ? '<i>공략</i>' : ''}${cn.map(n => `<i class="cat">${esc(n)}</i>`).join('')}</div></div>
         <div class="dev-btns">
-          <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="-1" title="위로" ${i ? '' : 'disabled'}>${I.up}</button>
-          <button class="icon-btn sm" data-act="dev-move" data-id="${esc(w.id)}" data-d="1" title="아래로" ${i < d.works.length - 1 ? '' : 'disabled'}>${I.dn}</button>
           <button class="btn sm" data-act="dev-edit" data-id="${esc(w.id)}">${I.edit}수정</button>
           <button class="btn sm" data-act="dev-hide" data-id="${esc(w.id)}" ${w.url ? '' : 'disabled'}>${hid ? '보이기' : '숨기기'}</button>
           <button class="btn sm danger" data-act="dev-del" data-id="${esc(w.id)}">${I.trash}삭제</button>
@@ -722,6 +792,11 @@
         <span class="muted">공지·소식·음악·설치 파일은 <button class="link" data-act="open-link" data-url="${esc(b + 'admin.html')}">관리 페이지</button>에서</span></div>
       ${body}
     </div></main>`;
+  }
+  function devOrdered(d) {
+    if (!S.dev.order) return d.works;
+    const pos = new Map(S.dev.order.map((id, i) => [id, i]));
+    return d.works.slice().sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : 1e6) - (pos.has(b.id) ? pos.get(b.id) : 1e6));
   }
   let devThumb = null;
   function devEditModal(id) {
@@ -741,6 +816,7 @@
         <div class="form" style="margin-top:12px">
           <label class="f"><span>소개 (홈 배너·작품 정보)</span><textarea id="dDesc" class="field" rows="3">${esc(w.desc || '')}</textarea></label>
           <label class="f"><span>공략 (선택 · # 제목, - 목록, **굵게**)</span><textarea id="dGuide" class="field" rows="3">${esc(w.guide || '')}</textarea></label>
+          ${HM.categories(d || {}).length ? `<div class="f"><span>카테고리 (여러 개 고를 수 있어요 · 목록은 관리 페이지에서 만들어요)</span><div class="dev-cats">${HM.categories(d || {}).map(c => `<label class="chip"><input type="checkbox" data-cat="${esc(c.id)}" ${(w.cats || []).includes(c.id) ? 'checked' : ''}><span>${esc(c.name)}</span></label>`).join('')}</div></div>` : ''}
           <label class="chk"><input type="checkbox" id="dFeat" ${w.featured ? 'checked' : ''}> 홈 맨 위 추천 작품으로</label>
           <label class="chk"><input type="checkbox" id="dAdult" ${w.adult ? 'checked' : ''}> 성인 작품 (19) · 설정에서 '성인 작품 보기'를 켠 사람에게만 보여요</label>
           <div class="form-foot"><span class="muted">주소가 비어 있으면 "준비 중"으로 보여요</span><button class="btn primary" data-act="dev-save">${id ? '저장' : '추가하기'}</button></div>
@@ -765,6 +841,7 @@
     const id = $('.dev-form').dataset.id || undefined;
     const v = (s) => ($(s) || {}).value || '';
     const w = { id, name: v('#dName'), url: v('#dUrl'), genre: v('#dGenre'), desc: v('#dDesc'), guide: v('#dGuide'), featured: $('#dFeat').checked, adult: $('#dAdult').checked };
+    if (document.querySelector('.dev-cats')) w.cats = [...document.querySelectorAll('.dev-cats [data-cat]')].filter(x => x.checked).map(x => x.dataset.cat);
     try { DV.upsert(JSON.parse(JSON.stringify(S.dev.data || { works: [], hidden: [] })), w); } catch (e) { toast(e.message); return; }
     const btn = $('[data-act=dev-save]'); if (btn) { btn.disabled = true; btn.textContent = '올리는 중…'; }
     const ok = await devMutate((data) => DV.upsert(data, w), (id ? '수정 ' : '추가 ') + w.name.trim(), devThumb);
@@ -779,6 +856,39 @@
         <p class="muted">모든 사람 앱에서 사라져요. 플레이 기록은 각자 컴퓨터에 남아요. 잠깐만 안 보이게 하려면 <b>숨기기</b>를 쓰세요.</p>
         <div class="row end"><button class="btn" data-act="close-modal">취소</button><button class="btn danger-fill" data-act="dev-del-ok" data-id="${esc(id)}">${I.trash}삭제</button></div></div>`);
   }
+
+  // 끌어서 순서 바꾸기: [data-drag] 손잡이를 잡고 위아래로. 놓으면 화면 순서를 읽어 둔다(저장은 따로)
+  let drag = null;
+  document.addEventListener('pointerdown', (e) => {
+    const h = e.target.closest && e.target.closest('#devList [data-drag]');
+    if (!h) return;
+    e.preventDefault();
+    const row = h.closest('.dev-row');
+    drag = { row, list: row.parentElement, id: e.pointerId };
+    row.classList.add('dragging');
+    try { h.setPointerCapture(e.pointerId); } catch (er) { /* 없음 */ }
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const rows = [...drag.list.children].filter(r => r !== drag.row);
+    const after = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+    if (after) { if (drag.row.nextElementSibling !== after) drag.list.insertBefore(drag.row, after); }
+    else if (drag.list.lastElementChild !== drag.row) drag.list.appendChild(drag.row);
+    const pg = $('.page'); if (pg) { const r = pg.getBoundingClientRect(); if (e.clientY < r.top + 50) pg.scrollTop -= 12; else if (e.clientY > r.bottom - 50) pg.scrollTop += 12; }
+  });
+  const dragEnd = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.row.classList.remove('dragging');
+    const ids = [...drag.list.children].map(r => r.dataset.id).filter(Boolean);
+    drag = null;
+    const now = (S.dev.data ? S.dev.data.works : []).map(w => w.id);
+    S.dev.order = ids.join(',') === now.join(',') ? null : ids;
+    const pg = $('.page'), top = pg ? pg.scrollTop : 0;
+    render();
+    const pg2 = $('.page'); if (pg2) pg2.scrollTop = top;
+  };
+  document.addEventListener('pointerup', dragEnd);
+  document.addEventListener('pointercancel', dragEnd);
 
   // ---------- 크랙 로그인 ----------
   function loginHtml() {
@@ -1052,6 +1162,9 @@
       case 'leave': leavePlay(); break;
       case 'login-done': await save({ onboarded: true }); toast('로그인했어요. 이제 작품을 골라 보세요'); go('home'); break;
       case 'close-modal': closeModal(); break;
+      case 'sl-step': slideTo(S.slide + Number(el.dataset.d || 1)); slLast = Date.now(); break;
+      case 'sl-go': slideTo(Number(el.dataset.i) || 0); slLast = Date.now(); break;
+      case 'home-cat': { S.homeCat = el.dataset.v || 'all'; lsSet('crion.homeCat', S.homeCat); const l = $('#homeList'); if (l) l.innerHTML = homeListHtml(); else refresh(); break; }
       case 'close-notice': if (S.notice) lsSet(noticeId(S.notice), '1'); refresh(); break;
       case 'open-link': if (el.dataset.url) api.openExternal(el.dataset.url); break;
       case 'view-img': modal(`<div class="lightbox"><img src="${esc(el.dataset.src)}" alt=""><button class="icon-btn close-x" data-act="close-modal">${I.x}</button></div>`, true); break;
@@ -1112,6 +1225,8 @@
       case 'dev-edit': if (S.dev.data) devEditModal(id); break;
       case 'dev-pick': { const f = $('#devFile'); if (f) { f.value = ''; f.click(); } break; }
       case 'dev-save': devSave(); break;
+      case 'dev-order-undo': S.dev.order = null; render(); break;
+      case 'dev-order-save': { const order = S.dev.order; if (!order) break; devMutate((data) => { DV.reorder(data, order); return null; }, '순서 바꾸기').then((ok) => { if (ok) { S.dev.order = null; render(); } }); break; }
       case 'dev-move': { const d = Number(el.dataset.d); const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.move(data, id, d); return null; }, `순서 ${w ? w.name : id}`); break; }
       case 'dev-hide': { const w = S.dev.data.works.find(x => x.id === id); devMutate((data) => { DV.toggleHide(data, id); return null; }, `${w && S.dev.data.hidden.includes(w.url) ? '보이기' : '숨기기'} ${w ? w.name : id}`).catch(() => {}); break; }
       case 'dev-del': devConfirmDel(id); break;

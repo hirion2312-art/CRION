@@ -52,6 +52,18 @@ test('삭제·순서·숨기기', async () => {
   assert.deepStrictEqual(d.hidden, [], '지운 작품의 숨김 표시도 정리');
   assert.throws(() => D.toggleHide(d, 'b'), /주소/);
 });
+test('끌어서 바꾼 순서 저장·카테고리', () => {
+  const d = { works: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }], hidden: [] };
+  assert.ok(D.reorder(d, ['c', 'a']));
+  assert.deepStrictEqual(d.works.map(x => x.id), ['c', 'a', 'b'], '빠진 작품은 뒤에 원래 순서로');
+  assert.ok(!D.reorder(d, ['c', 'a', 'b']), '그대로면 바뀐 것 없음');
+  D.upsert(d, { id: 'a', name: 'A', cats: ['fantasy', 'academy'] });
+  assert.deepStrictEqual(d.works[1].cats, ['fantasy', 'academy']);
+  D.upsert(d, { id: 'a', name: 'A', cats: [] });
+  assert.ok(!('cats' in d.works[1]), '다 빼면 항목도 지움');
+  D.upsert(d, { id: 'b', name: 'B2' });
+  assert.ok(!('cats' in d.works[2]), 'cats 를 안 주면 그대로');
+});
 test('한글 내용 그대로 올라간다', () => {
   assert.strictEqual(D.dec(D.enc('평가혜 ♥')), '평가혜 ♥');
 });

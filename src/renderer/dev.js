@@ -117,6 +117,7 @@
       data.works.unshift(item);
     }
     if (w.thumb !== undefined) item.thumb = w.thumb;
+    if (Array.isArray(w.cats)) { const c = w.cats.map(String).filter(Boolean); if (c.length) item.cats = c; else delete item.cats; }
     if (w.featured) { data.works.forEach(x => { delete x.featured; }); item.featured = true; } else delete item.featured;
     return item;
   }
@@ -133,6 +134,13 @@
     [data.works[i], data.works[j]] = [data.works[j], data.works[i]];
     return true;
   }
+  // 끌어서 바꾼 순서(ids)를 그대로 적용. 목록에 없는 작품은 원래 순서대로 뒤에 붙인다
+  function reorder(data, ids) {
+    const pos = new Map((ids || []).map((id, i) => [id, i]));
+    const before = data.works.map(w => w.id).join(',');
+    data.works = data.works.map((w, i) => [w, pos.has(w.id) ? pos.get(w.id) : 1e6 + i]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+    return data.works.map(w => w.id).join(',') !== before;
+  }
   function toggleHide(data, id) {
     const w = data.works.find(x => x.id === id);
     if (!w || !w.url) throw new Error('주소가 있는 작품만 숨길 수 있어요');
@@ -141,7 +149,7 @@
     return !on;
   }
 
-  const api = { Vault, Repo, upsert, remove, move, toggleHide, isCrackUrl, enc, dec };
+  const api = { Vault, Repo, upsert, remove, move, reorder, toggleHide, isCrackUrl, enc, dec };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CrionDev = api;
 })(typeof window !== 'undefined' ? window : globalThis);

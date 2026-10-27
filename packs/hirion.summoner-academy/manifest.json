@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.summoner-academy",
   "name": "소환수 아카데미 · 학생 수첩",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "runner": "academy",
   "workId": "summoner-academy",
   "workName": "소환수 아카데미",

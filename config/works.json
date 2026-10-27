@@ -10,14 +10,22 @@
       "genre": "",
       "adult": true,
       "thumb": "wmvpb0ohz.webp",
-      "featured": true
+      "featured": true,
+      "cats": [
+        "fantasy",
+        "academy"
+      ]
     },
     {
       "id": "wmvnhxlzo",
       "name": "소환수 아카데미",
       "url": "https://share.crack.wrtn.ai/21qccug",
       "genre": "",
-      "thumb": "wmvnhxlzo.webp"
+      "thumb": "wmvnhxlzo.webp",
+      "cats": [
+        "fantasy",
+        "academy"
+      ]
     },
     {
       "id": "wmvnv9yop",
@@ -25,7 +33,10 @@
       "url": "https://share.crack.wrtn.ai/ekn8e1z",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnv9yop.webp"
+      "thumb": "wmvnv9yop.webp",
+      "cats": [
+        "fantasy"
+      ]
     },
     {
       "id": "wmvnvlcqf",
@@ -33,14 +44,20 @@
       "url": "https://share.crack.wrtn.ai/owfrxgo",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvlcqf.webp"
+      "thumb": "wmvnvlcqf.webp",
+      "cats": [
+        "fantasy"
+      ]
     },
     {
       "id": "wmvnvmzbd",
       "name": "변론게임",
       "url": "https://share.crack.wrtn.ai/wlhe9w",
       "genre": "",
-      "thumb": "wmvnvmzbd.webp"
+      "thumb": "wmvnvmzbd.webp",
+      "cats": [
+        "eval"
+      ]
     },
     {
       "id": "wmvnvm67k",
@@ -48,7 +65,11 @@
       "url": "https://share.crack.wrtn.ai/ntq5cda",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvm67k.webp"
+      "thumb": "wmvnvm67k.webp",
+      "cats": [
+        "fantasy",
+        "academy"
+      ]
     },
     {
       "id": "wmvnvkrq9",
@@ -56,7 +77,10 @@
       "url": "https://share.crack.wrtn.ai/m8oa9tr",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvkrq9.webp"
+      "thumb": "wmvnvkrq9.webp",
+      "cats": [
+        "romance"
+      ]
     },
     {
       "id": "wmvnvjf0f",
@@ -72,14 +96,20 @@
       "url": "https://share.crack.wrtn.ai/1ofjq9j",
       "genre": "",
       "thumb": "wmvnvhult.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "fantasy"
+      ]
     },
     {
       "id": "wmvnviqy9",
       "name": "에테르타워S",
       "url": "https://share.crack.wrtn.ai/2oc0ru4",
       "genre": "",
-      "thumb": "wmvnviqy9.webp"
+      "thumb": "wmvnviqy9.webp",
+      "cats": [
+        "fantasy"
+      ]
     },
     {
       "id": "wmvnvh87i",
@@ -87,7 +117,10 @@
       "url": "https://share.crack.wrtn.ai/p9te0hp",
       "genre": "",
       "thumb": "wmvnvh87i.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "romance"
+      ]
     },
     {
       "id": "wmvnvgbac",
@@ -95,7 +128,10 @@
       "url": "https://share.crack.wrtn.ai/idbhxvm",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvgbac.webp"
+      "thumb": "wmvnvgbac.webp",
+      "cats": [
+        "romance"
+      ]
     },
     {
       "id": "wmvnvfyyz",
@@ -103,7 +139,10 @@
       "url": "https://share.crack.wrtn.ai/nyhyt1c",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvfyyz.webp"
+      "thumb": "wmvnvfyyz.webp",
+      "cats": [
+        "eval"
+      ]
     },
     {
       "id": "wmvnvdy0b",
@@ -111,7 +150,11 @@
       "url": "https://share.crack.wrtn.ai/ou19svp",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvdy0b.webp"
+      "thumb": "wmvnvdy0b.webp",
+      "cats": [
+        "academy",
+        "romance"
+      ]
     },
     {
       "id": "wmvnvd6g1",
@@ -127,7 +170,10 @@
       "url": "https://share.crack.wrtn.ai/9avpbgv",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnvas46.webp"
+      "thumb": "wmvnvas46.webp",
+      "cats": [
+        "survival"
+      ]
     },
     {
       "id": "wmvnv5woo",
@@ -143,7 +189,10 @@
       "url": "https://share.crack.wrtn.ai/xv5i9fz",
       "genre": "",
       "adult": true,
-      "thumb": "wmvnv91j6.webp"
+      "thumb": "wmvnv91j6.webp",
+      "cats": [
+        "romance"
+      ]
     },
     {
       "id": "wmvnv58n4",
@@ -159,7 +208,10 @@
       "url": "https://share.crack.wrtn.ai/9lexgmh",
       "genre": "",
       "thumb": "wmvnv3r3n.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "romance"
+      ]
     },
     {
       "id": "wmvnv391h",
@@ -167,14 +219,20 @@
       "url": "https://share.crack.wrtn.ai/znbjnmz",
       "genre": "",
       "thumb": "wmvnv391h.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "eval"
+      ]
     },
     {
       "id": "wmvnv29wo",
       "name": "오퍼레이션커멘더",
       "url": "https://share.crack.wrtn.ai/knvpfzy",
       "genre": "",
-      "thumb": "wmvnv29wo.webp"
+      "thumb": "wmvnv29wo.webp",
+      "cats": [
+        "survival"
+      ]
     },
     {
       "id": "wmvnv1588",
@@ -205,7 +263,11 @@
       "name": "야한개념이없는아카데미",
       "url": "https://share.crack.wrtn.ai/3chsj4g",
       "genre": "",
-      "thumb": "wmvnuyfko.webp"
+      "thumb": "wmvnuyfko.webp",
+      "cats": [
+        "fantasy",
+        "academy"
+      ]
     },
     {
       "id": "wmvnuwikc",
@@ -213,14 +275,20 @@
       "url": "https://share.crack.wrtn.ai/0oucseh",
       "genre": "",
       "thumb": "wmvnuwikc.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "daily"
+      ]
     },
     {
       "id": "safehouse",
       "name": "아포칼립스 안전지대의 관리자",
       "genre": "좀비 생존 운영",
       "url": "https://share.crack.wrtn.ai/ddnrot4",
-      "thumb": "safehouse.webp"
+      "thumb": "safehouse.webp",
+      "cats": [
+        "survival"
+      ]
     },
     {
       "id": "magical",
@@ -228,7 +296,10 @@
       "genre": "샌드박스",
       "url": "https://share.crack.wrtn.ai/flyvj2k",
       "thumb": "magical.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "fantasy"
+      ]
     },
     {
       "id": "univ",
@@ -236,14 +307,47 @@
       "genre": "캠퍼스 로맨스 코미디",
       "url": "https://share.crack.wrtn.ai/l02a94",
       "thumb": "univ.webp",
-      "adult": true
+      "adult": true,
+      "cats": [
+        "academy",
+        "romance"
+      ]
     },
     {
       "id": "pyeonggahye",
       "name": "돌아온 프로필 평가하는 평가혜",
       "genre": "페르소나(프로필) 평가",
       "url": "https://share.crack.wrtn.ai/okelh4",
-      "thumb": "pyeonggahye.webp"
+      "thumb": "pyeonggahye.webp",
+      "cats": [
+        "eval"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "fantasy",
+      "name": "판타지"
+    },
+    {
+      "id": "academy",
+      "name": "아카데미·학원"
+    },
+    {
+      "id": "romance",
+      "name": "로맨스"
+    },
+    {
+      "id": "survival",
+      "name": "생존·전략"
+    },
+    {
+      "id": "eval",
+      "name": "평가·참여형"
+    },
+    {
+      "id": "daily",
+      "name": "일상"
     }
   ]
 }

@@ -67,6 +67,19 @@ async def main():
         await page.screenshot(path=OUT + 'k5_dev_del.png')
         await page.click('[data-act=dev-del-ok]'); await page.wait_for_timeout(1500)
         print('삭제 후:', [w['name'] for w in STATE['works']['works']])
+        # 끌어서 순서 바꾸기 → 순서 저장
+        before = [w['name'] for w in STATE['works']['works']]
+        h = await (await page.query_selector('#devList .dev-row:nth-child(3) [data-drag]')).bounding_box()
+        t = await (await page.query_selector('#devList .dev-row:nth-child(1)')).bounding_box()
+        await page.mouse.move(h['x'] + 8, h['y'] + 10); await page.mouse.down()
+        for k in range(1, 9):
+            await page.mouse.move(h['x'] + 8, h['y'] + 10 - (h['y'] - t['y'] + 10) * k / 8); await page.wait_for_timeout(30)
+        await page.mouse.up(); await page.wait_for_timeout(200)
+        print('순서 바꿈 표시:', await page.evaluate("!!document.querySelector('.dev-order')"), '| 아직 저장 안 함:', [w['name'] for w in STATE['works']['works']] == before)
+        await page.screenshot(path=OUT + 'k5b_dev_order.png')
+        await page.click('[data-act=dev-order-save]'); await page.wait_for_timeout(1500)
+        after = [w['name'] for w in STATE['works']['works']]
+        print('저장 후 맨 위:', after[0], '==', before[2], after[0] == before[2], '| 표시 사라짐:', await page.evaluate("!document.querySelector('.dev-order')"))
         await page.click('.nav-dev'); await page.wait_for_timeout(300)
         print('잠근 뒤 메뉴에 작품 관리 없음:', await page.evaluate("!document.querySelector('.nav [data-v=dev]')"))
         await page.click('[data-act=dev-login]'); await page.wait_for_timeout(200)
