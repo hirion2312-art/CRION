@@ -111,6 +111,7 @@
           <div class="ak-season"></div><div class="ak-fx"></div>
           <div class="ak-sprites"><div class="ak-sp" data-slot="0"></div><div class="ak-sp" data-slot="1"></div><div class="ak-sp" data-slot="2"></div></div>
           <div class="ak-place"><b></b><span></span></div>
+          <button class="ak-hudbtn" data-ak="hud-toggle" aria-label="학생 수첩 열기">📒<span>수첩</span></button>
           <div class="ak-battle" hidden></div>
           <div class="ak-cg" hidden><img alt=""></div>
           <div class="ak-dlg" data-ak="next">
@@ -1019,8 +1020,9 @@
         case 't-cont': continueSave(t.dataset.id); break;
         case 't-del': { const id = t.dataset.id; if (R.delAsk === id) { saves = saves.filter(x => x.id !== id); putSaves(); try { localStorage.removeItem(memKey(id)); } catch (err) { /* 없음 */ } R.delAsk = null; o.toast('세이브를 지웠어요 (크랙 대화는 그대로 남아요)'); } else { R.delAsk = id; } renderTitle(); break; }
         case 'crack': o.showCrack(true); break;
+        case 'hud-toggle': el.querySelector('.ak').classList.toggle('hud-on'); break;
         case 'diag': o.diag(); break;
-        case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(o.workUrl); } break;
+        case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(startUrl()); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); break;
         case 'copy': o.copy(t.dataset.text); break;
         case 'open': o.openExternal(t.dataset.url); break;
@@ -1050,7 +1052,7 @@
           if (t.dataset.k === 'auto') { const ab = el.querySelector('[data-ak=auto]'); if (ab) ab.classList.toggle('on', M.prefs.auto); }
           openModal('m-set'); break;
         }
-        default: if (/^m-/.test(k) || k === 'log') openModal(k);
+        default: if (/^m-/.test(k) || k === 'log') { el.querySelector('.ak').classList.remove('hud-on'); openModal(k); }
       }
     });
     el.addEventListener('input', (e) => {
@@ -1111,6 +1113,11 @@
       bgmId = ''; playBgm(man.bgmTitle && man.bgmTitle !== 'title' ? man.bgmTitle : 'opening');
       renderTitle();
     }
+    // 새 게임은 기억해 둔 크랙 작품 화면 주소로 연다 (공유 링크 share.crack.wrtn.ai 는 폰에서 '앱으로 열기'로 넘어가려 해서 멈춤)
+    function startUrl() {
+      const d = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      return (typeof d === 'string' && /^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(d) && !/^https:\/\/share\./.test(d)) ? d : o.workUrl;
+    }
     function startNew() {
       const id = 'sv' + Date.now().toString(36);
       saves.push({ id, url: '', created: Date.now(), last: Date.now(), playMs: 0 });
@@ -1122,7 +1129,7 @@
       stage.querySelector('.ak-text').innerHTML = loaderHtml('새 대화를 여는 중이에요');
       banner('new');
       bgmId = ''; playBgm(man.bgmTitle && man.bgmTitle !== 'title' ? man.bgmTitle : 'opening');
-      o.load(o.workUrl);
+      o.load(startUrl());
     }
     function continueSave(id) {
       const sv = saves.find(x => x.id === id);

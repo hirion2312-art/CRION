@@ -766,7 +766,7 @@
         case 'pick-mode': if (R.sm && !R.sm.picked) { R.sm.picked = t.dataset.label; o.click(t.dataset.id); banner('mode'); toast(`「${t.dataset.label}」로 시작해요`); } break;
         case 'crack-pick': if (R.sm) R.sm.viaCrack = true; o.showCrack(true); break;
         case 'diag': o.diag(); break;
-        case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(o.workUrl); } break;
+        case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(startUrl()); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); else showBeat(-1); break;
         case 'pack-off': o.packOff(); break;
       }
@@ -826,6 +826,11 @@
     const hideTitle = () => { $('#sh-title').hidden = true; };
     function showTitle() { R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false); renderTitle(); sceneBgm({ screen: 'title' }); }
     function loading(msg) { const d = $('#sh-dlg'); d.className = 'k-wait'; d.innerHTML = `<div class="sh-radio"><span class="sh-wave"><i></i><i></i><i></i><i></i><i></i></span><b>${esc(msg)}<em>.</em><em>.</em><em>.</em></b></div>`; }
+    // 새 게임은 기억해 둔 크랙 작품 화면 주소로 연다 (공유 링크 share.crack.wrtn.ai 는 폰에서 '앱으로 열기'로 넘어가려 해서 멈춤)
+    function startUrl() {
+      const d = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
+      return (typeof d === 'string' && /^https:\/\/([a-z0-9-]+\.)*wrtn\.ai\//.test(d) && !/^https:\/\/share\./.test(d)) ? d : o.workUrl;
+    }
     function startNew() {
       const id = 'sv' + Date.now().toString(36);
       saves.push({ id, url: '', created: Date.now(), last: Date.now(), playMs: 0 });
@@ -835,7 +840,7 @@
       R.mode = 'binding'; R.newFlow = { clicked: false, fromUrl: '', at: Date.now() };
       R.sm = { picked: '', confirmed: false, viaCrack: false, newLabel: '', done: false };
       hideTitle(); loading('새 대화를 여는 중이에요'); banner('new');
-      o.load(o.workUrl);
+      o.load(startUrl());
     }
     function continueSave(id) {
       const sv = saves.find(x => x.id === id);

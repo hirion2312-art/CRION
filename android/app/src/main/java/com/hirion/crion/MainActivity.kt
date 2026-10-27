@@ -167,7 +167,7 @@ class MainActivity : Activity() {
                 // 같은 주소를 다시 붙인 것(화면 다시 그리기)이면 새로 열지 않는다
                 if (o?.optBoolean("first") == true && crackLoaded && Shell.sameUrl(url, crackWv.url ?: "")) {
                     emitWv("dom-ready"); emitWv("did-stop-loading")
-                } else if (url.startsWith("https://")) { crackLoaded = true; crackWv.loadUrl(url) }
+                } else if (url.startsWith("https://")) { crackLoaded = true; loadCrack(url) }
             }
             "wv:reload" -> crackWv.reload()
             "wv:back" -> if (crackWv.canGoBack()) crackWv.goBack()
@@ -249,6 +249,49 @@ class MainActivity : Activity() {
     }
 
 
+
+    // ---------- 크랙 공유 링크 풀기 ----------
+    //  share.crack.wrtn.ai/xxxx 는 폰에서 열면 크랙 앱·스토어로 보내려 한다. 앱이 먼저 컴퓨터 브라우저인 척 열어 보고
+    //  진짜 작품 화면 주소(crack.wrtn.ai/…)를 알아내 그 주소로 연다. 못 알아내면 원래 주소 그대로.
+    private val shareCache = HashMap<String, String>()
+    private fun isShare(url: String): Boolean = (Uri.parse(url).host ?: "").startsWith("share.")
+    private fun loadCrack(url: String) {
+        if (!isShare(url)) { crackWv.loadUrl(url); return }
+        shareCache[url]?.let { crackWv.loadUrl(it); return }
+        io.execute {
+            val real = resolveShare(url)
+            main.post { if (real != null) { shareCache[url] = real; crackWv.loadUrl(real) } else crackWv.loadUrl(url) }
+        }
+    }
+    private fun resolveShare(start: String): String? {
+        var url = start
+        val desktopUa = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+        try {
+            for (hop in 0 until 6) {
+                val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                c.instanceFollowRedirects = false
+                c.connectTimeout = 10000; c.readTimeout = 10000
+                c.setRequestProperty("User-Agent", desktopUa)
+                val code = c.responseCode
+                if (code in 300..399) {
+                    val loc = c.getHeaderField("Location") ?: return null
+                    c.disconnect()
+                    url = java.net.URL(java.net.URL(url), loc).toString()
+                    if (!url.startsWith("https://") || !hostOk(Uri.parse(url).host)) return null
+                    if (!isShare(url)) return url
+                    continue
+                }
+                val html = try { c.inputStream.bufferedReader().use { it.readText().take(400000) } } catch (e: Exception) { "" }
+                c.disconnect()
+                // 페이지 안에 적힌 크랙 주소 (자바스크립트 이동·meta refresh·og:url)
+                val m = Regex("https://crack\\.wrtn\\.ai/[^\"'<>\\s]+").findAll(html.replace("\\/", "/")).map { it.value }
+                    .firstOrNull { it.contains("/detail/") || it.contains("/characters/") || it.contains("/stories/") || it.contains("/u/") }
+                return m
+            }
+        } catch (e: Exception) { android.util.Log.i("CRION", "공유 링크 풀기 실패: ${e.message}") }
+        return null
+    }
+
     // ---------- 크랙 화면이 앱·플레이스토어로 넘어가는 것 막기 ----------
     //  폰에서 크랙 웹은 대화방에 들어가면 '앱으로 열기'(intent:// · market:// · 앱 링크 · play.google.com)로 보내려 한다.
     //  크랙 화면 안에서는 크랙(wrtn.ai)과 로그인 페이지만 연다. 그 밖의 이동은 막고, 앱 연결 중 카카오 로그인만 허용한다.
@@ -266,6 +309,9 @@ class MainActivity : Activity() {
         }
         if (scheme == "intent") {
             val i = try { Intent.parseUri(u.toString(), Intent.URI_INTENT_SCHEME) } catch (e: Exception) { null }
+            // '앱으로 열기' 안에 크랙 웹 주소가 들어 있으면 앱 안에서 그 주소로 (공유 링크 → 작품 화면)
+            val d = i?.data
+            if (d != null && d.scheme == "https" && hostOk(d.host) && d.host?.startsWith("share.") != true) { view.loadUrl(d.toString()); return true }
             if (i != null && i.`package` in loginApps) {
                 try { i.addCategory(Intent.CATEGORY_BROWSABLE); i.component = null; i.selector = null; startActivity(i); return true } catch (e: Exception) { /* 앱 없음 → 대체 주소 */ }
             }
