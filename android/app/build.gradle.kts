@@ -27,7 +27,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = (System.getenv("CRION_VERSION_CODE") ?: "1").toInt()
-        versionName = "0.4.1"
+        versionName = "1.0.0"
     }
     signingConfigs {
         if (ksFile != null && File(ksFile).exists()) {
