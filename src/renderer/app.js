@@ -550,7 +550,7 @@
       </section>
       <section class="set-group"><h3>화면</h3>
         ${row('시작 애니메이션', '앱을 켤 때 로고 화면', pseg('splash', [[true, '켜기'], [false, '끄기']]))}
-        ${row('왼쪽 메뉴', '', pseg('navSmall', [[false, '넓게'], [true, '아이콘만']]))}
+        ${row('왼쪽 메뉴', '', pseg('navSmall', [[false, '넓게'], [true, '아이콘만']])).replace('class="set"', 'class="set desk-only"')}
       </section>
       <section class="set-group"><h3>크랙 계정</h3>
         ${row('크랙 로그인', '한 번 로그인하면 모든 작품에서 유지돼요', `<button class="btn sm" data-act="go" data-v="login">${I.user}로그인 화면 열기</button>`)}
@@ -944,6 +944,27 @@
     $('#layer').innerHTML = `<div class="scrim" data-act="close-modal"><div class="modal ${size === true ? 'wide' : size || ''}" role="dialog">${html}</div></div>`;
   }
   const closeModal = () => { $('#layer').innerHTML = ''; };
+  // 폰: 아래에서 올라온 창을 아래로 쓸어내리면 닫는다 (창 맨 위에서 시작했을 때만)
+  (function swipeClose() {
+    let y0 = null, m = null;
+    const narrow = () => { try { return window.matchMedia('(max-width: 720px)').matches; } catch (e) { return false; } };
+    document.addEventListener('touchstart', (e) => {
+      m = e.target.closest && e.target.closest('#layer .modal');
+      y0 = (m && narrow() && m.scrollTop <= 0) ? e.touches[0].clientY : null;
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (y0 == null || !m) return;
+      const dy = e.touches[0].clientY - y0;
+      if (dy > 0) { m.style.transform = `translateY(${dy}px)`; m.style.transition = 'none'; }
+    }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      if (y0 == null || !m) return;
+      const dy = (e.changedTouches[0] || {}).clientY - y0;
+      m.style.transition = 'transform .2s ease';
+      if (dy > 90) closeModal(); else m.style.transform = '';
+      y0 = null; m = null;
+    });
+  })();
   const BD = window.CrionBoard.create({ S, cloud, esc, ago, modal, closeModal, toast, render, lsGet, lsSet, I, copy });
 
   // ---------- 처음 사용법 (튜토리얼) ----------

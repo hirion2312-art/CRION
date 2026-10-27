@@ -97,8 +97,8 @@
         <div class="hud-l" id="sh-hudl"></div>
         <div class="hud-c" id="sh-hudc"></div>
         <div class="hud-r" id="sh-hudr"></div>
-        <button id="sh-topnav" data-sh="lobby" hidden aria-label="로비로">${ic('up')}로비</button>
-        <div id="sh-phone" class="peek"><button class="chev" data-sh="phone" aria-label="폰 접기/펼치기">${ic('down')}</button><div class="device"><div class="screen" id="sh-screen"></div></div></div>
+        <button id="sh-topnav" data-sh="lobby" hidden aria-label="로비로">${ic('up')}<span>로비</span></button>
+        <div id="sh-phone" class="peek"><button class="chev" data-sh="phone" aria-label="관리 폰 접기/펼치기">${ic('down')}<span class="sh-chevt"></span></button><div class="device"><div class="screen" id="sh-screen"></div></div></div>
       </div></div>
       <footer class="sh-foot">
         <textarea id="sh-in" rows="1" placeholder="하고 싶은 걸 그대로 적어 보세요 (Enter 보내기 · Shift+Enter 줄바꿈)"></textarea>
@@ -114,6 +114,9 @@
     </div>`;
     const $ = (s) => el.querySelector(s);
     const shRoot = $('.sh');
+    const narrow = () => { try { return root.matchMedia('(max-width: 720px)').matches; } catch (e) { return false; } };
+    if (narrow()) $('#sh-in').placeholder = '하고 싶은 걸 그대로 적어 보세요';
+    const portrait = () => { const st = $('.sh-stage'); return !!st && st.clientHeight > st.clientWidth; };
     // 숨김 넘침 상자가 포커스·클릭 때문에 스스로 스크롤되지 않게 (화면이 위로 밀리는 것 방지)
     [shRoot, $('.sh-stage'), $('#sh-scene')].forEach(n => n.addEventListener('scroll', () => { if (n.scrollTop || n.scrollLeft) { n.scrollTop = 0; n.scrollLeft = 0; } }));
     shRoot.classList.toggle('nofx', !M.prefs.fx);
@@ -688,12 +691,12 @@
       if (k === 'lines') {
         const ls = M.lines.slice(-120);
         box.className = 'box wide';
-        box.innerHTML = `<h3>지난 대사</h3><div class="sh-lines" data-sk="lines">${ls.length ? ls.map(l => `<p class="${l.me ? 'me' : l.sys ? 'sys' : ''}">${l.who ? `<b>${esc(l.who)}</b>` : ''}${l.act ? `<i>${esc(l.act)}</i>` : ''}<span>${esc(l.t)}</span></p>`).join('') : '<p class="s-hint">아직 없어요.</p>'}</div><div class="btns"><button class="s-btn primary" data-sh="mclose">닫기</button></div>`;
+        box.innerHTML = `<button class="sh-x" data-sh="mclose" aria-label="닫기">×</button><h3>지난 대사</h3><div class="sh-lines" data-sk="lines">${ls.length ? ls.map(l => `<p class="${l.me ? 'me' : l.sys ? 'sys' : ''}">${l.who ? `<b>${esc(l.who)}</b>` : ''}${l.act ? `<i>${esc(l.act)}</i>` : ''}<span>${esc(l.t)}</span></p>`).join('') : '<p class="s-hint">아직 없어요.</p>'}</div><div class="btns"><button class="s-btn primary" data-sh="mclose">닫기</button></div>`;
         setTimeout(() => { const n = box.querySelector('.sh-lines'); if (n) n.scrollTop = n.scrollHeight; }, 0);
       } else if (k === 'set') {
         const seg = (key, opts) => `<div class="s-seg">${opts.map(([v, l]) => `<button class="${String(M.prefs[key]) === String(v) ? 'on' : ''}" data-sh="pref" data-key="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
         box.className = 'box';
-        box.innerHTML = `<h3>설정</h3>
+        box.innerHTML = `<button class="sh-x" data-sh="mclose" aria-label="닫기">×</button><h3>설정</h3>
           <div class="setrow"><span>글자 속도</span>${seg('speed', [['slow', '느림'], ['normal', '보통'], ['fast', '빠름'], ['instant', '즉시']])}</div>
           <div class="setrow"><span>화면 연출</span>${seg('fx', [[false, '끔'], [true, '켜짐']])}</div>
           <div class="setrow"><span>배경 음악</span>${seg('music', [[false, '끔'], [true, '켜짐']])}</div>
@@ -708,6 +711,12 @@
     function closeModal() { R.modal = null; $('#sh-modal').hidden = true; $('#sh-box').innerHTML = ''; }
 
     // ---------- 입력 ----------
+    // 세로 화면: 올라온 관리 폰 밖을 누르면 폰만 접는다
+    el.addEventListener('click', (e) => {
+      if (R.phone === 'down' && portrait() && !e.target.closest('#sh-phone') && !e.target.closest('.sh-foot') && !e.target.closest('#sh-modal') && !e.target.closest('.layer:not([hidden])')) {
+        e.stopPropagation(); e.preventDefault(); R.phone = 'peek'; renderPhone();
+      }
+    }, true);
     el.addEventListener('click', (e) => {
       if (e.target.id === 'sh-modal') { closeModal(); return; }
       const t = e.target.closest('[data-sh]');
@@ -786,6 +795,19 @@
       }
     };
     document.addEventListener('keydown', onKey);
+    // 안드로이드 뒤로 버튼: 팩 안의 창부터 하나씩 닫는다 (앱 겹창이 떠 있으면 앱이 먼저)
+    const onBack = (e) => {
+      if (!el.isConnected || el.closest('.off') || document.querySelector('#layer > *')) return;
+      const done = () => e.preventDefault();
+      if (R.modal) { closeModal(); return done(); }
+      if (!$('#sh-reg').hidden) { regDone(false); return done(); }
+      if (R.cine) { cineEnd(); return done(); }
+      if (R.note) { R.note = null; render(); return done(); }
+      if (R.view !== 'lobby') { go('lobby'); return done(); }
+      if (R.phone === 'down') { R.phone = 'peek'; renderPhone(); return done(); }
+      if (R.mode !== 'title' && $('#sh-title').hidden) { showTitle(); return done(); }
+    };
+    document.addEventListener('crion-back', onBack);
 
     // ---------- 스플래시 · 타이틀 (세이브 고르기) ----------
     const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
@@ -953,7 +975,7 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { if (bgm) bgm.stop(); document.removeEventListener('keydown', onKey); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
+      destroy() { if (bgm) bgm.stop(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
       demo(segs) { handle(segs); },
       go, state: R, memory: M, saves: () => saves, bgmNow: () => bgmId
     };

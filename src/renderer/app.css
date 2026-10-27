@@ -513,3 +513,18 @@ select.field { height: 42px; }
   .ptools [data-act=wv-page], .ptools [data-act=report], .ptools [data-act=fullscreen], .ptools .sep { display: none; }
   .pguide { position: absolute; inset: 0; width: auto; z-index: 8; border-left: 0; }
 }
+@media (max-width: 720px) {
+  .desk-only { display: none !important; }
+  .section-h { flex-wrap: wrap; }
+  .section-h .search { flex: 1 1 100%; margin-left: 0; }
+  .set { flex-direction: column; align-items: stretch; gap: 8px; }
+  .set .ctrl { align-self: flex-start; }
+  .set .lbl span { font-size: 12.5px; }
+  .modal::before { content: ''; position: sticky; top: 6px; display: block; width: 44px; height: 5px; margin: 6px auto -11px; border-radius: 3px; background: rgba(0,0,0,.18); z-index: 3; }
+  .modal .close-x, .modal header .icon-btn { width: 40px; height: 40px; }
+  .muted { font-size: 13px; }
+  .btn { height: 40px; }
+  .btn.sm { height: 34px; }
+  .tabs button { font-size: 14px; height: 42px; }
+}
+@media (max-width: 720px) { .section-h h2 { white-space: nowrap; } }

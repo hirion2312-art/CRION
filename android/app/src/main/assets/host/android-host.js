@@ -77,7 +77,8 @@
     const ev = m.ev;
     if (!ev) return;
     if (ev.type === 'update') { subs.forEach(fn => { try { fn(ev.data); } catch (err) { /* 무시 */ } }); return; }
-    if (ev.type === 'back') {   // 안드로이드 뒤로 버튼: 겹창 닫기 → 플레이 나가기 → 홈
+    if (ev.type === 'back') {   // 안드로이드 뒤로 버튼: 플레이팩 안의 창(팩이 처리) → 앱 겹창 닫기 → 플레이 나가기 → 앱 닫기
+      if (!document.dispatchEvent(new CustomEvent('crion-back', { cancelable: true }))) return;
       const x = document.querySelector('#layer [data-act=close-modal], #layer .close-x');
       if (x) { x.click(); return; }
       const leave = document.querySelector('[data-act=leave]');

@@ -122,6 +122,7 @@
           </div>
         </section>
         <aside class="ak-hud" id="akHud"></aside>
+        <div class="ak-hudhead"><b>📒 학생 수첩</b><button data-ak="hud-toggle" aria-label="학생 수첩 닫기">✕ 닫기</button></div>
       </div>
       <footer class="ak-foot">
         <div class="ak-choices" id="akChoices"></div>
@@ -137,6 +138,7 @@
     </div>`;
     const $ = (s) => el.querySelector(s);
     const stage = $('#akStage');
+    try { if (root.matchMedia('(max-width: 720px)').matches) $('#akIn').placeholder = '행동·대사 적기'; } catch (e) { /* 없음 */ }
 
     // ---------- 배경 ----------
     let bgFlip = 0;
@@ -1067,6 +1069,16 @@
       if ((e.key === ' ' || e.key === 'Enter') && !R.modal && !e.target.closest('button')) { e.preventDefault(); next(); }
     };
     document.addEventListener('keydown', onKey);
+    // 안드로이드 뒤로 버튼: 수첩 → 겹창 → 연출 창 순서로 닫는다 (앱 겹창이 떠 있으면 앱이 먼저)
+    const onBack = (e) => {
+      if (!el.isConnected || el.closest('.off') || document.querySelector('#layer > *')) return;
+      const ak = el.querySelector('.ak');
+      if (ak && ak.classList.contains('hud-on')) { ak.classList.remove('hud-on'); e.preventDefault(); return; }
+      if (R.modal) { $('#akLayer').innerHTML = ''; R.modal = null; e.preventDefault(); return; }
+      if (R.overlayOn) { closeOverlay(); e.preventDefault(); return; }
+      if (R.mode !== 'title') { const t = el.querySelector('.ak-title'); if (!t || t.hidden) { showTitle(); e.preventDefault(); } }
+    };
+    document.addEventListener('crion-back', onBack);
 
     // ---------- 처음 화면 (타이틀 · 세이브 고르기) ----------
     const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
@@ -1217,7 +1229,7 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); o.toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { document.removeEventListener('keydown', onKey); clearInterval(waitT); clearTimeout(autoT); clearInterval(R.typing && R.typing.t); if (bgm) bgm.stop(); save(); },
+      destroy() { document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearTimeout(autoT); clearInterval(R.typing && R.typing.t); if (bgm) bgm.stop(); save(); },
       demo(segsList) { handle(segsList); },
       state: R, memory: M, saves: () => saves
     };
