@@ -361,11 +361,19 @@
     },
     {
       "id": "smvqjw6rq",
-      "img": "banner-smvqjw6rq-mvqjwd48.webp",
+      "img": "banner-safehouse-2026a.webp",
       "work": "safehouse",
       "title": "아포칼립스 안전지대의 관리자",
       "eyebrow": "플레이팩",
       "sub": "유일한 안전가옥의 관리자가 되어 생존하라"
+    },
+    {
+      "id": "suniv2026a",
+      "img": "banner-univ-2026a.webp",
+      "work": "univ",
+      "title": "리온대학교 XX학과",
+      "eyebrow": "플레이팩",
+      "sub": "새내기 폰 하나로 시작하는 캠퍼스 연애"
     },
     {
       "id": "smvqmraci",

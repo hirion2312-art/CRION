@@ -541,7 +541,7 @@ select.field { height: 42px; }
   .section-h { margin: 22px 0 10px; }
   .hero-in { flex-direction: column; align-items: stretch; padding: 18px; gap: 14px; }
   .hero-poster { width: 132px; align-self: center; }
-  .slider { height: 420px; }
+  .slider { height: 420px; aspect-ratio: auto; max-height: none; }
   .slide.wide::after { background: linear-gradient(180deg, transparent 0, transparent 30%, rgba(18,14,13,.96) 52%); }
   .slide.wide .slide-art { bottom: auto; aspect-ratio: 16 / 9; height: auto; }
   .slide.wide .slide-bg { filter: blur(30px) saturate(1.1) brightness(.3); }
