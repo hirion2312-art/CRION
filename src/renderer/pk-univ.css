@@ -3,7 +3,7 @@
 .uv{--navy:#12306b;--deep:#0b1022;--ink2:#141c3a;--gold:#e6c883;--sakura:#f2b8c8;--fg:#eef1fa;--sub:#a9b3cf;--line:rgba(255,255,255,.16);
   --paper:#fbfbfe;--pfg:#1d2440;--psub:#5b6482;--pline:#d8dcea;--stamp:#c8352b;--good:#4fb286;--bad:#e2675a;--kk:#fee500;--rv:#c62917;
   --sans:"Pretendard","IBM Plex Sans KR","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-  --serif:"Noto Serif KR","Nanum Myeongjo","Batang","AppleMyungjo",serif;
+  --serif:var(--sans);
   display:flex;flex-direction:column;background:var(--deep);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5;overflow:hidden;
   -webkit-tap-highlight-color:transparent;user-select:none;word-break:keep-all;overflow-wrap:anywhere;color-scheme:dark}
 .uv [hidden]{display:none!important}
@@ -17,6 +17,7 @@
 
 /* ---------- 무대 ---------- */
 .uv .uv-main{flex:1;min-height:0;position:relative;display:flex}
+.uv .uv-main > .uv-stage{position:absolute;inset:0}
 .uv .uv-stage{position:relative;flex:1;min-width:0;overflow:hidden}
 .uv .uv-bg,.uv .uv-bgl{position:absolute;inset:0}
 .uv .uv-bgl{background-size:cover;background-position:center;opacity:0;transition:opacity .9s ease;transform:scale(1.03)}
@@ -25,11 +26,13 @@
 .uv .uv-tint.dusk{background:linear-gradient(180deg,rgba(60,20,40,.35),rgba(30,10,30,.15) 40%,rgba(8,12,30,.6))}
 .uv .uv-tint.night{background:linear-gradient(180deg,rgba(5,8,25,.6),rgba(5,8,25,.35) 40%,rgba(5,8,25,.75))}
 .uv .uv-petals{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.uv .uv-pt{position:absolute;left:50%;bottom:150px;height:calc(100% - 210px);max-height:760px;transform:translate(-50%,16px);opacity:0;transition:opacity .45s,transform .5s;pointer-events:none;
-  filter:drop-shadow(0 10px 30px rgba(0,0,0,.5))}
-.uv .uv-pt.on{opacity:1;transform:translate(-50%,0)}
-.uv .uv-pt img{height:100%;width:auto;max-width:min(560px,70vw);object-fit:contain;display:block;border-radius:14px;
-  box-shadow:0 0 0 1px rgba(255,255,255,.12),0 0 40px -6px var(--glow,rgba(230,200,131,.5))}
+.uv .uv-pt{position:absolute;inset:0;opacity:0;transition:opacity .45s;pointer-events:none;overflow:hidden;background:#0b1022}
+.uv .uv-pt.on{opacity:1}
+.uv .uv-ptb{position:absolute;inset:-40px;background-size:cover;background-position:center 20%;filter:blur(28px) brightness(.55) saturate(1.15)}
+.uv .uv-pt img{position:absolute;left:50%;top:0;height:100%;width:auto;max-width:100%;object-fit:cover;object-position:top;transform:translateX(-50%) scale(1.02);transition:transform 6s ease;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.uv .uv-pt.on img{transform:translateX(-50%) scale(1)}
+.uv .uv-main.ph-open .uv-pt img{left:calc(50% - clamp(145px,13.5vw,175px))}
 
 /* HUD */
 .uv .uv-hud{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:6px;z-index:6;max-width:60%}
@@ -100,13 +103,17 @@
 .uv.uv-wait .uv-foot .primary{opacity:.5}
 
 /* ---------- 스마트폰 ---------- */
-.uv .uv-phone{position:relative;flex:none;width:clamp(290px,27vw,350px);padding:12px 14px 12px 6px;display:flex;transition:width .35s,padding .35s;z-index:8}
-.uv .uv-phone.closed{width:0;padding:0}
+.uv .uv-phone{position:absolute;right:0;top:0;bottom:0;width:clamp(290px,27vw,350px);padding:14px 16px 14px 6px;display:flex;transition:transform .35s;z-index:8;background:transparent;pointer-events:none}
+.uv .uv-phone > *{pointer-events:auto}
+.uv .uv-phone.closed{transform:translateX(100%)}
+.uv .uv-phone.closed .uv-ptab{left:-52px}
 .uv .uv-ptab{position:absolute;left:-46px;top:50%;transform:translateY(-50%);width:40px;height:64px;border-radius:12px 0 0 12px;background:rgba(10,16,40,.85);border:1px solid var(--line);border-right:0;display:grid;place-items:center;z-index:2}
 .uv .uv-phone.open .uv-ptab{opacity:.75}
 .uv .uv-ptab em{position:absolute;top:-6px;left:-6px;background:var(--bad);color:#fff;border-radius:10px;font-style:normal;font-size:10.5px;font-weight:800;padding:1px 6px}
 .uv .uv-dev{flex:1;min-width:0;position:relative;border-radius:38px;background:#05070f;padding:9px;box-shadow:0 0 0 2px rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.55);display:flex;overflow:hidden}
 .uv .uv-phone.closed .uv-dev{visibility:hidden}
+.uv .uv-main.ph-open .uv-dlg{left:14px;transform:none;width:auto;right:calc(clamp(290px,27vw,350px) + 6px)}
+.uv .uv-main.ph-open .uv-tr,.uv .uv-main.ph-open .uv-pops{right:calc(clamp(290px,27vw,350px) + 6px)}
 .uv .uv-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:84px;height:22px;border-radius:12px;background:#05070f;z-index:3}
 .uv .uv-scr{flex:1;min-width:0;border-radius:30px;overflow:hidden;background:linear-gradient(170deg,#1b2a5c,#0e1430 60%,#2a1d3d);display:flex;flex-direction:column;position:relative}
 .uv .uv-sbar{flex:none;display:flex;justify-content:space-between;align-items:center;padding:10px 22px 4px;font-size:12px;font-weight:700;z-index:2}
@@ -460,6 +467,12 @@
 
 /* ---------- 좁은 화면(폰 세로) ---------- */
 @media (max-width:760px){
+  .uv .uv-main.ph-open .uv-dlg{left:10px;right:10px;width:auto}
+  .uv .uv-main.ph-open .uv-tr{right:10px}
+  .uv .uv-main.ph-open .uv-pt img{left:0}
+  .uv .uv-phone.closed .uv-ptab{left:auto}
+  .uv .uv-pt img{max-width:none;width:100%;height:100%;left:0;top:0;object-fit:cover;object-position:center 15%;transform:none;-webkit-mask-image:none;mask-image:none}
+  .uv .uv-pt.on img{transform:none}
   .uv{font-size:13.5px}
   .uv .uv-phone{position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;height:min(78%,640px);padding:0 8px;transform:translateY(0);transition:transform .35s}
   .uv .uv-phone.closed{width:auto;padding:0 8px;transform:translateY(100%)}
@@ -474,8 +487,6 @@
   .uv .uv-chip.next{max-width:220px}
   .uv .uv-tr{right:10px;top:10px}.uv .uv-tr button span{display:none}
   .uv .uv-pops{top:auto;bottom:200px;right:64px;left:10px;align-items:flex-end}
-  .uv .uv-pt{bottom:170px;height:calc(100% - 300px)}
-  .uv .uv-pt img{max-width:78vw}
   .uv .uv-dlg{bottom:10px;width:calc(100% - 20px);padding:22px 16px 14px;min-height:118px}
   .uv .uv-dline{font-size:15px}
   .uv .uv-fb{padding:0 11px}

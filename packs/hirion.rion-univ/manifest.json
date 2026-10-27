@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.rion-univ",
   "name": "리온대학교 x스학과 · 신입생 폰",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "runner": "univ",
   "workId": "univ",
   "workName": "리온대학교 x스학과",
@@ -27,7 +27,7 @@
     "store/shot4.webp"
   ],
   "ui": "ui.html",
-  "minEngine": "0.9.14",
+  "minEngine": "0.9.15",
   "mode": "hybrid",
   "identity": "이 작품의 플레이 화면은 리온대학교 캠퍼스와 신입생의 스마트폰처럼 보인다."
 }

@@ -89,7 +89,7 @@
         <div class="uv-stage" id="uv-stage">
           <div class="uv-bg"><i class="uv-bgl"></i><i class="uv-bgl"></i></div>
           <div class="uv-tint"></div><canvas class="uv-petals" aria-hidden="true"></canvas>
-          <div class="uv-pt" id="uv-pt"><img alt=""></div>
+          <div class="uv-pt" id="uv-pt"><i class="uv-ptb"></i><img alt=""></div>
           <div class="uv-hud" id="uv-hud"></div>
           <div class="uv-tr" id="uv-tr"></div>
           <div class="uv-pops" id="uv-pops"></div>
@@ -153,12 +153,26 @@
       ls[bgFlip].classList.add('on'); ls[1 - bgFlip].classList.remove('on');
       M.lastBg = src;
     }
+    // 말하는 사람: 팩에 든 그 사람 그림을 무대에 꽉 차게 (뒤는 같은 그림을 흐리게) — 크랙 응답 그림은 쓰지 않는다
     function setPortrait(src, who) {
-      const pt = $('#uv-pt'), im = pt.querySelector('img');
+      const pt = $('#uv-pt'), im = pt.querySelector('img'), bl = pt.querySelector('.uv-ptb');
       if (!src) { pt.classList.remove('on'); return; }
-      if (im.getAttribute('src') !== src) { pt.classList.remove('on'); void pt.offsetWidth; im.src = src; }
+      if (im.getAttribute('src') !== src) { pt.classList.remove('on'); void pt.offsetWidth; im.src = src; bl.style.backgroundImage = cssUrl(src); }
       pt.style.setProperty('--glow', (RO[who] && RO[who].color) || 'rgba(230,200,131,.6)');
       pt.classList.add('on');
+    }
+    // 장소: 글(묘사·상태창 📍)에 나온 장소 낱말로 팩 배경을 고른다
+    const PW = data.placeWords || {};
+    const PW_LIST = Object.entries(PW).flatMap(([k, ws]) => ws.map(w => [w, k])).sort((a, b) => b[0].length - a[0].length);
+    function placeKeyOf(t) { const x = String(t || '').replace(/\s/g, ''); const hit = PW_LIST.find(([w]) => x.includes(w.replace(/\s/g, ''))); return hit ? hit[1] : ''; }
+    function assignPlaces(beats, st) {
+      let cur = placeKeyOf(st && st.place) || R.placeK || 'gate';
+      beats.forEach(b => {
+        if (b.kind !== 'say') { const k = placeKeyOf(b.text); if (k) cur = k; }
+        b.place = cur;
+        b.face = b.kind === 'say' && b.known ? packFace(b.who) : '';
+      });
+      R.placeK = placeKeyOf(st && st.place) || cur;
     }
     function setTint() {
       const st = M.status || {};
@@ -216,6 +230,7 @@
     function renderPhone() {
       const ph = $('#uv-phone');
       ph.className = 'uv-phone ' + R.phone + (R.app ? ' in-app' : '');
+      $('.uv-main').classList.toggle('ph-open', R.phone === 'open');
       badge();
       const scr = $('#uv-scr');
       const keep = {}; scr.querySelectorAll('[data-sk]').forEach(n => { keep[n.dataset.sk] = n.scrollTop; });
@@ -411,10 +426,8 @@
       const d = $('#uv-dlg');
       const b = R.beats[i];
       if (!b) { d.className = 'uv-dlg k-end'; d.innerHTML = `<div class="uv-dline uv-endq">${esc(endPhrase())}</div>`; return; }
-      if (b.bg) setBg(b.bg);
-      if (b.kind === 'say') setPortrait(b.portrait || packFace(b.who), b.who);
-      else if (b.portrait) setPortrait(b.portrait, '');
-      else if (b.kind !== 'title') setPortrait('');
+      if (b.place) setBg(BG(b.place));
+      if (b.face) setPortrait(b.face, b.who); else setPortrait('');
       const last = i >= R.beats.length - 1;
       if (b.kind === 'title') {
         d.className = 'uv-dlg k-title';
@@ -443,7 +456,8 @@
       const ev = U.absorb(M, P, data);
       P.beats.forEach(b => { if (b.text) M.lines.push({ w: (M.status && M.status.week) || 0, who: b.kind === 'say' ? b.who : '', t: b.text, sys: b.kind === 'sys' }); });
       save();
-      R.beats = P.beats.filter(b => b.text || b.bg || b.portrait);
+      R.beats = P.beats.filter(b => b.text);
+      assignPlaces(R.beats, M.status);
       R.i = -1;
       renderHud(); setTint(); renderPhone();
       notifyEvents(ev);
@@ -477,14 +491,13 @@
     }
     function cineShow() {
       const C = R.cine, p = C.pages[C.i], c = $('#uv-cine');
-      let bg = null; for (let k = C.i; !bg && k >= 0; k--) bg = C.pages[k].bg;
-      if (!bg) { const b0 = R.beats.find(b => b.bg); bg = b0 && b0.bg; }
-      c.querySelector('.uv-cbg i').style.backgroundImage = cssUrl(bg || BG('gate'));
-      if (bg) setBg(bg);
+      const bg = p.face || BG(p.place || 'gate');
+      c.querySelector('.uv-cbg i').style.backgroundImage = cssUrl(bg);
+      setBg(BG(p.place || 'gate'));
       const box = c.querySelector('.uv-cin');
       if (p.kind === 'title') { box.innerHTML = `<div class="uv-ctitle"><small>EPISODE. ${p.ep}</small><b>${esc(p.text)}</b></div>`; R.typing = null; c.querySelector('.uv-chint').style.opacity = 1; }
       else {
-        box.innerHTML = `${p.kind === 'say' ? `<div class="uv-cwho">${(p.portrait || packFace(p.who)) ? `<img src="${esc(p.portrait || packFace(p.who))}" alt="">` : ''}<b>${esc(p.who)}</b></div>` : ''}<p class="uv-ctext"></p>`;
+        box.innerHTML = `${p.kind === 'say' ? `<div class="uv-cwho">${p.face ? `<img src="${esc(p.face)}" alt="">` : ''}<b>${esc(p.who)}</b></div>` : ''}<p class="uv-ctext"></p>`;
         c.querySelector('.uv-chint').style.opacity = 0;
         typeTo(box.querySelector('.uv-ctext'), p.kind === 'say' ? `“${p.text}”` : p.text, () => { const h = c.querySelector('.uv-chint'); if (h) h.style.opacity = 1; });
       }
@@ -971,7 +984,7 @@
     function resetScene() {
       R.beats = []; R.i = -1; R.lastKey = ''; R.waiting = false; R.away = false; R.cine = null; R.app = ''; R.sub = null; R.enrollPick = [];
       R.bgKey = ''; el.querySelectorAll('.uv-bgl').forEach(x => { x.style.backgroundImage = ''; x.classList.remove('on'); });
-      setBg(M.lastBg || BG('gate'));
+      R.placeK = placeKeyOf(M.status && M.status.place) || 'gate'; setBg(BG(R.placeK));
       setPortrait('');
       $('#uv-cine').hidden = true; exClose(); closeModal();
       renderHud(); setTint(); renderPhone();
