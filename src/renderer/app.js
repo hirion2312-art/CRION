@@ -960,7 +960,7 @@
     const useSaved = !fresh && saved && P.openMode === 'continue';
     const pk = packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id);
     const usePack = pk && installed.has(pk.id) && installed.isOn(pk.id) && runnerOf(pk) && PK.compatible(pk, S.info.engineVersion) ? pk : null;
-    S.play = { work: w, url: useSaved && !usePack ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false };
+    S.play = { work: w, url: useSaved && !usePack ? saved : w.url, guide: false, startedAt: Date.now(), pack: usePack, crack: false, gate: true };
     S.view = 'play';
     store.recordOpen(w.id);
     save({ recent: [w.id].concat((S.settings.recent || []).filter(x => x !== w.id)).slice(0, 8) });
@@ -1015,8 +1015,12 @@
     const v = wv();
     if (!v) return;
     const bar = $('#pload'), cover = $('#pwait');
+    // 폰(안드로이드)은 크랙 화면 하나를 계속 쓴다. 새 작품 주소를 여는 동안(공유 링크 풀기 포함) 앞 작품 화면이 남아
+    //  그 화면의 응답·주소가 새 작품(플레이팩·이어하기)으로 들어가지 않게, 이번 작품의 첫 화면 신호가 올 때까지 막는다
+    const ungate = () => { if (S.play) S.play.gate = false; };
+    v.addEventListener('dom-ready', ungate);   // 새 문서가 열린 뒤에만 (여는 중에는 앞 문서가 아직 살아 있다)
     v.addEventListener('did-start-loading', () => { if (bar) bar.classList.add('on'); });
-    v.addEventListener('did-stop-loading', () => { if (bar) bar.classList.remove('on'); if (cover) cover.classList.add('gone'); });
+    v.addEventListener('did-stop-loading', () => { ungate(); if (bar) bar.classList.remove('on'); if (cover) cover.classList.add('gone'); });
     v.addEventListener('did-fail-load', (e) => {
       if (e.errorCode === -3 || !e.isMainFrame) return;
       if (cover) { cover.classList.remove('gone'); cover.innerHTML = `<img src="icon.png" alt=""><b>크랙에 연결하지 못했어요</b><span>인터넷 연결을 확인해 주세요.</span><button class="btn primary" data-act="wv-reload">다시 시도</button>`; }
@@ -1026,6 +1030,7 @@
     });
     v.addEventListener('ipc-message', (e) => {
       const d = e.args && e.args[0];
+      if (S.play && S.play.gate && /^crion:(reply|state|sent|url)$/.test(e.channel)) return;   // 앞 작품 화면에서 온 것
       if (S.play && S.play.pack && /^crion:(reply|state|sent|url)$/.test(e.channel)) {
         if (e.channel === 'crion:url' && d) S.play.cur = d.url;   // 플레이팩: 이어하기 주소는 팩 세이브가 따로 기억
         if (runner) runner.onIpc(e.channel, d); else (S.play.pendingIpc = S.play.pendingIpc || []).push([e.channel, d]);
