@@ -551,3 +551,10 @@
 .uv .uv-mcard em{position:absolute;top:6px;left:6px;background:#3c8dbc;font-style:normal;font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
 .uv .uv-apps{grid-template-columns:repeat(4,1fr)}
 .uv .uv-pt::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,12,30,.55) 0%,rgba(8,12,30,0) 22%,rgba(8,12,30,0) 62%,rgba(8,12,30,.55) 100%);pointer-events:none}
+
+/* 폰 열고 닫기: 옆 손잡이 대신 오른쪽 위 단추 */
+.uv .uv-ptab{display:none!important}
+.uv .uv-tr .uv-phbtn{position:relative}
+.uv .uv-tr .uv-phbtn.on{background:rgba(230,200,131,.9);color:#1a1a2e;border-color:transparent}
+.uv .uv-tbadge{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;border-radius:10px;font-style:normal;font-size:10px;font-weight:800;padding:1px 5px}
+@media (max-width:760px){ .uv .uv-tr .uv-phbtn span.uv-phl{display:inline} .uv .uv-tr .uv-phbtn.on{display:none} }

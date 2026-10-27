@@ -257,7 +257,7 @@
       $('#uv-hud').innerHTML = `<div class="uv-when"><b>${st.week ? st.week + '주차' : '입학'}</b><span>${esc([st.day ? st.day + '요일' : '', st.time || ''].filter(Boolean).join(' '))}</span></div>
         <div class="uv-loc">${ic('pin')}${esc(st.place || '리온대학교')}</div>
         <div class="uv-chips">${grade ? `<span class="uv-grade g-${grade}">${grade}급</span>` : ''}${g != null ? `<span class="uv-chip">평점 <b>${g.toFixed(2)}</b></span>` : ''}${st.next ? `<span class="uv-chip next">📝 ${esc(st.next)}</span>` : ''}</div>`;
-      $('#uv-tr').innerHTML = `<button data-uv="lines">${ic('chat')}<span>지난 대사</span></button><button data-uv="set">${ic('gear')}<span>설정</span></button>`;
+      $('#uv-tr').innerHTML = `<button data-uv="phone" class="uv-phbtn">${ic('phone')}<span class="uv-phl">폰</span><em class="uv-tbadge" hidden></em></button><button data-uv="lines">${ic('chat')}<span>지난 대사</span></button><button data-uv="set">${ic('gear')}<span>설정</span></button>`;
     }
 
     // ---------- 알림 뜨기 (가가오톡·호감도·과제) ----------
@@ -279,6 +279,9 @@
       const n = unreadKakao() + unreadRiv();
       const b = $('#uv-pbadge');
       b.hidden = !n || R.phone === 'open'; b.textContent = n > 99 ? '99+' : n;
+      const tb = el.querySelector('.uv-tbadge'), pb = el.querySelector('.uv-phbtn');
+      if (tb) { tb.hidden = !n || R.phone === 'open'; tb.textContent = n > 99 ? '99+' : n; }
+      if (pb) { pb.classList.toggle('on', R.phone === 'open'); pb.querySelector('.uv-phl').textContent = R.phone === 'open' ? '폰 접기' : '폰'; }
     }
     function clockText() {
       const st = st0();
@@ -342,7 +345,7 @@
         let lastWho = null;
         return `<div class="uv-app kakao">${appHead(esc(room), `<span class="uv-n">${group ? '단톡' : '1:1'}</span>`, 'kk')}
           <div class="uv-kmsgs" data-sk="k-${esc(room)}" data-end="1">${ms.map(m => {
-            const mine = m.me;
+            const mine = m.me || (m.who && m.who === me());
             const showWho = !mine && m.who && m.who !== lastWho; lastWho = mine ? '__me' : m.who;
             const f = m.who ? face(m.who) : '';
             return `<div class="uv-km ${mine ? 'me' : ''}">${!mine ? `<i class="uv-kav">${showWho && f ? `<img src="${esc(f)}" alt="">` : ''}</i>` : ''}<div>${showWho ? `<b>${esc(m.who)}</b>` : ''}<p>${esc(m.t)}</p></div></div>`;
@@ -591,7 +594,7 @@
     // ---------- 응답 처리 ----------
     function handle(segs) {
       if (R.sm) R.sm.done = true;
-      const P = U.parse(segs, roster, data);
+      const P = U.parse(segs, roster, data, { me: me() });
       const ev = U.absorb(M, P, data);
       P.beats.forEach(b => { if (b.text) M.lines.push({ w: (M.status && M.status.week) || 0, who: b.kind === 'say' ? b.who : '', t: b.text, sys: b.kind === 'sys' }); });
       save();

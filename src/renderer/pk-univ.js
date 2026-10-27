@@ -171,7 +171,12 @@
 
   // ---------- 해석 ----------
   // segs: [{t:'text', s, code}, {t:'img', src, w, h, alt}] 또는 글 하나
-  function parse(segs, roster, data) {
+  // opts.me = 플레이어 이름 (가가오톡에서 내가 보낸 말을 오른쪽에)
+  function parse(segs, roster, data, opts) {
+    opts = opts || {};
+    const isMe = (n) => !!n && (n === '나' || n === '{user}' || (opts.me && n.replace(/\s/g, '') === String(opts.me).replace(/\s/g, '')));
+    // 이야기 묘사 줄 (가가오톡 말풍선으로 잘못 넣지 않게): '~다.' 로 끝나는 긴 문장
+    const isNarr = (r) => (r.length >= 22 && /[다요죠]\.[”"']?\s*$/.test(r) && !/[ㅋㅎㅠㅜ]{2}/.test(r)) || r.length > 70;
     if (typeof segs === 'string') segs = [{ t: 'text', s: segs }];
     roster = roster || new Roster({});
     const lines = [];
@@ -213,13 +218,15 @@
       if (drop.has(i) || !isText(i)) continue;
       const s = stripMd(txt(i));
       const inl = kakaoInline(s, roster);
-      if (inl) { kakao.push(inl); drop.add(i); continue; }
+      if (inl && inl.t) { if (isMe(inl.who)) { inl.me = true; } kakao.push(inl); drop.add(i); continue; }
       const head = /GAGAOTALK/i.test(s) || /^가가오톡\s*(블록|화면)?\s*[:：]?$/.test(s);
       const roomLine = /^\[([^\]]*(단톡방|톡방|채팅방|대화방))\]$/.test(s);
-      if (!head && !roomLine) continue;
+      if (!head && !roomLine && !inl) continue;
       drop.add(i);
-      let room = roomLine ? s.slice(1, -1) : '';
-      let who = '';
+      // [가가오톡 | 차예은] 만 있는 줄 = 그 사람과의 1:1 대화가 아래로 이어짐
+      let room = inl ? inl.room : roomLine ? s.slice(1, -1) : '';
+      let who = inl && inl.who && !isMe(inl.who) ? inl.who : '';
+      let narrRun = 0;
       let j = i + 1, blank = 0;
       for (; j < lines.length; j++) {
         if (!isText(j) || drop.has(j)) break;
@@ -229,12 +236,16 @@
         blank = 0;
         const rm = r.match(/^\[([^\]]+)\]$/);
         if (rm && !room) { room = rm[1]; drop.add(j); continue; }
+        const inl2 = kakaoInline(r, roster);
+        if (inl2) { drop.add(j); if (inl2.t) { inl2.me = isMe(inl2.who); kakao.push(inl2); } else { room = inl2.room; who = isMe(inl2.who) ? '' : inl2.who; } continue; }
+        if (isNarr(r)) { narrRun++; if (narrRun >= 2) break; continue; }   // 묘사 줄은 장면으로 남긴다
+        narrRun = 0;
         const p = r.match(/^👤\s*[(（]?\s*([^)）:：]{1,12}?)\s*[)）]?\s*(?:[:：]\s*(.*))?$/u);
-        if (p) { who = roster.resolve(p[1]) || p[1].trim(); drop.add(j); if (p[2]) kakao.push({ room: room || '단톡방', who, t: p[2].trim() }); continue; }
+        if (p) { who = roster.resolve(p[1]) || p[1].trim(); drop.add(j); if (p[2]) kakao.push({ room: room || '단톡방', who, t: p[2].trim(), me: isMe(who) }); continue; }
         const sp = r.match(/^([가-힣A-Za-z]{1,8})\s*[:：]\s*(.+)$/);
-        if (sp && roster.resolve(sp[1])) { kakao.push({ room: room || '단톡방', who: roster.resolve(sp[1]), t: sp[2].trim() }); drop.add(j); continue; }
+        if (sp && (roster.resolve(sp[1]) || isMe(sp[1]))) { const w2 = roster.resolve(sp[1]) || sp[1]; kakao.push({ room: room || '단톡방', who: w2, t: sp[2].trim(), me: isMe(w2) }); drop.add(j); continue; }
         if (!who) break;
-        kakao.push({ room: room || '단톡방', who, t: r });
+        kakao.push({ room: room || '단톡방', who, t: r, me: isMe(who) });
         drop.add(j);
       }
       i = j - 1;
@@ -481,7 +492,12 @@
     // 가가오톡
     (P.kakao || []).forEach(k => {
       const room = k.room || k.who || '알 수 없음';
-      (M.kakao[room] = M.kakao[room] || []).push({ who: k.who, t: k.t, at: now, w: wk });
+      const list = (M.kakao[room] = M.kakao[room] || []);
+      if (k.me) {   // 내가 보낸 말: 앱에서 미리 넣어 둔 같은 말이 있으면 다시 넣지 않는다
+        if (list.slice(-6).some(x => x.me && x.t.replace(/\s/g, '') === k.t.replace(/\s/g, ''))) return;
+        list.push({ who: k.who, t: k.t, at: now, w: wk, me: true }); M.kakao[room] = list.slice(-200); return;
+      }
+      list.push({ who: k.who, t: k.t, at: now, w: wk });
       M.kakao[room] = M.kakao[room].slice(-200);
       out.newKakao++;
     });

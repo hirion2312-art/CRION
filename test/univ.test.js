@@ -73,6 +73,14 @@ test('단톡방(GAGAOTALK 블록) · 핸드폰 블록(구형) 알림·호감도'
   assert.deepStrictEqual(P.phone.aff, [{ n: '유소희', e: '💜', v: 10 }, { n: '차예은', e: '🧡', v: 20 }]);
   assert.strictEqual(P.beats.filter(b => b.text).length, 0, P.beats.map(b => b.text).join('/'));
 });
+test('1:1 가가오톡: 머리줄만 있는 [가가오톡 | 이름] · 내 말은 오른쪽 · 묘사 줄은 장면으로', () => {
+  const P = U.parse([txt('[가가오톡 | 차예은]\n오티 끝나면 바로 연락해라\n김철수: 오티끝남\n차예은: ㅇㅋ 나도 방금 끝\n교수가 첫날이라고 봐줌 ㅋㅋ\n학식 ㄱ\n답장 속도가 거의 실시간이었다. 화면을 내려다보는 사이, 옆으로 누군가 노트를 품에 안고 지나가다 멈췄다.\n빨리 와라 줄 길어짐\n\n강다인 💬 "아까 회장님이 말한 거 다 적었어요?"')], R, data, { me: '김철수' });
+  assert.deepStrictEqual(P.kakao.map(k => [k.room, k.who, k.t, !!k.me]), [['차예은', '차예은', '오티 끝나면 바로 연락해라', false], ['차예은', '김철수', '오티끝남', true], ['차예은', '차예은', 'ㅇㅋ 나도 방금 끝', false], ['차예은', '차예은', '교수가 첫날이라고 봐줌 ㅋㅋ', false], ['차예은', '차예은', '학식 ㄱ', false], ['차예은', '차예은', '빨리 와라 줄 길어짐', false]]);
+  assert.ok(P.beats.some(b => b.kind === 'narr' && /답장 속도가/.test(b.text)), '묘사 줄은 장면으로');
+  const M = U.blank(); M.kakao['차예은'] = [{ who: '김철수', t: '오티끝남', me: true, at: 1 }];
+  U.absorb(M, P, data, 2);
+  assert.strictEqual(M.kakao['차예은'].filter(x => x.me).length, 1, '내가 보낸 말은 한 번만');
+});
 test('수강신청 블록', () => {
   const P = U.parse([txt('WREVERYTIME 블록:\n[1학년 1학기 수강가능 수업]\n총 5개 과목 이수 가능 (교양 포함)\n\n(전공)\n1. X스학개론 - 시험 있음\n2. 커플 실습 세미나 - 실습위주\n(교양)\n3. 교양 요가'), txt('📅 1학년 1학기 | 1주차 월요일 10:00 | 📍대형강의실', true)], R, data);
   assert.ok(P.enroll && P.enroll.lines.includes('1. X스학개론 - 시험 있음'));

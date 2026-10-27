@@ -88,7 +88,7 @@
   async function copy(text, msg) { try { await api.copy(text); toast(msg || '복사했어요'); } catch (e) { toast('복사하지 못했어요'); } }
   function thumbInner(w) {
     const ph = `<div class="ph" style="background:linear-gradient(150deg, ${tintOf(w.name)}, #2a1f1c)">${esc((w.name || '?').slice(0, 1))}</div>`;
-    return ph + (w.thumb ? `<img src="${esc(w.thumb)}" alt="" loading="lazy" onerror="this.remove()">` : '');
+    return ph + (w.thumb ? `<img src="${esc(w.thumb)}" alt="" loading="lazy" onerror="this.remove()" onload="if(this.naturalWidth>this.naturalHeight*1.05)this.classList.add('land')">` : '');
   }
   const workById = (id) => S.works.find(w => w.id === id) || (S.packWorks || []).find(w => w.id === id);
   const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
@@ -289,8 +289,8 @@
         ${pk ? `<span class="tag pack">${installed.has(pk.id) ? '전용 화면' : '플레이팩'}</span>` : ''}
         ${w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
       </button>
-      <div class="meta"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div>
-      <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button>
+      <div class="meta"><div class="meta-t"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div>
+        <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button></div>
     </div>`;
   }
   function gridHtml() {
