@@ -71,4 +71,5 @@ async def main():
         if errs: fails.append('errors:' + ';'.join(errs))
     print('\n결과:', '통과' if not fails else '실패 ' + str(fails))
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

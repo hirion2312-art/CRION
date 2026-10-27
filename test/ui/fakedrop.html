@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>body{font-family:sans-serif;padding:40px}#menu{position:fixed;top:120px;left:300px;background:#222;color:#fff;padding:8px;border-radius:8px}#menu div{padding:8px 14px;cursor:pointer}</style></head><body>
+<h1>아포칼립스 안전지대의 관리자</h1>
+<!-- 크랙 '새로하기 ⌄': 누르는 순간(pointerdown) 메뉴가 열리고 click 으로는 안 열린다 (Radix 드롭다운과 같은 방식) -->
+<button id="cont">이어하기</button>
+<button id="nw" aria-haspopup="menu" aria-expanded="false">새로하기 <svg width="10" height="10"></svg></button>
+<script>
+window.__log=[];
+const nw=document.getElementById('nw');
+nw.addEventListener('pointerdown',e=>{ if(e.button!==0)return; window.__log.push('open'); if(document.getElementById('menu'))return;
+  nw.setAttribute('aria-expanded','true');
+  const m=document.createElement('div'); m.id='menu'; m.setAttribute('role','menu');
+  ['기본모드','하드모드'].forEach(t=>{const d=document.createElement('div'); d.setAttribute('role','menuitem'); d.textContent=t;
+    d.addEventListener('click',()=>{window.__log.push('pick:'+t); m.remove(); nw.setAttribute('aria-expanded','false');}); m.appendChild(d);});
+  document.body.appendChild(m); });
+</script></body></html>

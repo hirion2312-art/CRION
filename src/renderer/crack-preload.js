@@ -197,10 +197,22 @@ ipcRenderer.on('crion:click', (_e, id) => {
   if (!active) return;
   pageActions(!!findInput());
   const b = actionEls[Number(id)];
-  if (b) b.click();
+  if (b) pressOrClick(b);
   send('crion:clicked', { ok: !!b });
 });
 
+// 크랙의 '새로하기 ⌄'처럼 아래로 펼쳐지는 단추는 손가락/마우스를 '누르는 순간'(pointerdown)에 열린다 — click() 만으로는 안 열림
+function pressEl(b) {
+  const r = b.getBoundingClientRect();
+  const o = { bubbles: true, cancelable: true, composed: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0, buttons: 1, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+  try { b.dispatchEvent(new PointerEvent('pointerdown', o)); } catch (e) { /* 옛 브라우저 */ }
+  b.dispatchEvent(new MouseEvent('mousedown', o));
+  o.buttons = 0;
+  try { b.dispatchEvent(new PointerEvent('pointerup', o)); } catch (e) { /* 옛 브라우저 */ }
+  b.dispatchEvent(new MouseEvent('mouseup', o));
+}
+// 사람이 한 번 누를 때와 같은 순서(누름 → 뗌 → 클릭)로 한 번. 누르는 순간 열리는 메뉴도, 클릭으로 열리는 단추도 한 번에 된다
+function pressOrClick(b) { pressEl(b); b.click(); }
 function setInput(el, text) {
   el.focus();
   if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
