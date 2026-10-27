@@ -94,8 +94,8 @@
   const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
   const packFor = (w) => PK.forWork(S.packs, w);
   // 팩 실행기: academy = 소환수 아카데미 학생 수첩 / safehouse = 안전지대 관리자(프로젝트 A 화면)
-  const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : null;
-  const packViewLabel = (pk) => pk && pk.runner === 'safehouse' ? '게임 화면' : '수첩 화면';
+  const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : pk.runner === 'univ' ? window.CrionUnivRun : null;
+  const packViewLabel = (pk) => pk && pk.runner === 'safehouse' ? '게임 화면' : pk && pk.runner === 'univ' ? '폰 화면' : '수첩 화면';
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
 
   // ---------- 성인 작품 구분: 설정에서 '성인 작품 보기'를 켠 경우에만 보인다 (만 19세 이상 본인 확인) ----------
