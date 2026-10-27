@@ -35,7 +35,7 @@ async def run(b, name, vp, mobile):
     ctx = await b.new_context(viewport=vp, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.add_init_script("window.__engineVersion='0.9.15'")
+    await page.add_init_script("window.__engineVersion='0.9.16'")
     await T.setup(page)
     async def img(route):
         k = route.request.url.split('img.test/')[1]
@@ -97,12 +97,13 @@ async def run(b, name, vp, mobile):
     await page.evaluate("window.__pk.state.waiting=false")
     await T.ipc(page, 'crion:reply', {'key': 'k2', 'segs': T2, 'done': True}); await page.wait_for_timeout(900)
     await page.screenshot(path=OUT + f'uv_{name}_9_pops.png')
-    for app in ['kakao', 'riv', 'table', 'heart', 'id', 'cal', 'album', 'meal']:
+    for app in ['kakao', 'riv', 'table', 'heart', 'id', 'cal', 'album', 'meal', 'insta', 'map']:
         await page.evaluate(f"window.__pk.openApp('{app}')"); await page.wait_for_timeout(250)
         await page.screenshot(path=OUT + f'uv_{name}_a_{app}.png')
     await page.evaluate("window.__pk.openApp('kakao', '박준호')"); await page.wait_for_timeout(200); await page.screenshot(path=OUT + f'uv_{name}_b_kroom.png')
     await page.evaluate("window.__pk.openApp('heart', '유소희')"); await page.wait_for_timeout(200); await page.screenshot(path=OUT + f'uv_{name}_b_heart.png')
     await page.evaluate("window.__pk.openApp('table', 'enroll')"); await page.wait_for_timeout(200); await page.screenshot(path=OUT + f'uv_{name}_b_enroll.png')
+    await page.evaluate("window.__pk.openApp('insta', '유소희')"); await page.wait_for_timeout(200); await page.screenshot(path=OUT + f'uv_{name}_b_iprof.png')
     await page.evaluate("window.__pk.openApp('')"); await page.wait_for_timeout(200); await page.screenshot(path=OUT + f'uv_{name}_c_home.png')
     M = await page.evaluate("JSON.stringify({ex: window.__pk.memory.exam && window.__pk.memory.exam.grade, st: window.__pk.memory.status.week, aff: Object.keys(window.__pk.memory.aff), kk: Object.keys(window.__pk.memory.kakao), riv: window.__pk.memory.riv.length, gpa: window.__pk.memory.courses})")
     print(name, '채운 글:', filled, '| 기록:', M[:300])

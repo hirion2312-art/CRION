@@ -28,11 +28,9 @@
 .uv .uv-petals{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .uv .uv-pt{position:absolute;inset:0;opacity:0;transition:opacity .45s;pointer-events:none;overflow:hidden;background:#0b1022}
 .uv .uv-pt.on{opacity:1}
-.uv .uv-ptb{position:absolute;inset:-40px;background-size:cover;background-position:center 20%;filter:blur(28px) brightness(.55) saturate(1.15)}
-.uv .uv-pt img{position:absolute;left:50%;top:0;height:100%;width:auto;max-width:100%;object-fit:cover;object-position:top;transform:translateX(-50%) scale(1.02);transition:transform 6s ease;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.uv .uv-pt.on img{transform:translateX(-50%) scale(1)}
-.uv .uv-main.ph-open .uv-pt img{left:calc(50% - clamp(145px,13.5vw,175px))}
+.uv .uv-ptb{display:none}
+.uv .uv-pt img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center top;display:block}
+.uv .uv-pt.wide img{object-fit:cover;object-position:center 25%}
 
 /* HUD */
 .uv .uv-hud{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:6px;z-index:6;max-width:60%}
@@ -469,10 +467,7 @@
 @media (max-width:760px){
   .uv .uv-main.ph-open .uv-dlg{left:10px;right:10px;width:auto}
   .uv .uv-main.ph-open .uv-tr{right:10px}
-  .uv .uv-main.ph-open .uv-pt img{left:0}
   .uv .uv-phone.closed .uv-ptab{left:auto}
-  .uv .uv-pt img{max-width:none;width:100%;height:100%;left:0;top:0;object-fit:cover;object-position:center 15%;transform:none;-webkit-mask-image:none;mask-image:none}
-  .uv .uv-pt.on img{transform:none}
   .uv{font-size:13.5px}
   .uv .uv-phone{position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;height:min(78%,640px);padding:0 8px;transform:translateY(0);transition:transform .35s}
   .uv .uv-phone.closed{width:auto;padding:0 8px;transform:translateY(100%)}
@@ -500,3 +495,59 @@
   .uv .uv-xgbox{grid-template-columns:86px 1fr}.uv .uv-xgc{height:86px}.uv .uv-xgc b{font-size:40px}
   .uv .uv-xsheet{padding:24px 16px 20px}.uv .uv-xsheet h2{font-size:24px}.uv .uv-xpass{right:10px;top:84px;width:64px;height:64px;font-size:22px}
 }
+
+/* 리온스타그램 */
+.uv .uv-app.insta,.uv .uv-app.insta .uv-list{background:#fff}
+.uv .uv-ahead.ig{background:#fff}
+.uv .uv-ilogo{font-weight:800;font-style:italic;letter-spacing:-.02em;font-size:17px;background:linear-gradient(45deg,#f9a03f,#e1306c 55%,#833ab4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.uv .uv-stories{display:flex;gap:10px;overflow-x:auto;padding:10px 12px;border-bottom:1px solid #efefef;scrollbar-width:none}
+.uv .uv-stories button{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;width:58px}
+.uv .uv-stories small{font-size:10px;color:#333;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uv .uv-iav{width:30px;height:30px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#eee;color:#aaa;font-weight:800;flex:none}
+.uv .uv-stories .uv-iav{width:52px;height:52px}
+.uv .uv-iav.ring{box-shadow:0 0 0 2px #fff,0 0 0 4px #e1306c}
+.uv .uv-iav.off{opacity:.5}
+.uv .uv-iav img{width:100%;height:100%;object-fit:cover;object-position:top}
+.uv .uv-iav.big{width:72px;height:72px}
+.uv .uv-ipost{border-bottom:1px solid #efefef;padding-bottom:8px}
+.uv .uv-ihead{display:flex;align-items:center;gap:8px;padding:8px 12px;width:100%;text-align:left}
+.uv .uv-ihead b{font-size:12.5px;flex:1}.uv .uv-ihead small{font-size:10.5px;color:#8e8e8e}
+.uv .uv-iimg{display:block;width:100%;aspect-ratio:4/3;background:#f2f2f2}
+.uv .uv-iimg img{width:100%;height:100%;object-fit:cover;display:block}
+.uv .uv-iact{display:flex;gap:12px;padding:6px 12px 2px;font-size:20px}
+.uv .uv-iact button{font-size:20px;line-height:1;color:#262626}.uv .uv-iact button.on{color:#ed4956}
+.uv .uv-icap{padding:0 12px;font-size:12.5px;color:#262626}
+.uv .uv-icap > b{font-size:12px}.uv .uv-icap p{margin:2px 0 0}.uv .uv-icap p b{margin-right:4px}
+.uv .uv-iprof{display:flex;align-items:center;gap:16px;padding:14px 14px 6px}
+.uv .uv-istat{flex:1;display:flex;justify-content:space-around;text-align:center;font-size:11px;color:#555}
+.uv .uv-istat b{display:block;font-size:15px;color:#111}
+.uv .uv-ibio{padding:0 14px 8px;display:flex;flex-direction:column;font-size:12.5px}
+.uv .uv-row2.pad{padding:0 12px 10px}
+.uv .uv-igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.uv .uv-igrid button{aspect-ratio:1;background:#f2f2f2;overflow:hidden}
+.uv .uv-igrid img{width:100%;height:100%;object-fit:cover}
+.uv .uv-pop i.ig{width:22px;height:22px;border-radius:7px;background:linear-gradient(45deg,#f9a03f,#e1306c 55%,#833ab4);color:#fff}
+
+/* 추억 앨범 */
+.uv .uv-atabs{flex:none;display:flex;gap:4px;padding:6px 10px;background:#fff;border-bottom:1px solid var(--pline)}
+.uv .uv-atabs button{flex:1;padding:6px;border-radius:9px;font-size:12px;font-weight:700;color:var(--psub)}
+.uv .uv-atabs button.on{background:#7b6ad8;color:#fff}
+.uv .uv-asec{padding:8px 10px 2px}
+.uv .uv-asec > b{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}.uv .uv-asec > b small{color:var(--psub);font-weight:600}
+.uv .uv-agrid2{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 0 6px}
+.uv .uv-acell{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:#e6e8ef;display:grid;place-items:center;color:#9aa1b8}
+.uv .uv-acell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.uv .uv-acell small{position:absolute;left:4px;bottom:3px;font-size:9.5px;color:#fff;text-shadow:0 1px 3px #000;font-weight:700}
+.uv .uv-acell.lock small{color:#8a90a6;text-shadow:none}
+
+/* 캠퍼스맵 */
+.uv .uv-ahead.mp{background:#e4f1f8}
+.uv .uv-mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.uv .uv-mcard{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/10;text-align:left;color:#fff;background:#223}
+.uv .uv-mcard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.uv .uv-mcard span{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 6px;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;flex-direction:column}
+.uv .uv-mcard b{font-size:12.5px}.uv .uv-mcard small{font-size:9.5px;opacity:.85;line-height:1.3}
+.uv .uv-mcard.on{box-shadow:0 0 0 3px #3c8dbc}
+.uv .uv-mcard em{position:absolute;top:6px;left:6px;background:#3c8dbc;font-style:normal;font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
+.uv .uv-apps{grid-template-columns:repeat(4,1fr)}
+.uv .uv-pt::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,12,30,.55) 0%,rgba(8,12,30,0) 22%,rgba(8,12,30,0) 62%,rgba(8,12,30,.55) 100%);pointer-events:none}

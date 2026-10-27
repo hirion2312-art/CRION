@@ -23,12 +23,14 @@
     meal: '<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M16 21V3c-2 1.5-3 4-3 7h3"/>',
     back: '<path d="M15 5l-7 7 7 7"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', chat: '<path d="M4 5h16v11H9l-5 4z"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
     phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>', pin: '<path d="M12 21s6-5.6 6-10.2A6 6 0 0 0 6 10.8C6 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/>',
-    send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>'
+    send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>', insta: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9"/>',
+    map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>', lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>'
   };
   const ic = (k) => `<svg class="ic" viewBox="0 0 24 24">${ICON[k] || ''}</svg>`;
   const APPS = [
     ['kakao', '가가오톡', '#fee500', '#3b1e1e'], ['riv', '뤼브리타임', '#c62917', '#fff'], ['table', '시간표', '#12306b', '#e6c883'], ['heart', '인연', '#f3a1b9', '#fff'],
-    ['id', '학생증', '#1d2a55', '#e6c883'], ['cal', '학사일정', '#2f7a63', '#fff'], ['album', '앨범', '#7b6ad8', '#fff'], ['meal', '학식', '#f08a4b', '#fff']
+    ['insta', '리온스타', 'linear-gradient(45deg,#f9a03f,#e1306c 55%,#833ab4)', '#fff'], ['map', '캠퍼스맵', '#3c8dbc', '#fff'], ['album', '추억', '#7b6ad8', '#fff'], ['id', '학생증', '#1d2a55', '#e6c883'],
+    ['cal', '학사일정', '#2f7a63', '#fff'], ['meal', '학식', '#f08a4b', '#fff']
   ];
 
   function start(o) {
@@ -41,7 +43,7 @@
     const res = (p) => !p ? '' : files.has(p) ? p : files.has('assets/' + p) ? 'assets/' + p : '';
     const url = (p) => { const r = res(p); return r ? files.url(r) : ''; };
     const BG = (k) => url(`assets/bg/${k}.webp`);
-    const face = (n) => (M.face && M.face[n]) || (RO[n] && url(RO[n].face)) || '';
+    const face = (n) => (RO[n] && url(RO[n].face)) || '';
     const packFace = (n) => (RO[n] && url(RO[n].face)) || '';
     const { josa } = U;
 
@@ -157,7 +159,11 @@
     function setPortrait(src, who) {
       const pt = $('#uv-pt'), im = pt.querySelector('img'), bl = pt.querySelector('.uv-ptb');
       if (!src) { pt.classList.remove('on'); return; }
-      if (im.getAttribute('src') !== src) { pt.classList.remove('on'); void pt.offsetWidth; im.src = src; bl.style.backgroundImage = cssUrl(src); }
+      if (im.getAttribute('src') !== src) {
+        pt.classList.remove('on'); void pt.offsetWidth;
+        im.onload = () => { pt.classList.toggle('wide', im.naturalWidth / Math.max(1, im.naturalHeight) >= 1.2); };
+        im.src = src;
+      }
       pt.style.setProperty('--glow', (RO[who] && RO[who].color) || 'rgba(230,200,131,.6)');
       pt.classList.add('on');
     }
@@ -165,12 +171,66 @@
     const PW = data.placeWords || {};
     const PW_LIST = Object.entries(PW).flatMap(([k, ws]) => ws.map(w => [w, k])).sort((a, b) => b[0].length - a[0].length);
     function placeKeyOf(t) { const x = String(t || '').replace(/\s/g, ''); const hit = PW_LIST.find(([w]) => x.includes(w.replace(/\s/g, ''))); return hit ? hit[1] : ''; }
+    // 그림 고르기(글 기준): 묘사 = 그 장소 그림(이번 응답의 크랙 배경 그림 → 전에 본 그 장소 그림 → 팩 그림),
+    //  대사 = 그 사람 그림(그 대사 바로 앞의 크랙 인물 그림 → 전에 본 그 사람 그림 → 팩 그림). 한 번에 그림 하나만
+    // 그림 고르기 = 글 기준, 팩 그림만 (한 번에 한 장, 무대에 꽉 차게)
+    //  묘사·상황 설명 → 그 장소 그림 / 대사 → 그 사람의 상황 그림(평상시·기쁨·당황·분노·설렘·유혹·MT·영업중·신체검사)
+    const IMGS = data.imgs || {};
+    const keyOf = (n) => (RO[n] && RO[n].key) || n;
+    const SITU_RE = /(성행위[123]|평상시|기쁨|당황|분노|설렘|유혹|MT|영업중|신체검사)/;
+    const CUE = {
+      분노: /화를|화가|화난|짜증|버럭|노려|씩씩|언성|소리를 질|발끈|째려|미간을|이를 갈|열받|빡/,
+      당황: /당황|화들짝|어버버|말을 더듬|머뭇|얼버무|허둥|눈이 커|움찔|어, 어|아, 아니|아니 그게|뭐, 뭐|깜짝/,
+      설렘: /두근|설레|볼이 붉|볼을 붉|귀가 빨개|귀까지|얼굴이 빨개|수줍|시선을 피|심장|떨리는 목소리|붉어/,
+      기쁨: /웃음|웃으|웃었|웃는|활짝|ㅋㅋ|하하|헤헤|신나|기뻐|기쁜|좋아라|환하게|미소/,
+      유혹: /속삭|입술|귓가|야릇|유혹|몸을 기울|바짝 다가|숨결|끈적|은근히 다가/
+    };
+    function situOf(b, ctx) {
+      const im = IMGS[keyOf(b.who)];
+      if (!im) return '';
+      const tagged = (b.imgs || []).map(x => (x.alt || '') + ' ' + safeDecode(x.src || '')).join(' ').match(SITU_RE);
+      if (tagged && im[tagged[1]]) return tagged[1];
+      const st = st0(), place = (st.place || '') + ' ' + ctx;
+      const t = [ctx, b.act, b.text].join(' ');
+      if (im.MT && /MT|엠티|펜션|온천/.test(place)) return 'MT';
+      if (im.영업중 && /밤결|술집|가게|영업|주문|안주|잔을/.test(place + ' ' + t)) return '영업중';
+      if (im.신체검사 && /신체검사|검사실|보건소|측정/.test(place + ' ' + t)) return '신체검사';
+      const a = M.aff[b.who];
+      const order = ['분노', '당황', '설렘', '유혹', '기쁨'];
+      for (const k of order) {
+        if (!im[k] || !CUE[k].test(t)) continue;
+        if (k === '유혹' && !(a && a.e === '❤️' && a.v >= 30)) continue;   // 메인 규칙: 유혹은 ❤️30 이상
+        return k;
+      }
+      return '평상시';
+    }
+    const safeDecode = (x) => { try { return decodeURIComponent(x); } catch (e) { return x; } };
+    function sceneTag(b) {
+      // 크랙 그림 이름(alt·주소)에 '이름_성행위1' 같은 표시가 있으면 그 장면 그림
+      for (const x of b.imgs || []) {
+        const t = (x.alt || '') + ' ' + safeDecode(x.src || '');
+        const m = t.match(/([가-힣]{2,4})[_:\s-]+(성행위[123]|MT|유혹)/);
+        if (m && IMGS[m[1]] && IMGS[m[1]][m[2]]) return { who: m[1], situ: m[2] };
+      }
+      return null;
+    }
     function assignPlaces(beats, st) {
       let cur = placeKeyOf(st && st.place) || R.placeK || 'gate';
+      let ctx = '';
       beats.forEach(b => {
         if (b.kind !== 'say') { const k = placeKeyOf(b.text); if (k) cur = k; }
         b.place = cur;
-        b.face = b.kind === 'say' && b.known ? packFace(b.who) : '';
+        b.bgSrc = BG(cur);
+        b.face = ''; b.situ = '';
+        const tag = sceneTag(b);
+        if (tag) { b.face = url(IMGS[tag.who][tag.situ]); b.situ = tag.situ; b.faceKey = tag.who + '_' + tag.situ; }
+        else if (b.kind === 'say' && b.known) {
+          const si = situOf(b, ctx);
+          const im = IMGS[keyOf(b.who)];
+          if (si && im && im[si]) { b.face = url(im[si]); b.situ = si; b.faceKey = keyOf(b.who) + '_' + si; }
+          else b.face = packFace(b.who);
+        }
+        if (b.kind !== 'say') ctx = b.text || ''; else ctx = '';
       });
       R.placeK = placeKeyOf(st && st.place) || cur;
     }
@@ -247,7 +307,7 @@
           <div class="uv-lsub">${st.week ? `1학년 1학기 · ${st.week}주차` : '리온대학교 X스학과 신입생'}</div>
           ${st.next || st.nextClass ? `<div class="uv-lnext">📝 ${esc(st.next || ('다음 수업 ' + st.nextClass))}</div>` : ''}</div>
         ${notes.length ? `<div class="uv-notes">${notes.map(n => `<button class="uv-note" data-uv="app" data-k="${n.app === 'kakao' ? 'kakao' : 'riv'}"><i class="${n.app}">${ic(n.app === 'kakao' ? 'kakao' : 'riv')}</i><span><b>${n.app === 'kakao' ? '가가오톡' + (n.room ? ' · ' + esc(n.room) : '') : '뤼브리타임'}</b><em>${esc(n.title)}</em></span><small>${esc(n.ago || '')}</small></button>`).join('')}</div>` : ''}
-        <div class="uv-apps">${APPS.map(([id, nm, bg, fg]) => `<button class="uv-appi" data-uv="app" data-k="${id}"><span class="uv-aico" style="background:${bg};color:${fg}">${ic(id)}${id === 'kakao' && k ? `<em>${k}</em>` : id === 'riv' && r ? `<em>${r}</em>` : id === 'heart' && affN ? `<em class="soft">${affN}</em>` : ''}</span>${nm}</button>`).join('')}</div>
+        <div class="uv-apps">${APPS.map(([id, nm, bg, fg]) => `<button class="uv-appi" data-uv="app" data-k="${id}"><span class="uv-aico" style="background:${bg};color:${fg}">${ic(id)}${id === 'kakao' && k ? `<em>${k}</em>` : id === 'riv' && r ? `<em>${r}</em>` : id === 'insta' && M.instaNew ? `<em>${M.instaNew}</em>` : id === 'heart' && affN ? `<em class="soft">${affN}</em>` : ''}</span>${nm}</button>`).join('')}</div>
         <div class="uv-dock"><button data-uv="fill-sc" data-k="가가오톡">${ic('kakao')}<span>가가오톡 불러오기</span></button><button data-uv="fill-sc" data-k="뤼브리타임">${ic('riv')}<span>뤼브리타임 불러오기</span></button></div>
       </div>`;
     }
@@ -261,6 +321,8 @@
         case 'id': return idHtml();
         case 'cal': return calHtml();
         case 'album': return albumHtml();
+        case 'insta': return instaHtml();
+        case 'map': return mapHtml();
         case 'meal': return mealHtml();
       }
       return homeHtml();
@@ -391,11 +453,87 @@
         ${st0().next ? `<div class="uv-cnext">📝 ${esc(st0().next)}</div>` : ''}
         <div class="uv-weeks">${weeks.map(w => { const es = ev.filter(e => e[0] === w); const d = U.weekDate(w, '월', data); return `<div class="uv-wk ${w === wk ? 'on' : w < wk ? 'past' : ''}"><b>${w}주</b><small>${d.getMonth() + 1}/${d.getDate()}</small><span>${es.map(e => `<em class="k-${e[2]}">${esc(e[1])}</em>`).join('') || ''}</span></div>`; }).join('')}</div></div></div>`;
     }
-    // ── 앨범
+    // ── 본 그림 기록 (추억 앨범 · 리온스타 게시물이 여기서 열린다)
+    function seeImg(k, who) {
+      M.seen = M.seen || {};
+      if (M.seen[k]) return;
+      M.seen[k] = { w: (st0().week) || 0, at: Date.now() };
+      const [n, si] = k.split('_');
+      const full = roster.resolve(n) || who;
+      const ins = (data.insta || {})[full];
+      if (ins && ins.cap && ins.cap[si] && !/^성행위/.test(si)) {
+        M.instaNew = (M.instaNew || 0) + 1;
+        pop(`<i class="ig">${ic('insta')}</i><b>${esc(ins.id)}</b><span>새 게시물을 올렸어요</span>`, 'insta');
+      }
+      save(); badge();
+    }
+    const PLACE_NAME = Object.fromEntries((data.places || []).map(p => [p[0], p[1]]));
+    // ── 추억 앨범: 인물별 그림 모음(본 것만 열림) · 장소 · 19
     function albumHtml() {
-      const al = (M.album || []).slice().reverse();
-      return `<div class="uv-app album">${appHead('앨범', `<span class="uv-n">${al.length}</span>`, 'al')}<div class="uv-list" data-sk="al">
-        ${al.length ? `<div class="uv-agrid">${al.map((a, i) => `<button data-uv="aview" data-k="${al.length - 1 - i}" class="${a.kind === 'bg' ? 'wide' : ''}"><img src="${esc(a.src)}" alt="" loading="lazy">${a.who ? `<small>${esc(a.who)}</small>` : ''}</button>`).join('')}</div>` : '<div class="uv-empty">크랙 응답에 나온 그림이 여기에 모여요.</div>'}</div></div>`;
+      M.seen = M.seen || {};
+      const tab = R.albTab || 'people';
+      const tabs = `<div class="uv-atabs">${[['people', '인물'], ['place', '장소'], ['x', '19']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-uv="atab" data-k="${k}">${l}</button>`).join('')}</div>`;
+      let body = '';
+      const cell = (k, src, label, open) => open ? `<button class="uv-acell" data-uv="aview" data-k="${esc(k)}"><img src="${esc(src)}" alt="" loading="lazy"><small>${esc(label)}</small></button>` : `<span class="uv-acell lock">${ic('lock')}<small>${esc(label)}</small></span>`;
+      if (tab === 'place') body = `<div class="uv-agrid2">${(data.places || []).map(p => cell('bg:' + p[0], BG(p[0]), p[1], true)).join('')}</div>`;
+      else {
+        const ppl = Object.keys(IMGS).filter(n => Object.keys(IMGS[n]).some(si => (tab === 'x') === /^성행위/.test(si)));
+        body = ppl.map(n => {
+          const sis = Object.keys(IMGS[n]).filter(si => (tab === 'x') === /^성행위/.test(si));
+          const got = sis.filter(si => M.seen[n + '_' + si]).length;
+          const full = roster.resolve(n) || n;
+          return `<div class="uv-asec"><b>${esc(full)}<small>${got}/${sis.length}</small></b><div class="uv-agrid2">${sis.map(si => cell(n + '_' + si, url(IMGS[n][si]), si.replace('성행위', '장면 '), !!M.seen[n + '_' + si])).join('')}</div></div>`;
+        }).join('');
+        if (tab === 'x') body = '<p class="uv-dim" style="padding:8px 12px 0">크랙 응답 그림에 장면 표시가 있을 때만 열려요.</p>' + body;
+      }
+      const total = Object.values(IMGS).reduce((a, m) => a + Object.keys(m).length, 0), seenN = Object.keys(M.seen).length;
+      return `<div class="uv-app album">${appHead('추억', `<span class="uv-n">${seenN}/${total}</span>`, 'al')}${tabs}<div class="uv-list" data-sk="al-${tab}">${body}</div></div>`;
+    }
+    // ── 리온스타그램
+    const likeN = (k) => { let h = 0; for (const c of k) h = (h * 31 + c.charCodeAt(0)) | 0; return 80 + Math.abs(h) % 900; };
+    function instaPosts(onlyWho) {
+      M.seen = M.seen || {};
+      const out = [];
+      for (const [k, v] of Object.entries(M.seen)) {
+        const [n, si] = k.split('_');
+        const full = roster.resolve(n) || n;
+        const ins = (data.insta || {})[full];
+        if (!ins || !ins.cap || !ins.cap[si] || /^성행위/.test(si)) continue;
+        if (onlyWho && full !== onlyWho) continue;
+        out.push({ k, who: full, n, si, ins, at: v.at, w: v.w });
+      }
+      return out.sort((a, b) => b.at - a.at);
+    }
+    function instaHtml() {
+      M.instaNew = 0; save();
+      const ins = data.insta || {};
+      if (R.sub) {
+        const who = R.sub, I = ins[who] || {}, ps = instaPosts(who), a = M.aff[who];
+        const fol = 300 + likeN(who) * 3;
+        return `<div class="uv-app insta">${appHead(esc(I.id || who), '', 'ig')}<div class="uv-list" data-sk="ig-${esc(who)}">
+          <div class="uv-iprof"><span class="uv-iav big ${a ? 'ring' : ''}">${face(who) ? `<img src="${esc(face(who))}" alt="">` : ''}</span>
+            <div class="uv-istat"><span><b>${ps.length}</b>게시물</span><span><b>${fol.toLocaleString()}</b>팔로워</span><span><b>${(120 + likeN(who) % 300)}</b>팔로잉</span></div></div>
+          <div class="uv-ibio"><b>${esc(who)}</b><span>${esc(I.bio || '')}</span></div>
+          <div class="uv-row2 pad"><button class="uv-btn primary" data-uv="xfill" data-k="${esc(`리온스타그램에서 ${who}의 계정을 팔로우한다.`)}">팔로우</button><button class="uv-btn" data-uv="idm" data-k="${esc(who)}">메시지</button></div>
+          <div class="uv-igrid">${ps.length ? ps.map(p => `<button data-uv="aview" data-k="${esc(p.k)}"><img src="${esc(url(IMGS[p.n][p.si]))}" alt="" loading="lazy"></button>`).join('') : '<div class="uv-empty" style="grid-column:1/-1">아직 게시물이 없어요.<br>함께한 장면이 생기면 올라와요.</div>'}</div></div></div>`;
+      }
+      const met = Object.keys(ins).filter(n => M.met[n] || M.aff[n]);
+      const posts = instaPosts();
+      return `<div class="uv-app insta">${appHead('<span class="uv-ilogo">Rionstagram</span>', '', 'ig')}<div class="uv-list" data-sk="ig">
+        <div class="uv-stories">${Object.keys(ins).map(n => { const on = met.includes(n); return `<button data-uv="iprof" data-k="${esc(n)}" ${on ? '' : 'disabled'}><span class="uv-iav ${on ? 'ring' : 'off'}">${on && face(n) ? `<img src="${esc(face(n))}" alt="">` : '?'}</span><small>${on ? esc(ins[n].id) : '???'}</small></button>`; }).join('')}</div>
+        ${posts.length ? posts.map(p => `<article class="uv-ipost"><button class="uv-ihead" data-uv="iprof" data-k="${esc(p.who)}"><span class="uv-iav">${face(p.who) ? `<img src="${esc(face(p.who))}" alt="">` : ''}</span><b>${esc(p.ins.id)}</b><small>${p.w ? p.w + '주차' : ''}</small></button>
+            <button class="uv-iimg" data-uv="aview" data-k="${esc(p.k)}"><img src="${esc(url(IMGS[p.n][p.si]))}" alt="" loading="lazy"></button>
+            <div class="uv-iact"><button data-uv="ilike" data-k="${esc(p.k)}" class="${(M.likes || {})[p.k] ? 'on' : ''}">${(M.likes || {})[p.k] ? '♥' : '♡'}</button><button data-uv="idm" data-k="${esc(p.who)}">${ic('send')}</button></div>
+            <div class="uv-icap"><b>좋아요 ${(likeN(p.k) + ((M.likes || {})[p.k] ? 1 : 0)).toLocaleString()}개</b><p><b>${esc(p.ins.id)}</b> ${esc(p.ins.cap[p.si])}</p></div></article>`).join('')
+          : '<div class="uv-empty">아직 새 게시물이 없어요.<br>사람들과 함께한 장면이 게시물로 올라와요.</div>'}</div>
+        ${R.idm ? `<div class="uv-kcomp"><input id="uv-dmin" placeholder="${esc(R.idm)}에게 DM (입력칸에 채워 줘요)" autocomplete="off"><button data-uv="dmfill" aria-label="채우기">${ic('send')}</button></div>` : ''}</div>`;
+    }
+    // ── 캠퍼스맵
+    function mapHtml() {
+      const cur = placeKeyOf(st0().place) || R.placeK;
+      return `<div class="uv-app map">${appHead('캠퍼스맵', '', 'mp')}<div class="uv-list pad" data-sk="map">
+        <p class="uv-dim">가고 싶은 곳을 누르면 입력칸에 채워 줘요.</p>
+        <div class="uv-mgrid">${(data.places || []).map(p => `<button class="uv-mcard ${p[0] === cur ? 'on' : ''}" data-uv="mgo" data-k="${esc(p[1])}"><img src="${esc(BG(p[0]))}" alt="" loading="lazy"><span><b>${esc(p[1])}</b><small>${esc(p[2])}</small></span>${p[0] === cur ? '<em>지금 여기</em>' : ''}</button>`).join('')}</div></div></div>`;
     }
     // ── 학식
     function mealHtml() {
@@ -426,8 +564,9 @@
       const d = $('#uv-dlg');
       const b = R.beats[i];
       if (!b) { d.className = 'uv-dlg k-end'; d.innerHTML = `<div class="uv-dline uv-endq">${esc(endPhrase())}</div>`; return; }
-      if (b.place) setBg(BG(b.place));
+      if (b.place) setBg(b.bgSrc || BG(b.place));
       if (b.face) setPortrait(b.face, b.who); else setPortrait('');
+      if (b.faceKey) seeImg(b.faceKey, b.who);
       const last = i >= R.beats.length - 1;
       if (b.kind === 'title') {
         d.className = 'uv-dlg k-title';
@@ -491,9 +630,9 @@
     }
     function cineShow() {
       const C = R.cine, p = C.pages[C.i], c = $('#uv-cine');
-      const bg = p.face || BG(p.place || 'gate');
+      const bg = p.bgSrc || BG(p.place || 'gate');
       c.querySelector('.uv-cbg i').style.backgroundImage = cssUrl(bg);
-      setBg(BG(p.place || 'gate'));
+      setBg(bg);
       const box = c.querySelector('.uv-cin');
       if (p.kind === 'title') { box.innerHTML = `<div class="uv-ctitle"><small>EPISODE. ${p.ep}</small><b>${esc(p.text)}</b></div>`; R.typing = null; c.querySelector('.uv-chint').style.opacity = 1; }
       else {
@@ -860,10 +999,13 @@
           <p>입학 검사를 받아야 내 캐릭터(이름·등급·능력치)가 정해져요. 검사는 앱 안에서 3~5분, 결과서는 입력칸에 채워 드려요.</p>
           <div class="uv-btns col"><button class="uv-btn primary" data-uv="exam">입학 검사 받기</button><button class="uv-btn" data-uv="exam-paste">결과서 붙여 넣기</button><button class="uv-btn ghost" data-uv="mclose">나중에</button></div>`;
       } else if (k === 'aview') {
-        const a = (M.album || [])[arg];
-        if (!a) return;
+        const k = String(arg);
+        let src = '', cap = '';
+        if (k.startsWith('bg:')) { src = BG(k.slice(3)); cap = PLACE_NAME[k.slice(3)] || ''; }
+        else { const [n, si] = k.split('_'); if (IMGS[n] && IMGS[n][si]) { src = url(IMGS[n][si]); cap = (roster.resolve(n) || n) + ' · ' + si.replace('성행위', '장면 '); } }
+        if (!src) return;
         box.classList.add('photo');
-        box.innerHTML = `<button class="uv-x" data-uv="mclose" aria-label="닫기">${ic('x')}</button><img src="${esc(a.src)}" alt=""><div class="uv-dim">${esc([a.who, a.place, a.w ? a.w + '주차' : ''].filter(Boolean).join(' · '))}</div>`;
+        box.innerHTML = `<button class="uv-x" data-uv="mclose" aria-label="닫기">${ic('x')}</button><img src="${esc(src)}" alt=""><div class="uv-dim">${esc(cap)}</div>`;
       }
       $('#uv-modal').hidden = false;
     }
@@ -901,7 +1043,13 @@
         case 'efill': fill(enrollSentence()); toast('입력칸에 채웠어요. 보내기는 직접 눌러 주세요'); break;
         case 'xfill': fill(t.dataset.k); break;
         case 'fill-sc': { const s = (data.shortcuts || {})[t.dataset.k]; if (s) { fill(s); toast(`「${t.dataset.k} 호출」을 채웠어요. 보내기를 누르면 크랙이 ${t.dataset.k} 화면을 넣어 줘요`); } break; }
-        case 'aview': openModal('aview', Number(t.dataset.k)); break;
+        case 'aview': openModal('aview', t.dataset.k); break;
+        case 'atab': R.albTab = t.dataset.k; renderPhone(); break;
+        case 'iprof': R.app = 'insta'; R.sub = t.dataset.k; R.idm = ''; renderPhone(); break;
+        case 'ilike': M.likes = M.likes || {}; M.likes[t.dataset.k] = !M.likes[t.dataset.k]; save(); renderPhone(); break;
+        case 'idm': R.idm = t.dataset.k; renderPhone(); setTimeout(() => { const i = el.querySelector('#uv-dmin'); if (i) i.focus(); }, 30); break;
+        case 'dmfill': { const v = ((el.querySelector('#uv-dmin') || {}).value || '').trim(); if (!v) { toast('보낼 말을 적어 주세요'); break; } fill(`(리온스타그램 DM으로 ${R.idm}에게) "${v}"`); R.idm = ''; toast('입력칸에 채웠어요. 보내기는 직접 눌러 주세요'); break; }
+        case 'mgo': { const n = t.dataset.k; fill(`${n}${josa(n, '으로', '로').slice(n.length)} 간다.`); break; }
         case 'exam': exOpen(); break;
         case 'exam-paste': exOpen(); setTimeout(() => { const p = xq('[data-x=paste]'); if (p) p.click(); }, 30); break;
         case 'ex-close': exClose(); break;

@@ -985,5 +985,329 @@
    "학생회관 카페",
    "커피숍"
   ]
+ },
+ "imgs": {
+  "소희": {
+   "분노": "assets/c/sohee_angry.webp",
+   "설렘": "assets/c/sohee_flutter.webp",
+   "MT": "assets/c/sohee_mt.webp",
+   "당황": "assets/c/sohee_flus.webp",
+   "유혹": "assets/c/sohee_tempt.webp",
+   "기쁨": "assets/c/sohee_joy.webp",
+   "평상시": "assets/c/sohee_base.webp",
+   "성행위2": "assets/c/sohee_x2.webp",
+   "성행위1": "assets/c/sohee_x1.webp",
+   "성행위3": "assets/c/sohee_x3.webp"
+  },
+  "하연": {
+   "신체검사": "assets/c/hayeon_exam.webp",
+   "분노": "assets/c/hayeon_angry.webp",
+   "평상시": "assets/c/hayeon_base.webp",
+   "설렘": "assets/c/hayeon_flutter.webp",
+   "당황": "assets/c/hayeon_flus.webp",
+   "기쁨": "assets/c/hayeon_joy.webp",
+   "유혹": "assets/c/hayeon_tempt.webp",
+   "성행위1": "assets/c/hayeon_x1.webp",
+   "성행위2": "assets/c/hayeon_x2.webp",
+   "성행위3": "assets/c/hayeon_x3.webp"
+  },
+  "채원": {
+   "MT": "assets/c/chaewon_mt.webp",
+   "기쁨": "assets/c/chaewon_joy.webp",
+   "평상시": "assets/c/chaewon_base.webp",
+   "당황": "assets/c/chaewon_flus.webp",
+   "설렘": "assets/c/chaewon_flutter.webp",
+   "분노": "assets/c/chaewon_angry.webp",
+   "유혹": "assets/c/chaewon_tempt.webp",
+   "성행위1": "assets/c/chaewon_x1.webp",
+   "성행위3": "assets/c/chaewon_x3.webp",
+   "성행위2": "assets/c/chaewon_x2.webp"
+  },
+  "하루": {
+   "평상시": "assets/c/haru_base.webp",
+   "분노": "assets/c/haru_angry.webp",
+   "당황": "assets/c/haru_flus.webp",
+   "유혹": "assets/c/haru_tempt.webp",
+   "MT": "assets/c/haru_mt.webp",
+   "기쁨": "assets/c/haru_joy.webp",
+   "성행위1": "assets/c/haru_x1.webp",
+   "성행위3": "assets/c/haru_x3.webp",
+   "성행위2": "assets/c/haru_x2.webp"
+  },
+  "유라": {
+   "기쁨": "assets/c/yura_joy.webp",
+   "당황": "assets/c/yura_flus.webp",
+   "평상시": "assets/c/yura_base.webp",
+   "설렘": "assets/c/yura_flutter.webp",
+   "분노": "assets/c/yura_angry.webp",
+   "유혹": "assets/c/yura_tempt.webp",
+   "MT": "assets/c/yura_mt.webp",
+   "성행위2": "assets/c/yura_x2.webp",
+   "성행위3": "assets/c/yura_x3.webp",
+   "성행위1": "assets/c/yura_x1.webp"
+  },
+  "혜린": {
+   "영업중": "assets/c/hyerin_work.webp",
+   "당황": "assets/c/hyerin_flus.webp",
+   "설렘": "assets/c/hyerin_flutter.webp",
+   "기쁨": "assets/c/hyerin_joy.webp",
+   "분노": "assets/c/hyerin_angry.webp",
+   "평상시": "assets/c/hyerin_base.webp",
+   "유혹": "assets/c/hyerin_tempt.webp",
+   "성행위1": "assets/c/hyerin_x1.webp",
+   "성행위3": "assets/c/hyerin_x3.webp",
+   "성행위2": "assets/c/hyerin_x2.webp"
+  },
+  "예은": {
+   "유혹": "assets/c/yeeun_tempt.webp",
+   "평상시": "assets/c/yeeun_base.webp",
+   "설렘": "assets/c/yeeun_flutter.webp",
+   "기쁨": "assets/c/yeeun_joy.webp",
+   "분노": "assets/c/yeeun_angry.webp",
+   "당황": "assets/c/yeeun_flus.webp",
+   "성행위1": "assets/c/yeeun_x1.webp",
+   "성행위2": "assets/c/yeeun_x2.webp",
+   "성행위3": "assets/c/yeeun_x3.webp"
+  },
+  "다인": {
+   "분노": "assets/c/dain_angry.webp",
+   "당황": "assets/c/dain_flus.webp",
+   "유혹": "assets/c/dain_tempt.webp",
+   "MT": "assets/c/dain_mt.webp",
+   "설렘": "assets/c/dain_flutter.webp",
+   "평상시": "assets/c/dain_base.webp",
+   "기쁨": "assets/c/dain_joy.webp",
+   "성행위3": "assets/c/dain_x3.webp",
+   "성행위1": "assets/c/dain_x1.webp",
+   "성행위2": "assets/c/dain_x2.webp"
+  },
+  "노을": {
+   "평상시": "assets/c/noeul_base.webp"
+  },
+  "동철": {
+   "평상시": "assets/c/dongchul_base.webp"
+  },
+  "세라": {
+   "평상시": "assets/c/sera_base.webp"
+  },
+  "우진": {
+   "평상시": "assets/c/woojin_base.webp"
+  },
+  "민지": {
+   "평상시": "assets/c/minji_base.webp"
+  },
+  "담당관": {
+   "평상시": "assets/c/gahee_base.webp"
+  },
+  "태식": {
+   "평상시": "assets/c/taesik_base.webp"
+  },
+  "지호": {
+   "평상시": "assets/c/jiho_base.webp"
+  },
+  "학식이모": {
+   "평상시": "assets/c/aunt_base.webp"
+  },
+  "준호": {
+   "평상시": "assets/c/junho_base.webp"
+  },
+  "강혁": {
+   "평상시": "assets/c/kanghyuk_base.webp"
+  },
+  "행정실": {
+   "평상시": "assets/c/jina_base.webp"
+  },
+  "태오": {
+   "평상시": "assets/c/taeo_base.webp"
+  },
+  "학과장": {
+   "평상시": "assets/c/dean_base.webp"
+  }
+ },
+ "places": [
+  [
+   "gate",
+   "정문",
+   "리온대학교 정문. 큰 돌 표지석이 서 있다."
+  ],
+  [
+   "plaza",
+   "본관광장",
+   "시계탑이 있는 본관 앞 광장."
+  ],
+  [
+   "cherry",
+   "벚꽃길",
+   "정문에서 본관으로 이어지는 벚꽃길."
+  ],
+  [
+   "hall",
+   "복도",
+   "X스학관 복도. 강의실들이 줄지어 있다."
+  ],
+  [
+   "board",
+   "등급게시판",
+   "등급과 공지가 붙는 게시판 앞."
+  ],
+  [
+   "clubroom",
+   "과방",
+   "소파와 칠판이 있는 X스학과 과방."
+  ],
+  [
+   "lab",
+   "교수연구실",
+   "교수님들의 연구실."
+  ],
+  [
+   "assist",
+   "조교실",
+   "조교들이 채점하는 방."
+  ],
+  [
+   "cafeteria",
+   "학식",
+   "제1학생식당."
+  ],
+  [
+   "cafe",
+   "카페",
+   "학생회관 카페."
+  ],
+  [
+   "gym",
+   "체육관",
+   "체력 수업과 요가 수업이 열리는 곳."
+  ],
+  [
+   "street",
+   "대학가거리",
+   "술집 「밤결」이 있는 학교 앞 거리."
+  ],
+  [
+   "room",
+   "자취방",
+   "학교 앞 원룸."
+  ],
+  [
+   "autumn",
+   "캠퍼스가을",
+   "은행잎이 깔린 캠퍼스."
+  ],
+  [
+   "rain",
+   "캠퍼스비",
+   "비 오는 캠퍼스."
+  ],
+  [
+   "mt",
+   "MT방",
+   "학과 MT 숙소."
+  ]
+ ],
+ "insta": {
+  "유소희": {
+   "id": "sohee_ace",
+   "bio": "X스학과 2학년 · 과방 소파 지박령 ☁️",
+   "cap": {
+    "평상시": "과방 소파는 내 거야~",
+    "기쁨": "오늘 과제 A+ 또 받았지롱",
+    "당황": "아 이건 찍지 말랬잖아…",
+    "분노": "누가 내 커피 마셨어",
+    "설렘": "요즘 신입생들 귀엽네~",
+    "유혹": "궁금하면 과방 와~",
+    "MT": "MT 최고 🍻"
+   }
+  },
+  "강다인": {
+   "id": "dain_notes",
+   "bio": "1학년 · 필기는 생명 ✍️",
+   "cap": {
+    "평상시": "예습 끝. 오늘도 1등으로 질문할 거야",
+    "기쁨": "퀴즈 만점!! 자랑 아님",
+    "당황": "아 사진 이상하게 나왔잖아 지워",
+    "분노": "준호 이번 주도 고백함. 차단각",
+    "설렘": "…아무것도 아니야",
+    "유혹": "이건 공부용 사진이야 진짜로",
+    "MT": "첫 MT 기념"
+   }
+  },
+  "조유라": {
+   "id": "prof.yura",
+   "bio": "X스학개론 · 손수건 상시 휴대",
+   "cap": {
+    "평상시": "오늘 시연 수업 준비 완료.",
+    "기쁨": "성실한 학생은 언제나 반가워요.",
+    "당황": "땀이… 손수건 어디 뒀더라.",
+    "분노": "대충 한 과제는 바로 티가 납니다.",
+    "설렘": "오랜만에 기대되는 학생이 있네요.",
+    "유혹": "수업 끝나고 연구실로.",
+    "MT": "학생들 MT 따라왔어요."
+   }
+  },
+  "백하연": {
+   "id": "hayeon_ta",
+   "bio": "대학원 조교 · 출석부 낙서 담당",
+   "cap": {
+    "평상시": "오늘도 커피 세 잔째…",
+    "기쁨": "채점 끝~ 이번엔 사심 없음(아마도)",
+    "당황": "어… 이건 출석부에 안 적을게요",
+    "분노": "대리출석 걸리면 바로 F예요",
+    "설렘": "요즘 조교실이 조금 덜 심심해요",
+    "유혹": "채점표, 보고 싶어요?",
+    "신체검사": "신체검사 보조 중"
+   }
+  },
+  "한하루": {
+   "id": "haru_.__",
+   "bio": "2학년 전과생 · 사진 찍히는 거 싫어해요",
+   "cap": {
+    "평상시": "오늘 날씨 좋네요…",
+    "기쁨": "다인이랑 떡볶이 먹었어요",
+    "당황": "누가 이 사진 올렸어요?!",
+    "분노": "놀리지 마세요…",
+    "유혹": "용기 내서… 한 장만",
+    "MT": "온천이라니… 들어가도 되는 거죠?"
+   }
+  },
+  "서혜린": {
+   "id": "bamgyeol_rin",
+   "bio": "술집 「밤결」 사장 · 외상은 안 돼요",
+   "cap": {
+    "평상시": "오늘도 밤결 영업합니다 🍶",
+    "기쁨": "단골들 덕분에 매진!",
+    "당황": "유라야 그 사진 지워",
+    "분노": "외상 장부 보고 있다 얘들아",
+    "설렘": "마감 후에 남는 손님이 있네",
+    "유혹": "마감까지 남아 있을래?",
+    "영업중": "개강총회 예약 받습니다"
+   }
+  },
+  "윤채원": {
+   "id": "chaewon.official",
+   "bio": "총학생회장 · 일정 준수",
+   "cap": {
+    "평상시": "축제 준비 회의 14:00. 지각 금지.",
+    "기쁨": "일정대로 끝났다.",
+    "당황": "…별 뜻 없다.",
+    "분노": "규정 위반 신고 접수 중.",
+    "설렘": "업무상 연락 바람.",
+    "유혹": "업무상이다.",
+    "MT": "MT 인원 점검 완료."
+   }
+  },
+  "차예은": {
+   "id": "yeeun_run",
+   "bio": "체육교육과 · 육상부 · 밥 먹고 다녀라",
+   "cap": {
+    "평상시": "아침 러닝 10km 완료 🏃‍♀️",
+    "기쁨": "100m 신기록 갱신!!",
+    "당황": "야 이거 누가 찍었냐",
+    "분노": "걔 또 밥 굶었대 진짜",
+    "설렘": "…요즘 좀 이상해",
+    "유혹": "구경하지 마라 ㅋㅋ"
+   }
+  }
  }
 }
