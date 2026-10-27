@@ -13,8 +13,9 @@ subprocess.run(['node', 'scripts/make-registry.js', 'https://reg.test/CRION/'], 
 INDEX = json.load(open(REG + 'index.json', encoding='utf-8'))
 PACK = 'hirion.safehouse'
 print('공개 목록에 있음:', any(p['id'] == PACK for p in INDEX['packs']), '/ 개발자 목록에 있음:', any(p['id'] == PACK for p in INDEX.get('devPacks', [])))
+# 공개 팩이든 개발자 전용이든 이 팩 하나만 남겨 시험 (시험은 개발자 목록 자리로 싣는다)
+INDEX['devPacks'] = [p for p in INDEX['packs'] + INDEX.get('devPacks', []) if p['id'] == PACK]
 INDEX['packs'] = []
-INDEX['devPacks'] = [p for p in INDEX['devPacks'] if p['id'] == PACK]
 for p in INDEX['devPacks']:
     p['workUrl'] = 'https://crack.wrtn.ai/detail/safehouse'
 
