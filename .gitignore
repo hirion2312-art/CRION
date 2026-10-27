@@ -5,3 +5,7 @@ keys/
 .DS_Store
 __pycache__/
 test/out/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
