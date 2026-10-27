@@ -617,3 +617,11 @@ select.field { height: 42px; }
 .bd-likebtn.on { color: #e0245e; border-color: #f7c1d1; background: #fff0f5; }
 .bd-locked { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px; border-radius: 12px; background: #f7f7f9; }
 .bd-locked .muted { flex: 1; min-width: 180px; }
+.acct-row { display: flex; gap: 8px; align-items: center; }
+.acct-row .field { flex: 1; min-width: 0; }
+.acct-chk { display: block; font-style: normal; font-size: 12px; min-height: 16px; margin-top: 3px; color: var(--muted); }
+.acct-chk.ok { color: #16a34a; } .acct-chk.bad { color: #dc2626; }
+.acct-privacy { font-size: 11.5px; line-height: 1.55; color: var(--muted); margin: 4px 0 0; }
+.acct-privacy .link { font-size: 11.5px; padding: 0; }
+.acct-agree { display: flex; gap: 7px; align-items: center; font-size: 13px; margin: 8px 0 2px; cursor: pointer; }
+#acctSet .acct-privacy { padding: 10px 0 2px; }

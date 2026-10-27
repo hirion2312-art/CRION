@@ -44,8 +44,8 @@
       const code = j && j.code;
       if (code === '23505' && /nick/.test(msg)) msg = '이미 쓰는 닉네임이에요';
       else if (code === '42501' || /row-level security/i.test(msg)) msg = '이 기능은 CRION 계정으로 로그인해야 해요';
-      else if (/Invalid login credentials/i.test(msg)) msg = '이메일이나 비밀번호가 맞지 않아요';
-      else if (/already registered|already been registered|User already/i.test(msg)) msg = '이미 가입한 이메일이에요. 로그인해 주세요';
+      else if (/Invalid login credentials/i.test(msg)) msg = '아이디나 비밀번호가 맞지 않아요';
+      else if (/already registered|already been registered|User already/i.test(msg)) msg = '이미 있는 아이디예요. 다른 아이디로 해 주세요';
       else if (/Password should be at least/i.test(msg)) msg = '비밀번호는 8자 이상으로 해 주세요';
       else if (/Email not confirmed/i.test(msg)) msg = '이메일 확인이 아직이에요 (서버 설정에서 Confirm email 을 꺼 주세요)';
       else if (/Signups not allowed|signup.*disabled/i.test(msg)) msg = '지금은 새로 가입할 수 없어요';
@@ -100,14 +100,48 @@
     catch (e) { if (e && (e.status === 400 || e.status === 401)) { this._storeUser(null); this.profile = null; } throw new Error('로그인이 끝났어요. 다시 로그인해 주세요'); }
   };
   Cloud.prototype.accountUid = function () { const u = this._loadUser(); return (u && u.uid) || null; };
-  Cloud.prototype.account = function () { const u = this._loadUser(); return u ? { uid: u.uid, email: u.email || '', nick: (this.profile && this.profile.nick) || '', banned: !!(this.profile && this.profile.banned) } : null; };
-  Cloud.prototype.signUp = async function (email, password, nick) {
+  Cloud.prototype.account = function () { const u = this._loadUser(); return u ? { uid: u.uid, email: u.email || '', login: this.loginName(u.email), isId: this.loginName(u.email) !== String(u.email || ''), nick: (this.profile && this.profile.nick) || '', banned: !!(this.profile && this.profile.banned) } : null; };
+  // 아이디 계정: 서버에는 '아이디@ID_DOMAIN'(메일이 갈 수 없는 주소)으로 저장. 이메일은 받지 않는다. 관리자는 이메일 그대로
+  Cloud.ID_DOMAIN = 'id.hirion2312-art.github.io';
+  Cloud.ID_RE = /^[a-z0-9_]{4,20}$/;
+  Cloud.prototype.idEmail = function (id) { return String(id || '').trim().toLowerCase() + '@' + Cloud.ID_DOMAIN; };
+  Cloud.prototype.loginName = function (email) { email = String(email || ''); const t = '@' + Cloud.ID_DOMAIN; return email.toLowerCase().endsWith(t) ? email.slice(0, -t.length) : email; };
+  Cloud.prototype.checkId = function (id) {
+    id = String(id || '').trim().toLowerCase();
+    if (!Cloud.ID_RE.test(id)) throw new Error('아이디는 영어 소문자·숫자·_ 로 4~20자예요');
+    return id;
+  };
+  Cloud.prototype.idAvailable = async function (id) {
+    id = this.checkId(id);
+    try { return (await this.rest('POST', 'rpc/crion_id_available', { body: { p_id: id } })) === true; }
+    catch (e) { if (e && e.status === 404) throw new Error('서버 준비가 덜 됐어요. 잠시 뒤 다시 해 주세요'); throw e; }
+  };
+  Cloud.prototype.nickAvailable = async function (nick) {
+    const n = String(nick || '').trim();
+    if (n.length < 2 || n.length > 16) throw new Error('닉네임은 2~16자로 해 주세요');
+    return (await this.rest('POST', 'rpc/crion_nick_available', this.accountUid() ? { as: 'account', body: { p_nick: n } } : { body: { p_nick: n } })) === true;
+  };
+  Cloud.prototype.changePassword = async function (pw) {
+    if (String(pw || '').length < 8) throw new Error('비밀번호는 8자 이상으로 해 주세요');
+    const u = await this._account();
+    if (!u) throw new Error('CRION 계정으로 로그인해 주세요');
+    await this._json(await this.f(this.cfg.url + '/auth/v1/user', { method: 'PUT', headers: this._h(u.access), body: JSON.stringify({ password: String(pw) }) }));
+    return true;
+  };
+  Cloud.prototype.adminSetPassword = async function (id, pw) {
+    id = this.checkId(id);
+    if (String(pw || '').length < 8) throw new Error('비밀번호는 8자 이상으로 해 주세요');
+    const ok = await this.rest('POST', 'rpc/crion_admin_set_password', { as: 'admin', body: { p_id: id, p_pw: String(pw) } });
+    if (ok !== true) throw new Error('그 아이디의 계정이 없어요');
+    return true;
+  };
+  Cloud.prototype.signUp = async function (id, password, nick) {
     if (!this.cfg) throw new Error('서버가 아직 준비되지 않았어요');
-    email = String(email || '').trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('이메일 주소를 확인해 주세요');
+    id = this.checkId(id);
     if (String(password || '').length < 8) throw new Error('비밀번호는 8자 이상으로 해 주세요');
     const n = String(nick || '').trim();
     if (n.length < 2 || n.length > 16) throw new Error('닉네임은 2~16자로 해 주세요');
+    const email = this.idEmail(id);
     const j = await this._json(await this.f(this.cfg.url + '/auth/v1/signup', { method: 'POST', headers: this._h(), body: JSON.stringify({ email, password, data: { nick: n } }) }));
     if (!j.access_token) throw new Error('가입은 됐지만 바로 로그인이 안 돼요 (서버 설정에서 Confirm email 을 꺼 주세요)');
     const s = sess(j, this.now()); s.email = email;
@@ -115,9 +149,10 @@
     try { await this.setNick(n); } catch (e) { return { ok: true, nickError: e.message }; }
     return { ok: true };
   };
-  Cloud.prototype.signIn = async function (email, password) {
+  Cloud.prototype.signIn = async function (idOrEmail, password) {
     if (!this.cfg) throw new Error('서버가 아직 준비되지 않았어요');
-    email = String(email || '').trim();
+    let email = String(idOrEmail || '').trim();
+    if (!email.includes('@')) email = this.idEmail(this.checkId(email));
     const j = await this._json(await this.f(this.cfg.url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: this._h(), body: JSON.stringify({ email, password: String(password || '') }) }));
     const s = sess(j, this.now()); s.email = email;
     this._storeUser(s);

@@ -55,7 +55,14 @@ def main():
     psql(f"insert into auth.users (id, email) values ('{A}', 'a@example.com'), ('{B}', 'b@example.com')")
     run_file(os.path.join(ROOT, 'supabase/schema.sql'))   # 회원이 생긴 뒤 다시 실행해도 관리자는 그대로
     check('관리자 자동 지정 = 이메일로 만든 첫 계정 하나', one('select string_agg(uid::text, \',\') from public.admins') == ADM)
-    check('설계도 버전 2', as_user(None, 'select public.crion_schema_version()', role='anon')[1] == '2')
+    check('설계도 버전 3', as_user(None, 'select public.crion_schema_version()', role='anon')[1] == '3')
+    D = 'id.hirion2312-art.github.io'
+    psql(f"insert into auth.users (email) values ('taken_id@{D}')")
+    psql('delete from public.admins'); run_file(os.path.join(ROOT, 'supabase/schema.sql'))
+    check('아이디 계정은 관리자로 자동 지정 안 됨 (이메일 계정만)', one('select string_agg(uid::text, \',\') from public.admins') == ADM)
+    check('아이디 중복 확인: 있는 아이디', as_user(None, "select public.crion_id_available('Taken_ID')", role='anon')[1] == 'f')
+    check('아이디 중복 확인: 새 아이디', as_user(None, "select public.crion_id_available('fresh_1')", role='anon')[1] == 't')
+    check('아이디 모양 틀리면 불가 (짧음·한글·대문자)', [as_user(None, f"select public.crion_id_available('{x}')", role='anon')[1] for x in ['abc', '한글아이디', 'Fresh_1']] == ['f', 'f', 'f'])
 
     # 익명
     ok, _ = as_user(C, "insert into public.reports (kind, title, body) values ('bug', '안 돼요', '내용')", anon=True)
@@ -81,6 +88,14 @@ def main():
     psql("delete from public.profiles where nick = 'Bobby'")
     ok, err = as_user(B, "insert into public.profiles (nick) values ('Bob')")
     check('B 닉네임', ok, err)
+    check('닉네임 중복 확인', as_user(None, "select public.crion_nick_available('ALICE'), public.crion_nick_available('새닉')", role='anon')[1] == 'f|t')
+    check('내 닉네임은 나에게 사용 가능', as_user(A, "select public.crion_nick_available('alice')")[1] == 't')
+    ok, err = as_user(A, "select public.crion_admin_set_password('taken_id', 'newpassword1')")
+    check('관리자 아니면 비밀번호 초기화 못 함', not ok, err)
+    ok, out = as_user(ADM, "select public.crion_admin_set_password('taken_id', 'newpassword1')")
+    check('관리자: 아이디 계정 임시 비밀번호', ok and out == 't' and one(f"select encrypted_password = extensions.crypt('newpassword1', encrypted_password) from auth.users where email = 'taken_id@{D}'") == 't', out)
+    ok, out = as_user(ADM, "select public.crion_admin_set_password('hirion@example.com', 'newpassword1')")
+    check('관리자 초기화는 아이디 계정만 (이메일 계정 못 건드림)', ok and out == 'f', out)
 
     ok, out = as_user(A, "insert into public.posts (title, body, nick, is_admin, pinned) values ('첫 글', '안녕', '사칭', true, false) returning id, nick, is_admin")
     pid, pnick, padm = (out.split('|') + ['', '', ''])[:3] if ok else ('', '', '')

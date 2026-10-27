@@ -108,12 +108,14 @@ test('가입: 세션 저장 + 닉네임 만들기, 다시 켜도 로그인 유�
   const s = fake(c => c.url.endsWith('/auth/v1/signup') ? R(tok(5)) : c.url.includes('/profiles') && c.method === 'GET' ? R([]) : R(null, 201));
   const ls = mem();
   const c = new Cloud(CFG, { fetch: s.f, storage: ls });
-  await assert.rejects(c.signUp('nope', 'password1', '닉'), /이메일/);
-  await assert.rejects(c.signUp('a@b.co', 'short', '닉네임'), /8자/);
-  const r = await c.signUp('a@b.co', 'password1', '하루');
+  await assert.rejects(c.signUp('a@b.co', 'password1', '하루'), /소문자/, '아이디에 이메일 모양 안 됨');
+  await assert.rejects(c.signUp('ab', 'password1', '하루'), /4~20자/);
+  await assert.rejects(c.signUp('haru_01', 'short', '닉네임'), /8자/);
+  const r = await c.signUp('Haru_01', 'password1', '하루');
   assert.ok(r.ok && !r.nickError);
   const su = s.calls.find(x => x.url.endsWith('/signup'));
-  assert.strictEqual(su.body.email, 'a@b.co');
+  assert.strictEqual(su.body.email, 'haru_01@' + Cloud.ID_DOMAIN, '서버에는 메일이 갈 수 없는 주소로');
+  assert.strictEqual(c.account().login, 'haru_01'); assert.ok(c.account().isId);
   const pr = s.calls.find(x => x.method === 'POST' && x.url.endsWith('/profiles'));
   assert.strictEqual(pr.body.nick, '하루'); assert.strictEqual(pr.h.Authorization, 'Bearer A5');
   const c2 = new Cloud(CFG, { fetch: s.f, storage: ls });
@@ -126,15 +128,34 @@ test('가입: 세션 저장 + 닉네임 만들기, 다시 켜도 로그인 유�
 test('가입했는데 이메일 확인이 켜져 있으면 안내 / 서버 오류 문구 한국어로', async () => {
   const s = fake(c => c.url.endsWith('/signup') ? R({ id: 'x', email: 'a@b.co' }) : R({ code: '23505', message: 'duplicate key value violates unique constraint "profiles_nick"' }, 409));
   const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
-  await assert.rejects(c.signUp('a@b.co', 'password1', '하루'), /Confirm email/);
+  await assert.rejects(c.signUp('haru_01', 'password1', '하루'), /Confirm email/);
   const s2 = fake(() => R({ error: 'invalid_grant', error_description: 'Invalid login credentials' }, 400));
   await assert.rejects(new Cloud(CFG, { fetch: s2.f, storage: mem() }).signIn('a@b.co', 'x'), /맞지 않아요/);
+});
+test('중복 확인 · 비밀번호 바꾸기 · 관리자 임시 비밀번호', async () => {
+  const s = fake(c => c.url.includes('crion_id_available') ? R(c.body.p_id !== 'taken') : c.url.includes('crion_nick_available') ? R(false) : c.url.includes('grant_type=password') ? R(tok(4)) : c.url.includes('crion_admin_set_password') ? R(c.body.p_id === 'haru_01') : c.url.includes('/admins') ? R([{ uid: 'u4' }]) : R([]));
+  const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
+  assert.strictEqual(await c.idAvailable('taken'), false);
+  assert.strictEqual(await c.idAvailable('fresh'), true);
+  await assert.rejects(c.idAvailable('한글'), /소문자/);
+  assert.strictEqual(await c.nickAvailable('하루'), false);
+  await c.signIn('haru_01', 'password1');
+  await c.changePassword('newpassword');
+  const pu = s.calls[s.calls.length - 1];
+  assert.ok(pu.method === 'PUT' && pu.url.endsWith('/auth/v1/user') && pu.body.password === 'newpassword' && pu.h.Authorization === 'Bearer A4');
+  await c.adminLogin('boss@b.co', 'pw');
+  assert.ok(await c.adminSetPassword('haru_01', 'temp12345'));
+  await assert.rejects(c.adminSetPassword('nobody', 'temp12345'), /없어요/);
 });
 test('기록 동기화 주소: 커서 이후만 받기 · 덮어쓰기로 올리기', async () => {
   const s = fake(c => c.url.includes('grant_type=password') ? R(tok(3)) : c.url.includes('/profiles') ? R([]) : R([]));
   const c = new Cloud(CFG, { fetch: s.f, storage: mem() });
   await assert.rejects(c.syncPull(''), /로그인/);
-  await c.signIn('a@b.co', 'password1');
+  await c.signIn('haru_01', 'password1');
+  assert.strictEqual(s.calls[0].body.email, 'haru_01@' + Cloud.ID_DOMAIN, '아이디로 로그인');
+  await c.signIn('boss@b.co', 'password1');
+  assert.strictEqual(s.calls[s.calls.length - 2 >= 0 ? s.calls.findIndex(x => x.body && x.body.email === 'boss@b.co') : 0].body.email, 'boss@b.co', '관리자는 이메일 그대로');
+  assert.ok(!c.account().isId);
   await c.syncPull('2026-10-27T10:00:00.123456+00:00');
   const g = s.calls[s.calls.length - 1];
   assert.ok(g.url.includes('sync_items?') && g.url.includes('updated_at=gt.2026-10-27T10%3A00%3A00.123456%2B00%3A00') && g.url.includes('order=updated_at.asc'));

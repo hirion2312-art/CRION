@@ -47,7 +47,9 @@ async def supa(route, req):
     u = req.url.split('.supabase.co')[1]
     if u.startswith('/auth/v1/settings'):
         return await route.fulfill(json={'external': {'anonymous_users': True, 'email': True}, 'mailer_autoconfirm': not SB['confirm'], 'disable_signup': False})
-    if u.startswith('/rest/v1/rpc/crion_schema_version'): return await route.fulfill(json=2)
+    if u.startswith('/rest/v1/rpc/crion_schema_version'): return await route.fulfill(json=3)
+    if u.startswith('/auth/v1/signup'): return await route.fulfill(json={'access_token': 'T2'})
+    if u.startswith('/rest/v1/rpc/delete_my_account'): return await route.fulfill(status=204, body='')
     if u.startswith('/auth/v1/token'): return await route.fulfill(json={'access_token': 'T'})
     if u.startswith('/rest/v1/admins'): return await route.fulfill(json=[{'uid': 'a'}])
     await route.fulfill(status=404, json={})

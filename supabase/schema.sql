@@ -1,4 +1,4 @@
--- CRION 서버 설계도 (Supabase) — v2: 계정 · 기록 동기화 · 커뮤니티 · 신고함
+-- CRION 서버 설계도 (Supabase) — v3: 아이디 계정 · 기록 동기화 · 커뮤니티 · 신고함
 -- 사용법: Supabase 프로젝트 > SQL Editor > New query 에 이 파일 전체를 붙여넣고 Run.
 -- 여러 번 실행해도 괜찮아요 (이미 있는 표·글은 그대로 두고 빠진 것만 만들어요).
 -- 순서: 관리자 계정(이메일)을 먼저 만들고 이 파일을 실행하면, 그 계정이 자동으로 관리자가 돼요.
@@ -17,10 +17,14 @@ $$;
 drop policy if exists admins_self on public.admins;
 create policy admins_self on public.admins for select to authenticated using (uid = auth.uid());
 
--- 처음 실행할 때: 관리자가 아무도 없으면, 이메일로 만든 첫 계정을 관리자로 지정
+-- 아이디 계정: 서버 안에서는 '아이디@id.hirion2312-art.github.io' 로 저장 (메일이 갈 수 없는 주소, 이메일은 받지 않음)
+create or replace function public.crion_id_domain() returns text language sql immutable as $$ select 'id.hirion2312-art.github.io'::text $$;
+
+-- 처음 실행할 때: 관리자가 아무도 없으면, 이메일로 만든 첫 계정을 관리자로 지정 (아이디 계정은 제외)
 insert into public.admins (uid)
 select id from auth.users
 where coalesce(is_anonymous, false) = false and email is not null
+  and lower(email) not like '%@' || public.crion_id_domain()
   and not exists (select 1 from public.admins)
 order by created_at
 limit 1
@@ -84,6 +88,30 @@ begin
   update public.posts set nick = '탈퇴한 사용자' where uid = auth.uid();
   update public.comments set nick = '탈퇴한 사용자' where uid = auth.uid();
   delete from auth.users where id = auth.uid();
+end $$;
+
+-- 가입 전 중복 확인 (아이디 · 닉네임). 있는지 없는지만 알려 준다
+create or replace function public.crion_id_available(p_id text) returns boolean
+language sql stable security definer set search_path = public, auth as $$
+  select p_id ~ '^[a-z0-9_]{4,20}$'
+     and not exists (select 1 from auth.users where lower(email) = lower(p_id) || '@' || public.crion_id_domain())
+$$;
+create or replace function public.crion_nick_available(p_nick text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select char_length(btrim(p_nick)) between 2 and 16
+     and not exists (select 1 from public.profiles where lower(nick) = lower(btrim(p_nick)) and uid is distinct from auth.uid())
+$$;
+-- 비밀번호를 잊은 아이디 계정: 관리자(히리온)가 임시 비밀번호로 바꿔 준다
+create or replace function public.crion_admin_set_password(p_id text, p_pw text) returns boolean
+language plpgsql security definer set search_path = public, auth, extensions as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception '관리자만 할 수 있어요'; end if;
+  if char_length(coalesce(p_pw, '')) < 8 then raise exception '비밀번호는 8자 이상'; end if;
+  update auth.users set encrypted_password = extensions.crypt(p_pw, extensions.gen_salt('bf')), updated_at = now()
+   where lower(email) = lower(btrim(p_id)) || '@' || public.crion_id_domain();
+  get diagnostics n = row_count;
+  return n > 0;
 end $$;
 
 -- ───────── 플레이 기록 동기화 (컴퓨터·폰 어디서 켜도 같은 기록) ─────────
@@ -285,7 +313,7 @@ drop policy if exists likes_del on public.post_likes;
 create policy likes_del on public.post_likes for delete to authenticated using (uid = auth.uid());
 
 -- 관리 페이지가 "설계도가 최신인지" 확인하는 표시
-create or replace function public.crion_schema_version() returns int language sql immutable as $$ select 2 $$;
+create or replace function public.crion_schema_version() returns int language sql immutable as $$ select 3 $$;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.posts, public.comments, public.profiles to anon;
@@ -293,3 +321,6 @@ grant select, insert, update, delete on public.reports, public.posts, public.com
 grant select on public.admins to authenticated;
 grant execute on function public.delete_my_account() to authenticated;
 grant execute on function public.crion_schema_version() to anon, authenticated;
+grant execute on function public.crion_id_available(text), public.crion_nick_available(text) to anon, authenticated;
+revoke execute on function public.crion_admin_set_password(text, text) from public, anon;
+grant execute on function public.crion_admin_set_password(text, text) to authenticated;

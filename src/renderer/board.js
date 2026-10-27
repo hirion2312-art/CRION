@@ -196,7 +196,7 @@
             <button class="btn sm danger" data-act="rep-del" data-id="${r.id}">${I.trash}삭제</button></div>
           <div class="rp-rep"><textarea id="rep-${r.id}" class="field" rows="2" maxlength="1000" placeholder="보낸 사람에게 보일 답변 (선택)">${esc(r.reply || '')}</textarea><button class="btn sm" data-act="rep-save" data-id="${r.id}">답변 저장</button></div></article>`).join('');
         body = `<div class="bd-bar">${seg('st', [['all', '전체'], ['new', '새 글'], ['doing', '확인 중'], ['done', '처리 완료'], ['hold', '보류']], B.st)}
-          ${seg('kd', [['all', '모든 종류'], ['bug', '오류'], ['idea', '건의'], ['tip', '공략'], ['flag', '글 신고']], B.kd)}</div>
+          ${seg('kd', [['all', '모든 종류'], ['bug', '오류'], ['idea', '건의'], ['tip', '공략'], ['flag', '글 신고']], B.kd)}<button class="btn sm" data-act="adm-pw">비밀번호 초기화</button></div>
           ${B.ierr ? `<div class="bd-err">${esc(B.ierr)}</div>` : ''}
           ${B.ibusy && !(B.inbox || []).length ? '<div class="empty"><span class="spin"></span></div>' : cards ? `<div class="rp-list">${cards}</div>` : '<div class="empty"><b>해당하는 글이 없어요</b></div>'}`;
       }
@@ -247,6 +247,17 @@
         case 'inbox-login': login(); return true;
         case 'inbox-logout': cloud.adminLogout(); B.inbox = null; B.newCount = 0; B.post = null; B.list = null; B.my = null; render(); return true;
         case 'inbox-refresh': B.inbox = null; B.list = null; render(); return true;
+        case 'adm-pw': modal(`<header><h3>아이디 계정 비밀번호 초기화</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body"><div class="form">
+            <p class="muted">비밀번호를 잊은 팔로워가 신고·건의로 아이디를 보내 오면, 임시 비밀번호로 바꾸고 답변으로 알려 주세요. 로그인한 뒤 설정에서 직접 바꿀 수 있어요.</p>
+            <label class="f"><span>아이디</span><input id="apId" class="field" autocomplete="off"></label>
+            <label class="f"><span>임시 비밀번호 (8자 이상)</span><input id="apPw" class="field" autocomplete="off" value="crion${Math.floor(1000 + Math.random() * 9000)}!"></label>
+            <div class="err" id="apErr" hidden></div><div class="form-foot"><button class="btn primary" data-act="adm-pw-ok">바꾸기</button></div></div></div>`); return true;
+        case 'adm-pw-ok': {
+          const id = (document.getElementById('apId') || {}).value || '', pw = (document.getElementById('apPw') || {}).value || '';
+          cloud.adminSetPassword(id, pw).then(() => { closeModal(); if (d.copy) d.copy(pw, "임시 비밀번호를 복사했어요"); toast(`${id.trim()} 의 비밀번호를 바꿨어요 · 임시 비밀번호를 복사했어요`, 5000); })
+            .catch(e => { const x = document.getElementById('apErr'); if (x) { x.hidden = false; x.textContent = e.message; } });
+          return true;
+        }
         case 'inbox-tab': B.tab = v; B.post = null; render(); return true;
         case 'inbox-filter': B[el.dataset.k] = v; B.inbox = null; render(); return true;
         case 'rep-status': { const r = (B.inbox || []).find(x => String(x.id) === id); if (r) r.status = v; render(); cloud.updateReport(id, { status: v }).then(() => cloud.countNewReports()).then(n => { B.newCount = n; render(); }).catch(e => { toast(errMsg(e)); B.inbox = null; render(); }); return true; }

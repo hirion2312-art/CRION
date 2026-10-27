@@ -6,7 +6,7 @@ end $$;
 create schema if not exists auth;
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text, is_anonymous boolean not null default false,
+  email text, is_anonymous boolean not null default false, encrypted_password text, updated_at timestamptz,
   created_at timestamptz not null default clock_timestamp()
 );
 create or replace function auth.jwt() returns jsonb language sql stable as $$
@@ -15,3 +15,6 @@ create or replace function auth.uid() returns uuid language sql stable as $$
   select nullif(auth.jwt() ->> 'sub', '')::uuid $$;
 grant usage on schema auth to anon, authenticated;
 grant execute on all functions in schema auth to anon, authenticated;
+
+create schema if not exists extensions;
+create extension if not exists pgcrypto schema extensions;

@@ -1114,27 +1114,53 @@
     const a = cloud.account();
     if (!a) return row('CRION 계정', '로그인하면 컴퓨터·폰 어디서 켜도 <b>같은 플레이 기록</b>이에요 · 게시판 글쓰기·좋아요도 이 계정으로', `<button class="btn sm" data-act="acct-open" data-v="login">로그인</button><button class="btn sm primary" data-act="acct-open" data-v="signup">가입하기</button>`);
     const last = SY.lastAt ? ago(SY.lastAt) + ' 맞춤' : SY.err ? '맞추지 못함 · ' + esc(SY.err) : '곧 맞춰요';
-    return row(esc(a.nick || '닉네임을 정해 주세요'), `${esc(a.email)} · 기록 동기화 켜짐 · ${last}`, `<button class="btn sm" data-act="acct-sync" ${SY.busy ? 'disabled' : ''}>${I.reload}지금 맞추기</button><button class="btn sm" data-act="acct-open" data-v="nick">닉네임</button><button class="btn sm" data-act="acct-logout">로그아웃</button>`)
-      + row('계정 지우기', '서버에 있는 동기화 기록과 닉네임을 지워요 · 이 기기의 기록은 남아요', '<button class="btn sm ghost danger" data-act="acct-open" data-v="delete">계정 지우기</button>');
+    return row(esc(a.nick || '닉네임을 정해 주세요'), `${a.isId ? '아이디 ' : ''}${esc(a.login)} · 기록 동기화 켜짐 · ${last}`, `<button class="btn sm" data-act="acct-sync" ${SY.busy ? 'disabled' : ''}>${I.reload}지금 맞추기</button><button class="btn sm" data-act="acct-open" data-v="nick">닉네임</button><button class="btn sm" data-act="acct-open" data-v="pw">비밀번호</button><button class="btn sm" data-act="acct-logout">로그아웃</button>`)
+      + row('계정 지우기', '서버에 있는 아이디·동기화 기록·닉네임을 바로 지워요 · 이 기기의 기록은 남아요', '<button class="btn sm ghost danger" data-act="acct-open" data-v="delete">계정 지우기</button>')
+      + `<p class="acct-privacy">${PRIV_SHORT} <button class="link" data-act="open-link" data-url="${esc(privacyUrl())}">개인정보 처리방침</button></p>`;
+  }
+  const PRIV_SHORT = '아이디·비밀번호(암호화)·닉네임·플레이 기록·게시글만 로그인·기록 맞추기·게시판에 써요. 이메일·실명·전화번호는 받지 않아요. 서버는 Supabase(미국 회사, 서울 데이터센터)에 맡겨 보관하고, 계정을 지우면 바로 삭제돼요. 만 14세 미만은 가입할 수 없어요.';
+  const privacyUrl = () => (regBase() || 'https://hirion2312-art.github.io/CRION/') + 'privacy.html';
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'acId') { ACC.idOk = ''; setChk('acIdChk', ''); }
+    if (e.target && e.target.id === 'acNick' && ACC.mode === 'signup') { ACC.nickOk = ''; setChk('acNickChk', ''); }
+  });
+  function setChk(id, t, ok) { const x = document.getElementById(id); if (x) { x.textContent = t; x.className = 'acct-chk ' + (ok === true ? 'ok' : ok === false ? 'bad' : ''); } }
+  async function acctCheck(what) {
+    const v = ((document.getElementById(what === 'id' ? 'acId' : 'acNick') || {}).value || '').trim();
+    const box = what === 'id' ? 'acIdChk' : 'acNickChk';
+    setChk(box, '확인 중…');
+    try {
+      const ok = what === 'id' ? await cloud.idAvailable(v) : await cloud.nickAvailable(v);
+      if (what === 'id') ACC.idOk = ok ? v.toLowerCase() : ''; else ACC.nickOk = ok ? v : '';
+      setChk(box, ok ? '쓸 수 있어요' : what === 'id' ? '이미 있는 아이디예요' : '이미 쓰는 닉네임이에요', ok);
+    } catch (e) { setChk(box, (e && e.message) || '확인하지 못했어요', false); }
   }
   function acctModal(mode) {
-    ACC.mode = mode; ACC.err = ''; ACC.busy = false;
+    ACC.mode = mode; ACC.err = ''; ACC.busy = false; ACC.idOk = ''; ACC.nickOk = '';
     const a = cloud.account();
-    const em = (a && a.email) || lsGet('crion.cloud.acctEmail') || '';
+    const em = (a && a.login) || lsGet('crion.cloud.acctId') || '';
     const foot = (btn) => `${ACC.err ? `<div class="err" id="acctErr">${esc(ACC.err)}</div>` : '<div class="err" id="acctErr" hidden></div>'}<div class="form-foot">${btn}</div>`;
     let title, body;
     if (mode === 'signup') {
       title = 'CRION 계정 만들기';
-      body = `<p class="muted">크랙 계정과는 따로예요. 이메일은 로그인과 비밀번호 찾기에만 써요.</p>
-        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" autocomplete="email" value="${esc(em)}"></label>
+      body = `<p class="muted">크랙 계정과는 따로예요. 이메일 없이 아이디로 만들어요.</p>
+        <label class="f"><span>아이디 (영어 소문자·숫자·_ 4~20자)</span><div class="acct-row"><input id="acId" class="field" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false"><button class="btn sm" data-act="acct-check" data-v="id">중복 확인</button></div><em class="acct-chk" id="acIdChk"></em></label>
         <label class="f"><span>비밀번호 (8자 이상)</span><input id="acPw" class="field" type="password" autocomplete="new-password"></label>
-        <label class="f"><span>닉네임 (2~16자 · 게시판에 보여요)</span><input id="acNick" class="field" maxlength="16" value="${esc(lsGet('crion.nick') || '')}"></label>
+        <label class="f"><span>비밀번호 한 번 더</span><input id="acPw2" class="field" type="password" autocomplete="new-password"></label>
+        <label class="f"><span>닉네임 (2~16자 · 게시판에 보여요)</span><div class="acct-row"><input id="acNick" class="field" maxlength="16" value="${esc(lsGet('crion.nick') || '')}"><button class="btn sm" data-act="acct-check" data-v="nick">중복 확인</button></div><em class="acct-chk" id="acNickChk"></em></label>
+        <p class="acct-privacy">${PRIV_SHORT} 비밀번호를 잊으면 히리온에게 문의해 임시 비밀번호를 받아요. <button class="link" data-act="open-link" data-url="${esc(privacyUrl())}">자세히</button></p>
+        <label class="acct-agree"><input type="checkbox" id="acAgree"> 만 14세 이상이고, 개인정보 안내를 확인했어요</label>
         ${foot('<button class="link" data-act="acct-open" data-v="login">이미 계정이 있어요</button><button class="btn primary" data-act="acct-submit" data-v="signup">가입하고 기록 맞추기</button>')}`;
     } else if (mode === 'reset') {
-      title = '비밀번호 찾기';
-      body = `<p class="muted">가입한 이메일로 새 비밀번호를 정하는 링크를 보내요.</p>
-        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" value="${esc(em)}"></label>
-        ${foot('<button class="link" data-act="acct-open" data-v="login">로그인으로</button><button class="btn primary" data-act="acct-submit" data-v="reset">메일 보내기</button>')}`;
+      title = '비밀번호를 잊었어요';
+      body = `<p>이메일을 받지 않아서 메일로 찾을 수는 없어요. 대신 히리온이 <b>임시 비밀번호</b>로 바꿔 드려요.</p>
+        <p class="muted">커뮤니티 → 신고·건의에서 <b>아이디</b>와 닉네임을 적어 보내 주세요. 답변은 '보낸 것'에 와요. 로그인한 뒤 설정 → 비밀번호에서 바꿔 쓰세요.</p>
+        ${foot('<button class="link" data-act="acct-open" data-v="login">로그인으로</button><button class="btn primary" data-act="acct-ask">문의하러 가기</button>')}`;
+    } else if (mode === 'pw') {
+      title = '비밀번호 바꾸기';
+      body = `<label class="f"><span>새 비밀번호 (8자 이상)</span><input id="acPw" class="field" type="password" autocomplete="new-password"></label>
+        <label class="f"><span>한 번 더</span><input id="acPw2" class="field" type="password" autocomplete="new-password"></label>
+        ${foot('<button class="btn primary" data-act="acct-submit" data-v="pw">바꾸기</button>')}`;
     } else if (mode === 'nick') {
       title = '닉네임';
       body = `<p class="muted">게시판에 보이는 이름이에요. 다른 사람이 쓰는 닉네임은 못 써요.</p>
@@ -1147,12 +1173,12 @@
     } else {
       title = 'CRION 계정 로그인';
       body = `<p class="muted">로그인하면 이 기기의 기록과 다른 기기의 기록을 합쳐서 맞춰요.</p>
-        <label class="f"><span>이메일</span><input id="acEmail" class="field" type="email" autocomplete="email" value="${esc(em)}"></label>
+        <label class="f"><span>아이디</span><input id="acId" class="field" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(em)}"></label>
         <label class="f"><span>비밀번호</span><input id="acPw" class="field" type="password" autocomplete="current-password"></label>
         ${foot('<button class="link" data-act="acct-open" data-v="reset">비밀번호를 잊었어요</button><button class="link" data-act="acct-open" data-v="signup">가입하기</button><button class="btn primary" data-act="acct-submit" data-v="login">로그인</button>')}`;
     }
     modal(`<header><h3>${title}</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header><div class="body"><div class="form acct-form">${body}</div></div>`);
-    setTimeout(() => { const f = $('#acEmail') || $('#acNick'); if (f) f.focus(); }, 30);
+    setTimeout(() => { const f = $('#acId') || $('#acPw') || $('#acNick'); if (f) f.focus(); }, 30);
   }
   async function acctSubmit(mode) {
     const v = (id) => ((document.getElementById(id) || {}).value || '').trim();
@@ -1161,23 +1187,28 @@
     const fail = (e) => { if (errEl) { errEl.hidden = false; errEl.textContent = (e && e.message) || '문제가 생겼어요'; } if (btn) btn.disabled = false; };
     if (btn) btn.disabled = true;
     try {
+      const pw = (document.getElementById('acPw') || {}).value || '', pw2 = (document.getElementById('acPw2') || {}).value;
+      if ((mode === 'signup' || mode === 'pw') && pw !== pw2) throw new Error('비밀번호 두 칸이 달라요');
       if (mode === 'signup') {
-        lsSet('crion.cloud.acctEmail', v('acEmail'));
-        const r = await cloud.signUp(v('acEmail'), (document.getElementById('acPw') || {}).value || '', v('acNick'));
+        const id = cloud.checkId(v('acId'));
+        if (ACC.idOk !== id) throw new Error('아이디 중복 확인을 눌러 주세요');
+        if (ACC.nickOk !== v('acNick')) throw new Error('닉네임 중복 확인을 눌러 주세요');
+        if (!(document.getElementById('acAgree') || {}).checked) throw new Error('만 14세 이상인지와 개인정보 안내 확인에 체크해 주세요');
+        lsSet('crion.cloud.acctId', id);
+        const r = await cloud.signUp(id, pw, v('acNick'));
         lsSet('crion.nick', v('acNick'));
         SY.forget(); closeModal();
         toast(r.nickError ? '가입했어요. 닉네임은 다시 정해 주세요: ' + r.nickError : '가입했어요. 기록을 맞추는 중이에요');
         BD.reset(); render(); await syncNow(true);
         if (r.nickError) acctModal('nick');
       } else if (mode === 'login') {
-        lsSet('crion.cloud.acctEmail', v('acEmail'));
-        await cloud.signIn(v('acEmail'), (document.getElementById('acPw') || {}).value || '');
+        lsSet('crion.cloud.acctId', v('acId'));
+        await cloud.signIn(v('acId'), pw);
         SY.forget(); closeModal(); toast('로그인했어요. 기록을 맞추는 중이에요');
         BD.reset(); render(); await syncNow(true);
         if (!cloud.account().nick) acctModal('nick');
-      } else if (mode === 'reset') {
-        await cloud.resetPassword(v('acEmail'), regBase() ? regBase() + 'reset.html' : '');
-        closeModal(); toast('메일을 보냈어요. 메일의 링크에서 새 비밀번호를 정해 주세요', 5000);
+      } else if (mode === 'pw') {
+        await cloud.changePassword(pw); closeModal(); toast('비밀번호를 바꿨어요');
       } else if (mode === 'nick') {
         await cloud.setNick(v('acNick')); lsSet('crion.nick', v('acNick'));
         closeModal(); toast('닉네임을 저장했어요'); BD.reset(); render();
@@ -1277,6 +1308,8 @@
       case 'home-cat': { S.homeCat = el.dataset.v || 'all'; lsSet('crion.homeCat', S.homeCat); const l = $('#homeList'); if (l) l.innerHTML = homeListHtml(); else refresh(); break; }
       case 'acct-open': acctModal(el.dataset.v || 'login'); break;
       case 'acct-submit': acctSubmit(el.dataset.v); break;
+      case 'acct-check': acctCheck(el.dataset.v); break;
+      case 'acct-ask': closeModal(); go('community'); S.commTab = 'send'; render(); break;
       case 'acct-sync': syncNow(true); render(); break;
       case 'acct-logout': await syncNow(false); await cloud.signOut(); SY.forget(); BD.reset(); toast('로그아웃했어요. 이 기기의 기록은 그대로예요'); render(); break;
       case 'close-notice': if (S.notice) lsSet(noticeId(S.notice), '1'); refresh(); break;
