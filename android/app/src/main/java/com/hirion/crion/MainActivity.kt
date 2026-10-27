@@ -286,13 +286,21 @@ class MainActivity : Activity() {
     private fun blockedNav(url: String) {
         android.util.Log.i("CRION", "크랙 화면 이동 막음: $url")
         val now = System.currentTimeMillis()
-        if (now - lastBlock > 4000) { lastBlock = now; emitWv("crion-blocked", JSONObject().put("url", url)) }
+        if (now - lastBlock > 4000) {
+            lastBlock = now
+            emitWv("crion-blocked", JSONObject().put("url", url))
+            android.widget.Toast.makeText(this, "크랙이 앱·스토어로 넘기려는 것을 막았어요", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun isCrackHost(url: String): Boolean { val h = try { Uri.parse(url).host ?: "" } catch (e: Exception) { "" }; return h == "wrtn.ai" || h.endsWith(".wrtn.ai") }
 
     private fun openExternal(url: String) {
         if (!url.startsWith("https://")) return
+        val h = Uri.parse(url).host ?: ""
+        // 크랙 주소를 바깥으로 넘기면 안드로이드가 크랙 앱·플레이스토어로 보낸다 → 앱 안 크랙 화면에서 연다
+        if (h == "wrtn.ai" || h.endsWith(".wrtn.ai")) { crackWv.loadUrl(url); return }
+        if (h == "play.google.com" || h.endsWith(".app.link") || h.endsWith(".onelink.me") || h.endsWith(".page.link") || h.endsWith("app.goo.gl")) { blockedNav(url); return }
         try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) { /* 브라우저 없음 */ }
     }
 
