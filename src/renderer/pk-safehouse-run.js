@@ -362,11 +362,18 @@
       const std = '<button class="sh-fb" data-sh="crack">크랙 화면 보기</button><button class="sh-fb" data-sh="title">처음 화면</button><button class="sh-fb" data-sh="diag">화면 진단 복사</button>';
       b.hidden = false; b.className = 'sh-banner center';
       if (kind === 'other') b.innerHTML = `<div class="sh-gate"><b>세이브의 대화가 열리지 않았어요</b><span>크랙에서 대화가 지워졌거나 로그인이 풀렸을 수 있어요.</span>${row('<button class="sh-fb primary" data-sh="back-save">다시 열기</button>' + std)}</div>`;
+      else if (kind === 'mode') {
+        const ms = (R.actions || []).filter(a => a.kind === 'mode');
+        const picked = R.newFlow && R.newFlow.picked;
+        b.innerHTML = `<div class="sh-gate"><b>시작 설정을 골라 주세요</b><span>크랙이 새 대화를 열기 전에 어떤 설정으로 시작할지 물어요. 고른 것만 크랙에 한 번 눌러 줘요.</span>
+          <div class="sh-modes">${ms.map(a => `<button class="sh-mode ${picked === a.label ? 'on' : ''}" data-sh="pick-mode" data-id="${a.id}" data-label="${esc(a.label)}">${esc(a.label)}</button>`).join('')}</div>
+          ${row('<button class="sh-fb" data-sh="crack-pick">크랙 화면에서 직접 고르기</button><button class="sh-fb" data-sh="title">처음 화면</button><button class="sh-fb" data-sh="diag">화면 진단 복사</button>')}</div>`;
+      }
       else if (kind === 'new') {
         const acts = (R.actions || []).filter(a => a.kind === 'new');
         const why = R.newFlow && R.newFlow.clicked ? '크랙에서 새 대화가 열리면 바로 시작해요.'
           : (R.page === 'detail' && !acts.length ? '크랙 작품 화면에서 「새로하기」 버튼을 찾지 못했어요. 크랙 화면 보기를 눌러 직접 「새로하기」를 누르면 바로 이어져요.' : '크랙 작품 화면을 여는 중이에요…');
-        b.innerHTML = `<div class="sh-gate"><span class="sh-wave"><i></i><i></i><i></i><i></i><i></i></span><b>새 대화를 여는 중이에요</b><span>${why}</span>${row(acts.map(a => `<button class="sh-fb primary" data-sh="click" data-id="${a.id}">${esc(a.label)}</button>`).join('') + std)}</div>`;
+        b.innerHTML = `<div class="sh-gate"><span class="sh-wave"><i></i><i></i><i></i><i></i><i></i></span><b>새 대화를 여는 중이에요</b><span>${why}</span>${R.newFlow && R.newFlow.clicked ? '<span class="sh-small">기본모드·하드모드 같은 시작 설정을 고르는 창이 떠서 멈췄다면 「크랙 화면에서 직접 고르기」를 눌러 고르세요. 대화가 열리면 게임 화면으로 저절로 돌아와요.</span>' : ''}${row(acts.map(a => `<button class="sh-fb primary" data-sh="click" data-id="${a.id}">${esc(a.label)}</button>`).join('') + '<button class="sh-fb primary" data-sh="crack-pick">크랙 화면에서 직접 고르기</button>' + std)}</div>`;
       } else if (kind === 'old') {
         const acts = (R.actions || []).filter(a => a.kind === 'new');
         b.innerHTML = `<div class="sh-gate"><b>크랙이 예전 대화를 열었어요</b><span>처음부터 하려면 새 대화가 필요해요. 「작품 화면에서 새로하기」를 누르면 CRION이 새 대화를 열어요. 예전 대화는 읽지 않아요.</span>${row(acts.map(a => `<button class="sh-fb primary" data-sh="click" data-id="${a.id}">${esc(a.label)}</button>`).join('') + `<button class="sh-fb ${acts.length ? '' : 'primary'}" data-sh="retry-new">작품 화면에서 새로하기</button>` + std)}</div>`;
@@ -734,6 +741,8 @@
         case 't-set': openModal('set'); break;
         case 'click': o.click(t.dataset.id); if (R.newFlow) { R.newFlow.clicked = true; R.newFlow.fromUrl = R.curUrl; banner('new'); } else banner(null); break;
         case 'crack': closeModal(); o.showCrack(true); break;
+        case 'pick-mode': if (R.newFlow && !R.newFlow.picked) { R.newFlow.picked = t.dataset.label; o.click(t.dataset.id); banner('mode'); toast(`「${t.dataset.label}」로 시작해요`); } break;
+        case 'crack-pick': if (R.newFlow) R.newFlow.viaCrack = true; o.showCrack(true); break;
         case 'diag': o.diag(); break;
         case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(o.workUrl); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); else showBeat(-1); break;
@@ -814,13 +823,21 @@
     function bindNew(st) {
       const nf = R.newFlow;
       if (!nf) return;
+      // 새로하기 뒤 '시작 설정'(기본모드·하드모드 …)을 고르는 창: 플레이어가 고를 때까지 기다린다 (자동으로 고르지 않음)
+      const modes = (st.actions || []).filter(x => x.kind === 'mode');
+      if (nf.clicked && modes.length && !nf.picked) { R.actions = st.actions || []; banner('mode'); return; }
+      // 고른 뒤엔 시작 버튼을 한 번만 눌러 준다 (확인 창의 '시작' 또는 처음 누른 것과 다른 '대화 시작' 계열)
+      if (nf.picked && !nf.confirmed) {
+        const go2 = (st.actions || []).find(x => x.kind === 'confirm') || (st.actions || []).find(x => x.kind === 'new' && x.label !== nf.newLabel && !x.hidden);
+        if (go2) { nf.confirmed = true; o.click(go2.id); banner('new'); return; }
+      }
       const cf = (st.actions || []).find(x => x.kind === 'confirm');
-      if (cf && nf.clicked && !nf.confirmed) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
+      if (cf && nf.clicked && !nf.confirmed && !modes.length) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
       const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
       if (st.page === 'detail') {
         if (st.url) lsSet(`crion.pk.${PK_ID}.detail.${WORK}`, st.url);
         const a = (st.actions || []).find(x => x.kind === 'new');
-        if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
+        if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
         banner('new');
         return;
       }
@@ -833,11 +850,12 @@
         if (sv) { sv.url = st.url || R.curUrl; sv.last = Date.now(); putSaves(); }
         R.mode = 'play'; R.boundUrl = u; R.newFlow = null;
         banner(null); loading('이야기를 불러오는 중이에요');
+        if (o.showPack) o.showPack();   // 크랙 화면에서 직접 골랐다면 게임 화면으로 돌아온다
         o.rescan();
         return;
       }
       const a = (st.actions || []).find(x => x.kind === 'new');
-      if (a && !nf.clicked) { nf.clicked = true; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
+      if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
       if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
       const detail = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
       if (detail && !nf.triedDetail && normUrl(detail) !== u) { nf.triedDetail = true; nf.clicked = false; o.load(detail); banner('new'); return; }

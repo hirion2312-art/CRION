@@ -20,6 +20,7 @@ let idSeq = 0;
 let lastUrl = '';
 let lastHas = null;
 let learned = null;      // 첫 응답에서 배운 '응답 상자' 모양 { tag, cls, ptag, pcls }
+let startModes = [];     // 플레이팩이 알려 준 크랙 '시작 설정' 이름 (예: 기본모드·하드모드) — 새로하기 뒤 고르는 창의 버튼
 let watch = null;        // 보낸 직후: 그때 화면에 있던 글자 목록 → 새로 생긴 글자만 응답으로 본다
 
 const send = (ch, data) => { try { ipcRenderer.sendToHost(ch, data); } catch (e) { /* 호스트 없음 */ } };
@@ -31,6 +32,7 @@ ipcRenderer.on('crion:config', (_e, c) => {
   rules = (c && c.rules) || {};
   learned = (c && c.learned && c.learned.tag) ? c.learned : null;
   active = !!(c && c.play);
+  startModes = Array.isArray(c && c.modes) ? c.modes.map(x => String(x).replace(/\s+/g, '')).filter(Boolean).slice(0, 12) : [];
   lastSig = ''; lastKey = ''; doneSent = false; lastHas = null;
   schedule(60);
 });
@@ -81,19 +83,24 @@ const NEW_STRONG = /^[+＋]?\s*(새로\s*하기|새로운?\s*(대화|채팅)(\s*
 const CONFIRM = /^(확인|시작|시작하기|대화\s*시작(하기)?|새로\s*시작(하기)?|네|예|계속)$/;
 const DIALOG = '[role="dialog"], [aria-modal="true"], [class*="modal" i], [class*="dialog" i], [class*="popup" i]';
 const labelOf = (b) => ((b.innerText || b.textContent || b.getAttribute('aria-label') || b.title || '') + '').trim().replace(/\s+/g, ' ');
+const modeName = (t) => { const n = t.replace(/\s+/g, ''); const m = startModes.find(x => n.startsWith(x)); return m || t; };
+const isModeLabel = (t) => { if (!startModes.length) return false; const n = t.replace(/\s+/g, ''); return startModes.some(m => n === m || (n.startsWith(m) && n.length <= m.length + 80)); };
 let actionEls = [];
 function pageActions(onChat) {
   actionEls = [];
   const out = [];
   const seen = new Set();
   const add = (b, kind, label, hidden) => { if (seen.has(b)) return; seen.add(b); out.push({ id: actionEls.length, kind, label, hidden: !!hidden }); actionEls.push(b); };
-  const cands = qa('button, a[href], [role="button"], [role="menuitem"], [role="option"], li, [tabindex]');
+  const cands = qa('button, a[href], [role="button"], [role="menuitem"], [role="option"], [role="radio"], [role="tab"], label, li, [tabindex]');
   for (const b of cands) {
     if (b.disabled || b.getAttribute('aria-disabled') === 'true') continue;
-    if (b.matches('li, [tabindex]') && !b.matches('button, a, [role]') && b.querySelector('button, a[href], [role="button"]')) continue;
+    if (b.matches('li, label, [tabindex]') && !b.matches('button, a, [role]') && b.querySelector('button, a[href], [role="button"], [role="radio"]')) continue;
     const t = labelOf(b);
-    if (!t || t.length > 18) continue;
+    if (!t) continue;
     const vis = visible(b);
+    // 새로하기 뒤 '시작 설정'을 고르는 버튼 (팩이 알려 준 이름과 같거나 그 이름으로 시작, 설명이 붙어 있어도) — 플레이어가 고른 것만 누른다
+    if (vis && isModeLabel(t)) { add(b, 'mode', t.split(/\s/)[0] === t ? t : modeName(t)); continue; }
+    if (t.length > 18) continue;
     if (NEW_STRONG.test(t)) { add(b, 'new', t, !vis); continue; }
     if (!vis) continue;
     if (CONFIRM.test(t) && b.closest(DIALOG)) { add(b, 'confirm', t); continue; }
@@ -102,10 +109,21 @@ function pageActions(onChat) {
       if (re.test(t)) { add(b, kind, t); break; }
     }
   }
+  // 시작 설정 버튼이 역할 표시 없는 상자(div)일 때: 이름 글자를 찾아 눌리는 조상(손가락 커서)을 쓴다
+  if (startModes.length && !out.some(a => a.kind === 'mode') && (!onChat || q(DIALOG))) {
+    for (const e of qa('div, span, p, strong, b, h3, h4')) {
+      if (e.children.length > 2 || !visible(e)) continue;
+      const n = labelOf(e).replace(/\s+/g, '');
+      if (!startModes.includes(n)) continue;
+      let c = e;
+      for (let i = 0; i < 5 && c && c !== document.body; i++, c = c.parentElement) { try { if (getComputedStyle(c).cursor === 'pointer') break; } catch (err) { break; } }
+      add(c && c !== document.body ? c : e, 'mode', labelOf(e));
+    }
+  }
   // 바깥 상자와 안쪽 버튼이 같은 글이면 안쪽만
   const keep = out.filter((a) => !out.some(o => o !== a && o.label === a.label && actionEls[a.id].contains(actionEls[o.id])));
-  const rank = { new: 0, confirm: 1, continue: 2 };
-  return keep.sort((a, b) => (rank[a.kind] - rank[b.kind]) || (a.hidden - b.hidden)).slice(0, 6);
+  const rank = { new: 0, mode: 1, confirm: 2, continue: 3 };
+  return keep.sort((a, b) => (rank[a.kind] - rank[b.kind]) || (a.hidden - b.hidden)).slice(0, 8);
 }
 // ---------- 크랙 실제 대화 화면 구조 (2026-10-25 실제 화면에서 확인) ----------
 // 말 하나 = [data-message-group-id] 상자. 목록이 flex-col-reverse 라 문서 순서가 '새 것 → 옛 것'

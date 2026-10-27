@@ -49,3 +49,4 @@
   - 시험: `python3 test/ui/run_safehouse.py` → `test/out/sh_*.png`.
 - `devOnly: true` (manifest) → `make-registry.js`가 `index.json`의 `packs`가 아니라 **`devPacks`**에 싣는다. 앱은 개발자 로그인 중일 때만 `devPacks`를 합쳐 보여 준다(스토어 카드에 '개발자 전용'). 옛 엔진(0.7.x)은 `packs`만 읽으므로 아예 안 보인다.
   - 공개할 때: manifest의 `devOnly` 줄을 지우고 `version`을 올려 push.
+- `startModes` (manifest, 엔진 0.8.1~): 크랙 '시작 설정' 이름 목록(안전지대 = 기본모드·하드모드). 크랙 도우미가 '새로하기' 뒤 고르는 창의 그 버튼을 `mode`로 알아보고, 팩은 그 버튼들을 게임 화면에 띄워 **플레이어가 고른 것만** 한 번 누른 뒤 시작 버튼을 한 번 누른다. 못 찾으면 「크랙 화면에서 직접 고르기」 → 대화가 열리면 게임 화면으로 자동 복귀. 시험 `python3 test/ui/run_startmode.py`.

@@ -866,6 +866,7 @@
       const manifest = await files.json('manifest.json');
       const data = await files.json('data.json');
       if (!S.play || S.play.pack !== p) return;
+      S.play.startModes = Array.isArray(manifest.startModes) ? manifest.startModes : [];   // 크랙 '시작 설정' 이름 → 새로하기 뒤 고르는 창 알아보기
       runner = runnerOf(p).start({
         el: box, pack: p, files, manifest, data, work: S.play.work,
         send: (text) => { const v = wv(); if (v) v.send('crion:send', { text }); },
@@ -873,9 +874,10 @@
         click: (id) => { const v = wv(); if (v) v.send('crion:click', Number(id)); },
         load: (u) => { const v = wv(); if (v && /^https:\/\//.test(String(u))) v.loadURL(u); },
         workUrl: S.play.work.url,
-        rescan: () => { const v = wv(); let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } if (v) v.send('crion:config', { play: true, learned, rules: {} }); },
+        rescan: () => { const v = wv(); let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } if (v) v.send('crion:config', { play: true, learned, rules: {}, modes: (S.play && S.play.startModes) || [] }); },
         toast, copy: (t) => copy(t, '복사했어요: ' + t.slice(0, 40)), openExternal: (u) => api.openExternal(u),
-        showCrack: () => { const b = $('[data-act=pk-crack]'); if (b) b.click(); },
+        showCrack: () => { const b = $('[data-act=pk-crack]'); if (b && !(S.play && S.play.crack)) b.click(); },
+        showPack: () => { const b = $('[data-act=pk-crack]'); if (b && S.play && S.play.crack) b.click(); },
         diag: () => { const v = wv(); if (v) { S.waitDiag = false; v.send('crion:diag'); } },
         packOff: () => { installed.setOn(p.id, false); toast('플레이팩을 껐어요. 다시 열면 크랙 화면이에요'); const id = S.play.work.id; leavePlay(); setTimeout(() => openWork(id), 50); }
       });
@@ -907,7 +909,7 @@
       if (cover) { cover.classList.remove('gone'); cover.innerHTML = `<img src="icon.png" alt=""><b>크랙에 연결하지 못했어요</b><span>인터넷 연결을 확인해 주세요.</span><button class="btn primary" data-act="wv-reload">다시 시도</button>`; }
     });
     v.addEventListener('dom-ready', () => {
-      if (S.play && S.play.pack) { let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } try { v.send('crion:config', { play: true, learned, rules: {} }); } catch (err) { /* 아직 */ } }
+      if (S.play && S.play.pack) { let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } try { v.send('crion:config', { play: true, learned, rules: {}, modes: (S.play && S.play.startModes) || [] }); } catch (err) { /* 아직 */ } }
     });
     v.addEventListener('ipc-message', (e) => {
       const d = e.args && e.args[0];

@@ -107,6 +107,17 @@ async def main():
         await ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': [{'id': 0, 'kind': 'continue', 'label': '이어서 대화하기'}, {'id': 1, 'kind': 'new', 'label': '새로하기'}]})
         await page.wait_for_timeout(300); await page.screenshot(path=OUT + 'sh_b2_opening_new.png')
         print('자동으로 누른 버튼:', [x for x in await page.evaluate('window.__sent') if x[0] == 'crion:click'])
+        print('크랙 도우미에 알린 시작 설정:', [x[1].get('modes') for x in await page.evaluate('window.__sent') if x[0] == 'crion:config'][-1:])
+        # 새로하기 뒤 시작 설정(기본모드·하드모드) 고르는 창 → 게임 화면에 버튼, 고른 것만 누르고 시작 버튼 한 번
+        MODES = [{'id': 0, 'kind': 'new', 'label': '새로하기'}, {'id': 1, 'kind': 'mode', 'label': '기본모드'}, {'id': 2, 'kind': 'mode', 'label': '하드모드'}, {'id': 3, 'kind': 'confirm', 'label': '대화 시작하기'}]
+        await ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': MODES}); await page.wait_for_timeout(300)
+        n_click = len([x for x in await page.evaluate('window.__sent') if x[0] == 'crion:click'])
+        print('고르기 전 자동 클릭 없음:', n_click == 1, '/ 버튼:', await page.evaluate("[...document.querySelectorAll('.sh-mode')].map(b=>b.innerText)"))
+        await page.screenshot(path=OUT + 'sh_b3_pick_mode.png')
+        await page.click('.sh-mode[data-label=하드모드]'); await page.wait_for_timeout(200)
+        await ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': MODES + [{'id': 4, 'kind': 'x', 'label': 'sig'}]}); await page.wait_for_timeout(200)
+        await ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': MODES}); await page.wait_for_timeout(200)
+        print('누른 버튼(새로하기→하드모드→시작 한 번):', [x[1] for x in await page.evaluate('window.__sent') if x[0] == 'crion:click'])
         await ipc(page, 'crion:url', {'url': 'https://crack.wrtn.ai/u/me/c/s1', 'chat': True})
         await ipc(page, 'crion:state', {'page': 'chat', 'input': True, 'url': 'https://crack.wrtn.ai/u/me/c/s1', 'msgs': 1, 'actions': []})
         await page.wait_for_timeout(300)
