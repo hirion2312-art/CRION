@@ -228,6 +228,7 @@
 
     // ---------- 응답 처리 ----------
     function handle(segs) {
+      if (R.sm) R.sm.done = true;
       const P = SH.parse(segs, roster);
       const ev = SH.absorb(M, P, data);
       P.beats.forEach(b => M.lines.push({ d: (M.status && M.status.day) || 0, who: b.kind === 'say' ? b.who : '', act: b.act || '', t: b.text, sys: b.kind === 'sys' }));
@@ -364,8 +365,8 @@
       if (kind === 'other') b.innerHTML = `<div class="sh-gate"><b>세이브의 대화가 열리지 않았어요</b><span>크랙에서 대화가 지워졌거나 로그인이 풀렸을 수 있어요.</span>${row('<button class="sh-fb primary" data-sh="back-save">다시 열기</button>' + std)}</div>`;
       else if (kind === 'mode') {
         const ms = (R.actions || []).filter(a => a.kind === 'mode');
-        const picked = R.newFlow && R.newFlow.picked;
-        b.innerHTML = `<div class="sh-gate"><b>시작 설정을 골라 주세요</b><span>크랙이 새 대화를 열기 전에 어떤 설정으로 시작할지 물어요. 고른 것만 크랙에 한 번 눌러 줘요.</span>
+        const picked = R.sm && R.sm.picked;
+        b.innerHTML = `<div class="sh-gate"><b>시작 설정을 골라 주세요</b><span>${picked ? `「${esc(picked)}」를 골랐어요. 크랙이 시작하기를 기다리는 중이에요.` : '어떤 설정으로 시작할까요? 고른 것만 크랙에 한 번 눌러 줘요.'}</span>
           <div class="sh-modes">${ms.map(a => `<button class="sh-mode ${picked === a.label ? 'on' : ''}" data-sh="pick-mode" data-id="${a.id}" data-label="${esc(a.label)}">${esc(a.label)}</button>`).join('')}</div>
           ${row('<button class="sh-fb" data-sh="crack-pick">크랙 화면에서 직접 고르기</button><button class="sh-fb" data-sh="title">처음 화면</button><button class="sh-fb" data-sh="diag">화면 진단 복사</button>')}</div>`;
       }
@@ -741,8 +742,8 @@
         case 't-set': openModal('set'); break;
         case 'click': o.click(t.dataset.id); if (R.newFlow) { R.newFlow.clicked = true; R.newFlow.fromUrl = R.curUrl; banner('new'); } else banner(null); break;
         case 'crack': closeModal(); o.showCrack(true); break;
-        case 'pick-mode': if (R.newFlow && !R.newFlow.picked) { R.newFlow.picked = t.dataset.label; o.click(t.dataset.id); banner('mode'); toast(`「${t.dataset.label}」로 시작해요`); } break;
-        case 'crack-pick': if (R.newFlow) R.newFlow.viaCrack = true; o.showCrack(true); break;
+        case 'pick-mode': if (R.sm && !R.sm.picked) { R.sm.picked = t.dataset.label; o.click(t.dataset.id); banner('mode'); toast(`「${t.dataset.label}」로 시작해요`); } break;
+        case 'crack-pick': if (R.sm) R.sm.viaCrack = true; o.showCrack(true); break;
         case 'diag': o.diag(); break;
         case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(o.workUrl); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); else showBeat(-1); break;
@@ -808,6 +809,7 @@
       useSave(id); save();
       resetScene();
       R.mode = 'binding'; R.newFlow = { clicked: false, fromUrl: '', at: Date.now() };
+      R.sm = { picked: '', confirmed: false, viaCrack: false, newLabel: '', done: false };
       hideTitle(); loading('새 대화를 여는 중이에요'); banner('new');
       o.load(o.workUrl);
     }
@@ -816,28 +818,43 @@
       if (!sv || !sv.url) return;
       useSave(id);
       resetScene();
-      R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null;
+      R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
       o.load(sv.url);
+    }
+    // 새로하기 뒤 크랙이 띄우는 '시작 설정'(기본모드·하드모드) 고르기 창 → 게임 화면 팝업
+    //  작품 화면 위든 대화 화면 위든, 첫 응답이 오기 전까지. 플레이어가 고른 것만 한 번 누르고, 이어서 시작 버튼 한 번
+    function startModeStep(st) {
+      const sm = R.sm;
+      if (!sm || sm.done) return false;
+      if (R.mode === 'binding' && !(R.newFlow && R.newFlow.clicked)) return false;   // 새로하기를 누르기 전(작품 화면의 설정 탭 등)은 무시
+      const acts = st.actions || [];
+      const modes = acts.filter(x => x.kind === 'mode');
+      const modeBannerOn = !!$('#sh-banner').querySelector('.sh-modes');
+      if (!sm.picked) {
+        if (modes.length && !sm.viaCrack) { R.actions = acts; banner('mode'); return true; }
+        if (modeBannerOn) banner(R.mode === 'binding' ? 'new' : null);
+        return false;
+      }
+      if (!sm.confirmed) {
+        const go2 = acts.find(x => x.kind === 'confirm') || (st.page !== 'chat' ? acts.find(x => x.kind === 'new' && x.label !== sm.newLabel && !x.hidden) : null);
+        if (go2) { sm.confirmed = true; o.click(go2.id); banner(R.mode === 'binding' ? 'new' : null); if (R.mode === 'play') loading('이야기를 불러오는 중이에요'); return true; }
+        if (modes.length) { R.actions = acts; banner('mode'); return true; }
+      }
+      if (modeBannerOn) banner(R.mode === 'binding' ? 'new' : null);
+      return false;
     }
     function bindNew(st) {
       const nf = R.newFlow;
       if (!nf) return;
-      // 새로하기 뒤 '시작 설정'(기본모드·하드모드 …)을 고르는 창: 플레이어가 고를 때까지 기다린다 (자동으로 고르지 않음)
-      const modes = (st.actions || []).filter(x => x.kind === 'mode');
-      if (nf.clicked && modes.length && !nf.picked) { R.actions = st.actions || []; banner('mode'); return; }
-      // 고른 뒤엔 시작 버튼을 한 번만 눌러 준다 (확인 창의 '시작' 또는 처음 누른 것과 다른 '대화 시작' 계열)
-      if (nf.picked && !nf.confirmed) {
-        const go2 = (st.actions || []).find(x => x.kind === 'confirm') || (st.actions || []).find(x => x.kind === 'new' && x.label !== nf.newLabel && !x.hidden);
-        if (go2) { nf.confirmed = true; o.click(go2.id); banner('new'); return; }
-      }
+      if (startModeStep(st)) return;
       const cf = (st.actions || []).find(x => x.kind === 'confirm');
-      if (cf && nf.clicked && !nf.confirmed && !modes.length) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
+      if (cf && st.page !== 'chat' && nf.clicked && !nf.confirmed && !(R.sm && (R.sm.picked || R.sm.viaCrack))) { nf.confirmed = true; o.click(cf.id); banner('new'); return; }
       const used = new Set(saves.filter(x => x.id !== saveId && x.url).map(x => normUrl(x.url)));
       if (st.page === 'detail') {
         if (st.url) lsSet(`crion.pk.${PK_ID}.detail.${WORK}`, st.url);
         const a = (st.actions || []).find(x => x.kind === 'new');
-        if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
+        if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; if (R.sm) R.sm.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); }
         banner('new');
         return;
       }
@@ -855,7 +872,7 @@
         return;
       }
       const a = (st.actions || []).find(x => x.kind === 'new');
-      if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
+      if (a && !nf.clicked) { nf.clicked = true; nf.newLabel = a.label; if (R.sm) R.sm.newLabel = a.label; nf.fromUrl = st.url || R.curUrl; o.click(a.id); banner('new'); return; }
       if (nf.clicked && Date.now() - (nf.clickAt || (nf.clickAt = Date.now())) < 6000) { banner('new'); return; }
       const detail = lsGet(`crion.pk.${PK_ID}.detail.${WORK}`, '');
       if (detail && !nf.triedDetail && normUrl(detail) !== u) { nf.triedDetail = true; nf.clicked = false; o.load(detail); banner('new'); return; }
@@ -898,6 +915,7 @@
           handle(d.segs || []);
         } else if (ch === 'crion:state' && d) {
           if (d.page) { R.page = d.page; R.actions = d.actions || []; } else if (d.input) R.page = 'chat';
+          if (R.mode === 'play' && !R.away && startModeStep(d)) return;
           if (d.page === 'chat' && d.url && R.boundUrl) { const away = normUrl(d.url) !== R.boundUrl; if (away !== R.away) { R.away = away; banner(away ? 'away' : null); if (!away) o.rescan(); } if (away) return; }
           if (R.page === 'detail' || R.page === 'other') banner('other');
           else if ($('#sh-banner').querySelector('.sh-gate')) banner(null);

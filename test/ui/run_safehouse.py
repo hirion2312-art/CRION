@@ -119,7 +119,7 @@ async def main():
         await ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': MODES}); await page.wait_for_timeout(200)
         print('누른 버튼(새로하기→하드모드→시작 한 번):', [x[1] for x in await page.evaluate('window.__sent') if x[0] == 'crion:click'])
         await ipc(page, 'crion:url', {'url': 'https://crack.wrtn.ai/u/me/c/s1', 'chat': True})
-        await ipc(page, 'crion:state', {'page': 'chat', 'input': True, 'url': 'https://crack.wrtn.ai/u/me/c/s1', 'msgs': 1, 'actions': []})
+        await ipc(page, 'crion:state', {'page': 'chat', 'input': True, 'url': 'https://crack.wrtn.ai/u/me/c/s1', 'msgs': 1, 'actions': [{'id': 0, 'kind': 'mode', 'label': '기본모드'}]})
         await page.wait_for_timeout(300)
         print('연결:', await page.evaluate('window.__pk.state.mode'), [x['url'] for x in await page.evaluate('window.__pk.saves()')])
         # 프롤로그 → 영화식 → 등록증

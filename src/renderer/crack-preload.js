@@ -80,11 +80,48 @@ const START_WORDS = [
 ];
 // '새 대화' 계열 (크랙 실제 표기: 작품 화면의 '새로하기' — 누르면 확인 없이 바로 새 대화가 열림. 그 밖에 새로 대화하기 · 새 대화 · 처음부터) — 작품 화면·대화 화면 모두
 const NEW_STRONG = /^[+＋]?\s*(새로\s*하기|새로운?\s*(대화|채팅)(\s*(시작|하기))?(하기)?|새로\s*(대화|채팅|시작)(하기)?|새\s*(대화|채팅)(\s*(시작|하기))?|처음부터(\s*(시작|하기))?|대화\s*새로\s*(시작|하기)|다시\s*시작(하기)?)$/;
-const CONFIRM = /^(확인|시작|시작하기|대화\s*시작(하기)?|새로\s*시작(하기)?|네|예|계속)$/;
+const CONFIRM = /^(확인|시작|시작하기|대화\s*시작(하기)?|새로\s*시작(하기)?|네|예|계속|선택|선택\s*완료|완료|이걸로\s*시작(하기)?|이\s*설정으로\s*시작(하기)?)$/;
 const DIALOG = '[role="dialog"], [aria-modal="true"], [class*="modal" i], [class*="dialog" i], [class*="popup" i]';
 const labelOf = (b) => ((b.innerText || b.textContent || b.getAttribute('aria-label') || b.title || '') + '').trim().replace(/\s+/g, ' ');
-const modeName = (t) => { const n = t.replace(/\s+/g, ''); const m = startModes.find(x => n.startsWith(x)); return m || t; };
-const isModeLabel = (t) => { if (!startModes.length) return false; const n = t.replace(/\s+/g, ''); return startModes.some(m => n === m || (n.startsWith(m) && n.length <= m.length + 80)); };
+// 떠 있는 창 안인지: 모달 표시가 있거나 조상 중 화면 고정(position fixed) 상자가 있으면
+function inOverlay(el) {
+  if (!el) return false;
+  if (el.closest(DIALOG)) return true;
+  for (let c = el; c && c !== document.body; c = c.parentElement) { try { if (getComputedStyle(c).position === 'fixed') return true; } catch (e) { return false; } }
+  return false;
+}
+const CLICKABLE = 'button, a[href], [role="button"], [role="radio"], [role="option"], [role="menuitem"], [role="tab"], label, li';
+function modeTargets(onChat) {
+  if (!startModes.length) return [];
+  const found = {};   // 이름 → [{el, over}] — 작품 화면에 같은 이름이 있어도 떠 있는 창 안의 것을 고른다
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const t = (n.nodeValue || '').replace(/\s+/g, '');
+    if (!t || t.length > 40) continue;
+    const m = startModes.find(x => t === x || t.startsWith(x));
+    if (!m) continue;
+    const el = n.parentElement;
+    if (!el || !visible(el) || el.closest('script, style, textarea, [contenteditable="true"]')) continue;
+    const over = inOverlay(el);
+    if (onChat && !over) continue;
+    let c = el, hit = null;
+    for (let i = 0; i < 6 && c && c !== document.body; i++, c = c.parentElement) {
+      if (c.matches(CLICKABLE)) { hit = c; break; }
+      try { if (getComputedStyle(c).cursor === 'pointer') { hit = c; break; } } catch (e) { break; }
+    }
+    (found[m] = found[m] || []).push({ el: hit || el, over });
+  }
+  const anyOver = Object.values(found).some(l => l.some(x => x.over));
+  const out = [];
+  for (const m of startModes) {
+    const l = found[m];
+    if (!l) continue;
+    const pick = l.find(x => x.over) || (anyOver ? null : l[0]);
+    if (pick) out.push({ el: pick.el, label: m });
+  }
+  return out;
+}
 let actionEls = [];
 function pageActions(onChat) {
   actionEls = [];
@@ -98,28 +135,18 @@ function pageActions(onChat) {
     const t = labelOf(b);
     if (!t) continue;
     const vis = visible(b);
-    // 새로하기 뒤 '시작 설정'을 고르는 버튼 (팩이 알려 준 이름과 같거나 그 이름으로 시작, 설명이 붙어 있어도) — 플레이어가 고른 것만 누른다
-    if (vis && isModeLabel(t)) { add(b, 'mode', t.split(/\s/)[0] === t ? t : modeName(t)); continue; }
     if (t.length > 18) continue;
     if (NEW_STRONG.test(t)) { add(b, 'new', t, !vis); continue; }
     if (!vis) continue;
-    if (CONFIRM.test(t) && b.closest(DIALOG)) { add(b, 'confirm', t); continue; }
+    if (CONFIRM.test(t) && inOverlay(b)) { add(b, 'confirm', t); continue; }
     if (onChat) continue;
     for (const [kind, re] of START_WORDS) {
       if (re.test(t)) { add(b, kind, t); break; }
     }
   }
-  // 시작 설정 버튼이 역할 표시 없는 상자(div)일 때: 이름 글자를 찾아 눌리는 조상(손가락 커서)을 쓴다
-  if (startModes.length && !out.some(a => a.kind === 'mode') && (!onChat || q(DIALOG))) {
-    for (const e of qa('div, span, p, strong, b, h3, h4')) {
-      if (e.children.length > 2 || !visible(e)) continue;
-      const n = labelOf(e).replace(/\s+/g, '');
-      if (!startModes.includes(n)) continue;
-      let c = e;
-      for (let i = 0; i < 5 && c && c !== document.body; i++, c = c.parentElement) { try { if (getComputedStyle(c).cursor === 'pointer') break; } catch (err) { break; } }
-      add(c && c !== document.body ? c : e, 'mode', labelOf(e));
-    }
-  }
+  // 새로하기 뒤 '시작 설정'(팩이 알려 준 이름, 예: 기본모드·하드모드)을 고르는 버튼 — 글자로 찾아 눌리는 조상을 쓴다
+  //  대화 화면에선 떠 있는 창(모달·고정 위치) 안의 것만 (머리줄에 남은 '기본모드' 글자 등은 아님)
+  for (const m of modeTargets(onChat)) add(m.el, 'mode', m.label);
   // 바깥 상자와 안쪽 버튼이 같은 글이면 안쪽만
   const keep = out.filter((a) => !out.some(o => o !== a && o.label === a.label && actionEls[a.id].contains(actionEls[o.id])));
   const rank = { new: 0, mode: 1, confirm: 2, continue: 3 };

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.safehouse",
   "name": "아포칼립스 안전지대의 관리자 · 석벽빌라",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "runner": "safehouse",
   "devOnly": true,
   "workId": "safehouse",
