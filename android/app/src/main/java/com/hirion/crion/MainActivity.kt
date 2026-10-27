@@ -243,20 +243,50 @@ class MainActivity : Activity() {
                 if (!request.isForMainFrame) return
                 emitWv("did-fail-load", JSONObject().put("errorCode", error.errorCode).put("errorDescription", error.description?.toString() ?: ""))
             }
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val u = request.url
-                val s = u.scheme ?: ""
-                if (s == "https") return false
-                // 카카오톡 로그인 같은 앱 연결(intent:, kakaotalk: …)은 그 앱으로 넘긴다
-                try {
-                    val i = if (s == "intent") Intent.parseUri(u.toString(), Intent.URI_INTENT_SCHEME) else Intent(Intent.ACTION_VIEW, u)
-                    i.addCategory(Intent.CATEGORY_BROWSABLE); i.component = null; i.selector = null
-                    startActivity(i)
-                } catch (e: Exception) { /* 앱이 없음 */ }
-                return true
-            }
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = guardCrackNav(view, request.url, request.isForMainFrame)
         }
         crackWv.webChromeClient = WebChromeClient()
+    }
+
+
+    // ---------- 크랙 화면이 앱·플레이스토어로 넘어가는 것 막기 ----------
+    //  폰에서 크랙 웹은 대화방에 들어가면 '앱으로 열기'(intent:// · market:// · 앱 링크 · play.google.com)로 보내려 한다.
+    //  크랙 화면 안에서는 크랙(wrtn.ai)과 로그인 페이지만 연다. 그 밖의 이동은 막고, 앱 연결 중 카카오 로그인만 허용한다.
+    private val navHosts = listOf("wrtn.ai", "accounts.google.com", "kauth.kakao.com", "accounts.kakao.com", "logins.daum.net",
+        "appleid.apple.com", "nid.naver.com", "www.facebook.com", "m.facebook.com")
+    private fun hostOk(h: String?) = h != null && navHosts.any { h == it || h.endsWith(".$it") }
+    private val loginApps = setOf("com.kakao.talk")   // 카카오톡 간편 로그인
+    private fun guardCrackNav(view: WebView, u: Uri, mainFrame: Boolean): Boolean {
+        val scheme = (u.scheme ?: "").lowercase()
+        if (scheme == "https") {
+            if (hostOk(u.host)) return false
+            if (!mainFrame) return false
+            blockedNav(u.toString())
+            return true   // play.google.com · 앱 링크(onelink, app.link, page.link …) · 그 밖의 사이트
+        }
+        if (scheme == "intent") {
+            val i = try { Intent.parseUri(u.toString(), Intent.URI_INTENT_SCHEME) } catch (e: Exception) { null }
+            if (i != null && i.`package` in loginApps) {
+                try { i.addCategory(Intent.CATEGORY_BROWSABLE); i.component = null; i.selector = null; startActivity(i); return true } catch (e: Exception) { /* 앱 없음 → 대체 주소 */ }
+            }
+            // 대체 웹 주소가 크랙·로그인이면 그쪽으로 (앱 대신 웹으로 계속)
+            val fb = i?.getStringExtra("browser_fallback_url")
+            if (fb != null && fb.startsWith("https://") && hostOk(Uri.parse(fb).host)) { view.loadUrl(fb); return true }
+            blockedNav(u.toString())
+            return true
+        }
+        if (scheme == "kakaotalk" || scheme == "kakaokompassauth" || scheme == "kakaolink") {
+            try { startActivity(Intent(Intent.ACTION_VIEW, u).addCategory(Intent.CATEGORY_BROWSABLE)) } catch (e: Exception) { /* 앱 없음 */ }
+            return true
+        }
+        blockedNav(u.toString())   // market:// · wrtn:// · crack:// 등 앱·스토어 열기
+        return true
+    }
+    private var lastBlock = 0L
+    private fun blockedNav(url: String) {
+        android.util.Log.i("CRION", "크랙 화면 이동 막음: $url")
+        val now = System.currentTimeMillis()
+        if (now - lastBlock > 4000) { lastBlock = now; emitWv("crion-blocked", JSONObject().put("url", url)) }
     }
 
     private fun isCrackHost(url: String): Boolean { val h = try { Uri.parse(url).host ?: "" } catch (e: Exception) { "" }; return h == "wrtn.ai" || h.endsWith(".wrtn.ai") }

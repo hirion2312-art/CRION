@@ -1,0 +1,66 @@
+# 폰 세로 화면 점검 (안드로이드판): python3 test/ui/run_mobile.py → test/out/m_*.png (390×844)
+import asyncio, json, os, sys
+sys.path.insert(0, '/home/claude/crion/test/ui')
+import run_safehouse as T
+from playwright.async_api import async_playwright
+OUT = T.OUT
+
+async def main():
+    errs = []
+    async with async_playwright() as p:
+        b = await p.chromium.launch(args=['--allow-file-access-from-files'])
+        ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = await ctx.new_page()
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        await page.add_init_script("window.__engineVersion='0.9.0'")
+        await T.setup(page)
+        await page.goto(T.BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(2200)
+        await page.screenshot(path=OUT + 'm_a1_home.png')
+        for v in ['store', 'community', 'records', 'settings']:
+            await page.click(f'.nav [data-v={v}]'); await page.wait_for_timeout(500)
+            await page.screenshot(path=OUT + f'm_a_{v}.png')
+        await page.click('.nav [data-v=home]'); await page.wait_for_timeout(300)
+        await page.evaluate("window.__crion.S.dev.repo = { loadWorks: async () => ({ data: { works: [], hidden: [] } }), lastDeploy: async () => null }")
+        await page.click('.nav [data-v=store]'); await page.wait_for_timeout(700)
+        await page.click('.pcard [data-act=pack]'); await page.wait_for_timeout(500)
+        await page.screenshot(path=OUT + 'm_b1_pack_detail.png')
+        await page.click('.modal [data-act=pack-install]')
+        for _ in range(60):
+            await page.wait_for_timeout(300)
+            if await page.evaluate("!!JSON.parse(localStorage.getItem('crion.packs')||'{}')['hirion.safehouse']"): break
+        await page.wait_for_timeout(300); await page.click('.modal [data-act=pack-play]'); await page.wait_for_timeout(1200)
+        await page.evaluate("""(()=>{const w=document.querySelector('#crack');w.dispatchEvent(new Event('did-stop-loading'));})()""")
+        await page.wait_for_function("!!document.querySelector('.sh')"); await page.wait_for_timeout(2800)
+        await page.screenshot(path=OUT + 'm_c1_title.png')
+        await page.click('[data-sh=t-new]'); await page.wait_for_timeout(200)
+        await T.ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': [{'id': 0, 'kind': 'new', 'label': '새로하기'}]}); await page.wait_for_timeout(150)
+        await T.ipc(page, 'crion:state', {'page': 'detail', 'url': 'https://crack.wrtn.ai/detail/safehouse', 'actions': [{'id': 0, 'kind': 'new', 'label': '새로하기'}, {'id': 1, 'kind': 'mode', 'label': '기본모드'}, {'id': 2, 'kind': 'mode', 'label': '하드모드'}]}); await page.wait_for_timeout(300)
+        await page.screenshot(path=OUT + 'm_c2_modes.png')
+        await page.click('.sh-mode[data-label=기본모드]')
+        await T.ipc(page, 'crion:url', {'url': 'https://crack.wrtn.ai/u/me/c/m1', 'chat': True})
+        await T.ipc(page, 'crion:state', {'page': 'chat', 'input': True, 'url': 'https://crack.wrtn.ai/u/me/c/m1', 'msgs': 1, 'actions': []}); await page.wait_for_timeout(300)
+        await T.ipc(page, 'crion:reply', {'key': 'k0', 'segs': T.PROLOGUE, 'done': True}); await page.wait_for_timeout(1200)
+        await page.screenshot(path=OUT + 'm_c3_prologue.png')
+        await page.click('[data-sh=cine-skip]'); await page.wait_for_timeout(700)
+        await page.screenshot(path=OUT + 'm_c4_reg.png')
+        await page.click('[data-sh=reg-act][data-i="0"]'); await page.click('[data-sh=reg-ok]'); await page.wait_for_timeout(300)
+        for i, t in enumerate([T.T1, T.T2, T.T3]):
+            await page.evaluate("window.__pk.state.waiting=false")
+            await T.ipc(page, 'crion:reply', {'key': 'k%d' % (i + 1), 'segs': t, 'done': True}); await page.wait_for_timeout(600)
+            await T.drain(page)
+        await page.wait_for_timeout(400)
+        await page.screenshot(path=OUT + 'm_d1_lobby.png')
+        await page.click('#sh-dlg'); await page.wait_for_timeout(100)
+        await page.click('#sh-phone .chev'); await page.wait_for_timeout(500)
+        await page.screenshot(path=OUT + 'm_d2_phone.png')
+        for k in ['building', 'people', 'explore', 'lab', 'dex']:
+            await page.click(f'#sh-screen [data-sh=go][data-k={k}]'); await page.wait_for_timeout(900)
+            await page.screenshot(path=OUT + f'm_e_{k}.png')
+            await page.click('#sh-topnav'); await page.wait_for_timeout(300)
+            if await page.evaluate("document.querySelector('#sh-phone').className!=='peek'"): await page.click('#sh-phone .chev'); await page.wait_for_timeout(400)
+        await page.click('#sh-hudr [data-k=log]'); await page.wait_for_timeout(800); await page.screenshot(path=OUT + 'm_e_log.png'); await page.click('#sh-topnav')
+        await page.click('[data-act=pk-crack]'); await page.wait_for_timeout(300); await page.screenshot(path=OUT + 'm_f1_crackview.png')
+        await b.close()
+    print('오류:', errs or '없음')
+
+asyncio.run(main())

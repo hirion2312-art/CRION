@@ -483,3 +483,106 @@
 .sh .sh-mode:hover{border-color:var(--pill)}
 .sh .sh-mode.on{background:var(--pill);color:var(--pill-ink);border-color:var(--pill)}
 .sh .sh-gate .sh-small{font-size:12px;color:#a8a39a;line-height:1.6}
+
+/* ================= 폰 세로 화면 (안드로이드판) =================
+   팩 상자가 세로로 길 때만 (container orientation). 가로 화면(컴퓨터판)은 위 규칙 그대로.
+   원본 크기(--vh 기준)는 세로에서 너무 커지므로 폭(--vw) 기준으로 다시 잡는다 */
+@container (orientation: portrait) {
+  /* HUD */
+  .sh .hud-l { top: 10px; left: 12px; gap: 2px; }
+  .sh .dayt, .sh .hud-l.compact .dayt { font-size: clamp(30px, calc(10*var(--vw)), 46px); }
+  .sh .loc { font-size: clamp(14px, calc(4.2*var(--vw)), 20px); }
+  .sh .stat-row, .sh .hud-l.compact .stat-row { flex-direction: row; max-width: calc(100vw - 24px); margin-top: 4px; gap: 4px; }
+  .sh .hud-l .s-sp { font-size: 11px; }
+  .sh .hud-r { top: 10px; right: 10px; gap: 12px; }
+  .sh .hud-r button { font-size: 10px; gap: 2px; }
+  .sh .hud-r svg.ic { font-size: 26px; }
+  .sh .hud-c { display: block; top: 112px; left: 12px; right: 12px; transform: none; }
+  .sh .hud-c[hidden] { display: none; }
+  .sh .hc { flex-wrap: wrap; justify-content: center; gap: 4px 12px; padding: 6px 10px; border-radius: 14px; font-size: 13px; }
+  .sh .hc .lb, .sh .hc .sep { display: none; }
+  .sh #sh-topnav { top: 2px; }
+  .sh #sh-topnav svg { font-size: 26px; }
+  /* 로비 대사창: 화면 폭 전체, 아래 */
+  .sh #sh-dlg { left: 10px; right: 10px; width: auto; bottom: 46px; padding: 10px 14px; min-height: 0; }
+  .sh .dname { font-size: clamp(24px, calc(8*var(--vw)), 34px); }
+  .sh .dline { font-size: clamp(16px, calc(4.8*var(--vw)), 20px); max-width: none; }
+  .sh #sh-dlg.k-narr .dline { font-size: clamp(15px, calc(4.4*var(--vw)), 18px); }
+  .sh .sh-act { font-size: 13px; }
+  .sh .sh-endq { font-size: clamp(20px, calc(6.4*var(--vw)), 28px); }
+  .sh .sh-radio { font-size: 16px; }
+  /* 스마트폰: 기본은 접힘(손잡이만), 누르면 아래에서 올라옴 */
+  .sh #sh-phone { width: calc(100% - 20px); right: 10px; height: min(76%, 640px); }
+  .sh #sh-phone.peek { transform: translateY(calc(100% - 38px)); }
+  .sh #sh-phone.down { transform: translateY(0); }
+  .sh #sh-phone.hide { transform: translateY(110%); }
+  .sh #sh-phone.peek .chev svg { transform: rotate(180deg); }
+  .sh #sh-phone.down .chev svg { transform: none; }
+  .sh .apps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 4px; }
+  .sh .appi { font-size: 12px; }
+  .sh .appi .ico { width: 44px; height: 44px; font-size: 30px; }
+  .sh .appi.hot .ico { font-size: 22px; }
+  /* 관리 화면 공통 */
+  .sh .vmain, .sh .vmain.wide { left: 10px !important; right: 10px !important; top: 158px !important; bottom: 96px !important; align-items: flex-start; }
+  .sh .obar { left: 10px; right: 10px; bottom: 10px; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .sh .obar.many { flex-wrap: wrap; gap: 6px; }
+  .sh .ob, .sh .obar.many .ob { font-size: 15px; padding: .32em .95em; }
+  .sh .note[data-sk=note] { left: 10px !important; right: 10px !important; width: auto !important; top: auto !important; bottom: 92px !important; max-height: 56% !important; transform: none; }
+  /* 건물 도면: 폭에 맞추고 층 탭은 위에 가로로 */
+  .sh .bp { height: auto; width: 100%; margin-top: 30px; }
+  .sh .floors { right: auto; left: 0; top: -32px; flex-direction: row; gap: 4px; }
+  .sh .flt { border-radius: 6px 6px 0 0; min-width: 0; padding: 3px 9px; font-size: 13px; }
+  .sh .rm .s-nm { font-size: clamp(13px, calc(4.4*var(--vw)), 20px); }
+  .sh .rm .ac { font-size: clamp(9px, calc(2.6*var(--vw)), 12px); }
+  .sh .rm.lbl { font-size: clamp(12px, calc(3.6*var(--vw)), 17px); }
+  .sh .bp .title, .sh .sh-planinfo { font-size: 13px; }
+  .sh .sh-planinfo { bottom: -22px; right: 0; color: #e9e2cf; }
+  .sh .bp .title { bottom: -22px; left: 0; color: #e9e2cf; }
+  /* 인사 파일: 한 장씩 세로로, 사람 탭은 위에 가로로 */
+  .sh .folder { width: 100%; height: 100%; margin-top: 34px; grid-template-columns: 1fr; grid-auto-rows: max-content; overflow: auto; }
+  .sh .folder::before { display: none; }
+  .sh .fpage { overflow: visible; }
+  .sh .ftabs { left: 0; right: 0; top: -36px; bottom: auto; transform: none; flex-direction: row; overflow-x: auto; max-width: none; padding: 0; }
+  .sh .ftab { border-radius: 8px 8px 0 0; min-width: 0; flex: none; padding: 4px 10px; }
+  .sh .ftab.on { margin: 0; }
+  .sh .pname { font-size: clamp(22px, calc(7*var(--vw)), 32px); }
+  .sh .polaroid .s-ph { font-size: 28px; }
+  /* 파견 지도: 지도 위, 메모 아래 */
+  .sh .mapwrap { flex-direction: column; gap: 10px; }
+  .sh .map { flex: none; width: 100%; aspect-ratio: 1 / 1.02; }
+  .sh .mapnote { flex: 1; min-height: 120px; transform: none; }
+  .sh .pinb .lb { font-size: clamp(11px, calc(3.4*var(--vw)), 15px); }
+  .sh .pinb .pn { width: 12px; height: 12px; }
+  .sh .home { font-size: 12px; }
+  /* 연구소 */
+  .sh .labwrap { flex-direction: column; gap: 12px; }
+  .sh .clipb { flex: 1; min-height: 0; }
+  .sh .shelf { flex: none; }
+  .sh .btl .s-body { max-height: 90px; }
+  .sh .btl .s-cnt { font-size: 20px; }
+  /* 도감: 6칸씩, 아래로 넘기기 */
+  .sh .board.sh-board { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: 104px; overflow: auto; padding: 4px 2px 10px; gap: 10px 8px; height: 100%; }
+  .sh .pol .s-ph { font-size: 18px; }
+  .sh .pol .cp { font-size: 13px; }
+  /* 운영일지: 한 장 */
+  .sh .notebook { grid-template-columns: 1fr; width: 100%; height: 100%; overflow: auto; }
+  .sh .notebook::after { display: none; }
+  .sh .npage { overflow: visible; font-size: clamp(15px, calc(4.6*var(--vw)), 20px); }
+  /* 아침점호 · 프롤로그 · 등록증 · 타이틀 */
+  .sh .ctitle { font-size: clamp(30px, calc(11*var(--vw)), 50px); }
+  .sh .clines p { font-size: clamp(15px, calc(4.6*var(--vw)), 20px); }
+  .sh #sh-cine { padding: 0 7%; }
+  .sh .ctext { font-size: clamp(16px, calc(5*var(--vw)), 22px); }
+  .sh #sh-reg .paper { width: calc(100% - 24px); }
+  .sh .rt { font-size: 28px; }
+  .sh #sh-rname { font-size: 26px; }
+  .sh .sh-racts button { font-size: 15px; }
+  .sh #sh-title .tcopy { top: 112px; max-width: calc(100% - 24px); }
+  .sh #sh-title .thero { font-size: clamp(34px, calc(11.5*var(--vw)), 54px); }
+  .sh #sh-title .tsub { font-size: 17px; }
+  .sh .tmenu { left: 12px; right: 12px; width: auto; }
+  .sh .sh-saves { left: 12px; right: 12px; width: auto; top: auto; bottom: 196px; max-height: 32%; }
+  .sh .tfoot { display: none; }
+  .sh .sh-mode { min-width: 120px; font-size: 20px; padding: 12px 16px; }
+  .sh .sh-banner:not(.center) { left: 10px; right: 10px; transform: none; }
+}
