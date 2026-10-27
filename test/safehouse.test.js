@@ -130,4 +130,24 @@ t('조사 받침', () => {
   assert.strictEqual(SH.joinNames(['김소담', '이나래', '조현우']), '김소담, 이나래, 조현우');
 });
 
+t('장면 음악: 타이틀·시간대·그림·장소·바깥·사망·입주·점호', () => {
+  const man = require(path.join(__dirname, '..', 'packs', 'hirion.safehouse', 'manifest.json'));
+  const regions = data.regions.map(r => r.n);
+  const P = (o) => SH.pickBgm(man, Object.assign({ regions }, o));
+  assert.strictEqual(P({ screen: 'title' }), 'title');
+  assert.strictEqual(P({ status: { time: '아침', place: '2층 빈 호실', day: 1 } }), 'morning');
+  assert.strictEqual(P({ status: { time: '낮', place: '1층 철문', day: 3 } }), 'day');
+  assert.strictEqual(P({ status: { time: '밤', place: '4층 집주인방', day: 3 } }), 'night');
+  assert.strictEqual(P({ status: { time: '낮', place: '식당', day: 3 } }), 'evening');
+  assert.strictEqual(P({ status: { time: '낮', place: '청운24시 편의점', day: 3 } }), 'night', '바깥 파견 동행');
+  assert.strictEqual(P({ status: { time: '낮', place: '식당', day: 11 }, imgs: [{ src: 'https://x/a.webp', alt: '빌라웨이브' }] }), 'night', '웨이브 그림');
+  assert.strictEqual(P({ status: { time: '아침', place: '식당', day: 12 }, imgs: [{ src: 'https://x/%EB%B9%8C%EB%9D%BC%ED%95%A8%EB%9D%BD.webp' }] }), 'title', '함락 (그림 주소 이름)');
+  assert.strictEqual(P({ status: { time: '낮', place: '로비', day: 5 }, delta: [{ kind: 'ev', name: '김소담', ev: '사망' }] }), 'title', '사망');
+  assert.strictEqual(P({ status: { time: '낮', place: '로비', day: 5 }, joined: ['김소담'] }), 'evening', '입주');
+  assert.strictEqual(P({ screen: 'rollcall', status: { time: '아침', day: 6 } }), 'morning');
+  assert.strictEqual(P({ status: { time: '저녁', place: '옥상', day: 100 } }), 'title', 'D100 엔딩');
+  assert.strictEqual(P({ status: { time: '밤', place: '옥상', day: 8 }, imgs: [{ src: 'x', alt: '옥상밤' }] }), 'night');
+  assert.strictEqual(P({}), 'day');
+});
+
 console.log(`안전지대 해석 ${ok}/${ok} 통과`);

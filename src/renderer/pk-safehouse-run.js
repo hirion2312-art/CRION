@@ -58,7 +58,7 @@
     let saves = lsGet(SAVES_KEY, []).filter(x => x && x.id);
     const putSaves = () => lsSet(SAVES_KEY, saves);
     const M = SH.blank();
-    M.prefs = Object.assign({ speed: 'normal', fx: true }, lsGet(PREF_KEY, {}));
+    M.prefs = Object.assign({ speed: 'normal', fx: true, music: true, vol: 55 }, lsGet(PREF_KEY, {}));
     let saveId = null, saveT = null;
     const save = () => {
       clearTimeout(saveT);
@@ -118,6 +118,22 @@
     [shRoot, $('.sh-stage'), $('#sh-scene')].forEach(n => n.addEventListener('scroll', () => { if (n.scrollTop || n.scrollLeft) { n.scrollTop = 0; n.scrollLeft = 0; } }));
     shRoot.classList.toggle('nofx', !M.prefs.fx);
     const toast = (t) => o.toast(t);
+
+    // ---------- 음악 (팩 manifest의 bgm 맵 · 장면 고르기는 CrionSafehouse.pickBgm) ----------
+    const bgm = root.CrionBgm ? new root.CrionBgm() : null;
+    if (bgm) bgm.setVolume(M.prefs.vol / 100);
+    let bgmId = '';
+    const regionNames = (data.regions || []).map(r => r.n);
+    function playBgm(id) {
+      if (!bgm || !id) return;
+      const p = (man.bgm || {})[id];
+      if (!p || !res(p)) return;
+      if (id === bgmId && bgm.src) return;
+      bgmId = id;
+      if (!M.prefs.music) return;
+      bgm.play(url(p));
+    }
+    const sceneBgm = (ctx) => playBgm(SH.pickBgm(man, Object.assign({ regions: regionNames, status: M.status }, ctx || {})));
 
     // ---------- 배경 (응답 그림을 나온 순서대로 풀화면) ----------
     let bgFlip = 0;
@@ -238,8 +254,10 @@
       renderHud(); renderPhone();
       if (R.view !== 'lobby') renderView();
       setMood(P.mood);
-      if (!M.prologue) { M.prologue = true; save(); playCine(R.beats); return; }
-      if (ev.dayChanged) { showCen(ev); return; }
+      R.nextBgm = { imgs: P.imgs, delta: P.delta, joined: ev.joined };
+      if (!M.prologue) { M.prologue = true; save(); sceneBgm({ screen: 'title' }); playCine(R.beats); return; }
+      if (ev.dayChanged) { sceneBgm({ screen: 'rollcall' }); showCen(ev); return; }
+      sceneBgm(R.nextBgm);
       startBeats();
     }
     function startBeats() {
@@ -262,7 +280,7 @@
       c.innerHTML = `<div class="ctitle">${ev.day}일차<br>아침점호</div><div class="clines">${lines.length ? lines.map(t => `<p>${t}</p>`).join('') : '<p>밤사이 별다른 보고는 없었다.</p>'}</div>
         <div class="cbtns"><button class="pl" data-sh="cen-ok">확인</button></div>`;
     }
-    function hideCen() { R.cen = null; $('#sh-cen').hidden = true; $('#sh-dlg').hidden = R.view !== 'lobby'; startBeats(); }
+    function hideCen() { R.cen = null; $('#sh-cen').hidden = true; $('#sh-dlg').hidden = R.view !== 'lobby'; sceneBgm(R.nextBgm); startBeats(); }
 
     // ---------- 프롤로그 (영화식) → 건물주 등록증 ----------
     function playCine(beats) {
@@ -314,6 +332,7 @@
       if (n) M.owner = n;
       save();
       $('#sh-reg').hidden = true;
+      sceneBgm(R.nextBgm);
       if (fillIt && R.regAct >= 0) fill(FIRST_ACTS[R.regAct]);
       R.i = R.beats.length - 1;
       showBeat(R.beats.length ? R.i : -1);
@@ -677,6 +696,8 @@
         box.innerHTML = `<h3>설정</h3>
           <div class="setrow"><span>글자 속도</span>${seg('speed', [['slow', '느림'], ['normal', '보통'], ['fast', '빠름'], ['instant', '즉시']])}</div>
           <div class="setrow"><span>화면 연출</span>${seg('fx', [[false, '끔'], [true, '켜짐']])}</div>
+          <div class="setrow"><span>배경 음악</span>${seg('music', [[false, '끔'], [true, '켜짐']])}</div>
+          <div class="setrow"><span>음량</span><span style="display:flex;gap:8px;align-items:center"><input type="range" id="sh-vol" min="0" max="100" value="${M.prefs.vol}"><b class="num" id="sh-volv">${M.prefs.vol}</b></span></div>
           <div class="setrow"><span>관리인 이름</span><span class="s-hint">${esc(owner())}</span></div>
           <p class="s-hint">게임 화면은 크랙 응답을 읽어 그려요. 크랙 프롬프트·진행은 그대로예요.</p>
           <div class="btns" style="justify-content:flex-start"><button class="s-btn" data-sh="title">처음 화면</button><button class="s-btn" data-sh="crack">크랙 화면 보기</button><button class="s-btn" data-sh="diag">화면 진단 복사</button><button class="s-btn danger" data-sh="pack-off">플레이팩 끄기</button></div>
@@ -728,7 +749,7 @@
         case 'lines': openModal('lines'); break;
         case 'set': openModal('set'); break;
         case 'mclose': closeModal(); break;
-        case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); shRoot.classList.toggle('nofx', !M.prefs.fx); setMood(R.mood); openModal('set'); break; }
+        case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); if (t.dataset.key === 'music' && bgm) { if (M.prefs.music) { const id = bgmId; bgmId = ''; playBgm(id || SH.pickBgm(man, { screen: R.mode === 'title' ? 'title' : '', regions: regionNames, status: M.status })); } else bgm.stop(); } shRoot.classList.toggle('nofx', !M.prefs.fx); setMood(R.mood); openModal('set'); break; }
         case 'cen-ok': hideCen(); break;
         case 'cine-skip': cineEnd(); break;
         case 'reg-act': R.regAct = Number(t.dataset.i); el.querySelectorAll('.sh-racts button').forEach((b, i) => b.classList.toggle('on', i === R.regAct)); break;
@@ -750,7 +771,10 @@
         case 'pack-off': o.packOff(); break;
       }
     });
-    el.addEventListener('input', (e) => { if (e.target.id === 'sh-in') autosize(); });
+    el.addEventListener('input', (e) => {
+      if (e.target.id === 'sh-in') autosize();
+      if (e.target.id === 'sh-vol') { M.prefs.vol = Number(e.target.value); const v = el.querySelector('#sh-volv'); if (v) v.textContent = M.prefs.vol; if (bgm) bgm.setVolume(M.prefs.vol / 100); save(); }
+    });
     const onKey = (e) => {
       if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
       if (e.target.id === 'sh-in' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
@@ -800,7 +824,7 @@
       const d = $('#sh-dlg'); d.className = ''; d.innerHTML = '';
     }
     const hideTitle = () => { $('#sh-title').hidden = true; };
-    function showTitle() { R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false); renderTitle(); }
+    function showTitle() { R.mode = 'title'; R.newFlow = null; R.delAsk = null; banner(null); waitingUi(false); renderTitle(); sceneBgm({ screen: 'title' }); }
     function loading(msg) { const d = $('#sh-dlg'); d.className = 'k-wait'; d.innerHTML = `<div class="sh-radio"><span class="sh-wave"><i></i><i></i><i></i><i></i><i></i></span><b>${esc(msg)}<em>.</em><em>.</em><em>.</em></b></div>`; }
     function startNew() {
       const id = 'sv' + Date.now().toString(36);
@@ -820,6 +844,7 @@
       resetScene();
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
+      sceneBgm({});
       o.load(sv.url);
     }
     // 새로하기 뒤 크랙이 띄우는 '시작 설정'(기본모드·하드모드) 고르기 창 → 게임 화면 팝업
@@ -923,9 +948,9 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { document.removeEventListener('keydown', onKey); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
+      destroy() { if (bgm) bgm.stop(); document.removeEventListener('keydown', onKey); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
       demo(segs) { handle(segs); },
-      go, state: R, memory: M, saves: () => saves
+      go, state: R, memory: M, saves: () => saves, bgmNow: () => bgmId
     };
   }
 

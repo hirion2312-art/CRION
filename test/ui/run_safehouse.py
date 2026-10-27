@@ -101,6 +101,7 @@ async def main():
         print('위쪽 전환 버튼:', await page.evaluate("document.querySelector('[data-act=pk-crack]').innerText"))
         await page.wait_for_timeout(700); await page.screenshot(path=OUT + 'sh_b0_splash.png')
         await page.wait_for_timeout(2200); await page.screenshot(path=OUT + 'sh_b1_title.png')
+        print('음악 · 타이틀:', await page.evaluate('window.__pk.bgmNow()'))
         # 처음부터 → 새 대화 연결
         await page.click('[data-sh=t-new]'); await page.wait_for_timeout(300)
         await ipc(page, 'crion:url', {'url': 'https://crack.wrtn.ai/detail/safehouse', 'chat': False})
@@ -133,6 +134,7 @@ async def main():
         await page.fill('#sh-rname', '유'); await page.click('[data-sh=reg-act][data-i="1"]'); await page.click('[data-sh=reg-ok]'); await page.wait_for_timeout(300)
         print('등록증 → 입력칸:', await page.evaluate("document.querySelector('#sh-in').value"), '/ 전송 수:', await sent(page))
         await page.screenshot(path=OUT + 'sh_c3_lobby_after_reg.png')
+        print('음악 · 첫 로비(D1 아침):', await page.evaluate('window.__pk.bgmNow()'))
         # 보내기 1번 = 1번
         await page.click('[data-sh=send]'); await page.wait_for_timeout(200); await page.click('[data-sh=send]'); await page.wait_for_timeout(200)
         print('보내기 두 번 눌러도 전송 수:', await sent(page))
@@ -150,13 +152,16 @@ async def main():
         await ipc(page, 'crion:reply', {'key': 'k2', 'segs': T2, 'done': True}); await page.wait_for_timeout(700)
         print('아침점호 카드:', (await page.evaluate("(document.querySelector('#sh-cen:not([hidden])')||{innerText:''}).innerText")).replace('\n', ' | '))
         await page.screenshot(path=OUT + 'sh_e1_rollcall.png')
+        print('음악 · 아침점호:', await page.evaluate('window.__pk.bgmNow()'))
         await page.click('[data-sh=cen-ok]'); await page.wait_for_timeout(1200)
         await page.screenshot(path=OUT + 'sh_e2_crisis.png')
+        print('음악 · 웨이브 그림:', await page.evaluate('window.__pk.bgmNow()'))
         await drain(page)
         # 샘플 3
         await ipc(page, 'crion:reply', {'key': 'k3', 'segs': T3, 'done': True}); await page.wait_for_timeout(700)
         await drain(page); await page.wait_for_timeout(300)
         await page.screenshot(path=OUT + 'sh_f1_turn3.png')
+        print('음악 · 편의점 동행(낮):', await page.evaluate('window.__pk.bgmNow()'))
         await page.click('#sh-phone .chev'); await page.wait_for_timeout(500)
         await page.screenshot(path=OUT + 'sh_f2_phone_down.png')
         await page.click('#sh-phone .chev'); await page.wait_for_timeout(500)

@@ -51,3 +51,4 @@
   - 공개할 때: manifest의 `devOnly` 줄을 지우고 `version`을 올려 push.
 - `startModes` (manifest, 엔진 0.8.1~): 크랙 '시작 설정' 이름 목록(안전지대 = 기본모드·하드모드). 크랙 도우미가 '새로하기' 뒤 고르는 창의 그 버튼을 `mode`로 알아보고, 팩은 그 버튼들을 게임 화면에 띄워 **플레이어가 고른 것만** 한 번 누른 뒤 시작 버튼을 한 번 누른다. 못 찾으면 「크랙 화면에서 직접 고르기」 → 대화가 열리면 게임 화면으로 자동 복귀. 시험 `python3 test/ui/run_startmode.py`.
   - 0.8.2: 고르기 창은 '글자'로 찾고(설명이 붙거나 역할 없는 상자여도), 작품 화면 탭과 겹치면 떠 있는 창(모달·화면 고정) 안의 것을 고른다. 대화 화면에선 떠 있는 창 안의 것만(머리줄의 '하드모드' 글자는 무시). 크랙이 대화를 먼저 열고 그 위에 창을 띄워도 첫 응답 전까지는 팝업. 흐름 시험 `python3 test/ui/run_safehouse_new.py`(A 작품 화면 위 / B 대화 위 / C 크랙에서 직접).
+- 안전지대 BGM (엔진 0.8.3, 팩 1.0.3): `assets/bgm/` 5곡(title·morning·day·evening·night, 히리온 Suno 제작, 128kbps로 다시 인코딩). 고르기는 `pk-safehouse.js`의 `pickBgm` — 우선순위 함락·사망(`bgmFall`) > 응답 그림 이름(`bgmByImg`) > 장소(`bgmByLoc`, 밤엔 무시) > 바깥 지역(`bgmOutside`) > 입주(`bgmHope`) > 시간대(`bgmByTime`). 타이틀·프롤로그·등록증 = `bgmTitle`, 아침점호 = `bgmRollcall`, D100 = `bgmEnding`. 곡이 늘면 manifest 맵만 고치면 된다(프롬프트: `docs/안전지대_BGM_프롬프트.md`).

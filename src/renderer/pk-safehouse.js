@@ -366,7 +366,37 @@
     return a.slice(0, -1).join(', ') + ', ' + a[a.length - 1];
   }
 
-  const api = { Roster, parse, parseStatus, parseDelta, absorb, blank, josa, hasBatchim, joinNames, chunk, timeOf, RES_LABEL, isPerson, isPlace };
+  // ---------- 장면 음악 고르기 (manifest: bgm, bgmByTime, bgmByImg, bgmByLoc, bgmOutside, bgmFall, bgmHope, bgmRollcall, bgmEnding, bgmTitle) ----------
+  //  우선순위: 함락·사망 > 응답 그림 이름 > 장소 > 바깥(파견 지역) > 입주 > 시간대
+  function pickBgm(man, ctx) {
+    man = man || {}; ctx = ctx || {};
+    const has = (id) => !!(id && (man.bgm || {})[id]);
+    const ok = (id) => has(id) ? id : '';
+    if (ctx.screen === 'title') return ok(man.bgmTitle || 'title');
+    if (ctx.screen === 'rollcall' && has(man.bgmRollcall)) return man.bgmRollcall;
+    const st = ctx.status || {};
+    if (st.day >= 100 && has(man.bgmEnding)) return man.bgmEnding;
+    const fall = (ctx.delta || []).some(d => d.kind === 'ev' && /사망|전환/.test(d.ev));
+    const keyIn = (map, text) => Object.keys(map || {}).sort((a, b) => b.length - a.length).find(k => String(text || '').replace(/\s/g, '').includes(k));
+    let byImg = '';
+    for (const im of ctx.imgs || []) {
+      let name = im.alt || '';
+      try { name += ' ' + decodeURIComponent(im.src || ''); } catch (e) { name += ' ' + (im.src || ''); }
+      const k = keyIn(man.bgmByImg, name);
+      if (k) byImg = man.bgmByImg[k];
+    }
+    if ((fall || byImg === man.bgmFall) && has(man.bgmFall)) return man.bgmFall;
+    if (has(byImg)) return byImg;
+    const lk = st.time === '밤' ? '' : keyIn(man.bgmByLoc, st.place);   // 밤엔 장소보다 밤 곡
+    if (lk && has(man.bgmByLoc[lk])) return man.bgmByLoc[lk];
+    if (st.place && (ctx.regions || []).some(r => st.place.includes(r)) && has(man.bgmOutside)) return man.bgmOutside;
+    if ((ctx.joined || []).length && has(man.bgmHope)) return man.bgmHope;
+    const tm = (man.bgmByTime || {})[st.time];
+    if (has(tm)) return tm;
+    return ok(man.bgmDefault) || ok(man.bgmTitle || 'title');
+  }
+
+  const api = { pickBgm, Roster, parse, parseStatus, parseDelta, absorb, blank, josa, hasBatchim, joinNames, chunk, timeOf, RES_LABEL, isPerson, isPlace };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CrionSafehouse = api;
 })(typeof window !== 'undefined' ? window : globalThis);
