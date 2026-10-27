@@ -625,3 +625,9 @@ select.field { height: 42px; }
 .acct-privacy .link { font-size: 11.5px; padding: 0; }
 .acct-agree { display: flex; gap: 7px; align-items: center; font-size: 13px; margin: 8px 0 2px; cursor: pointer; }
 #acctSet .acct-privacy { padding: 10px 0 2px; }
+.news.has-img { padding: 0 0 14px; overflow: hidden; }
+.news.has-img > :not(.news-img) { margin-left: 18px; margin-right: 18px; }
+.news-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #18151c; margin-bottom: 14px; }
+.news.has-img .news-h { margin-top: 0; }
+.news-list-wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.news-list-wide .news { margin: 0; }

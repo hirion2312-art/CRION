@@ -102,6 +102,14 @@ for (const b of works.banners || []) {
   if (!fs.existsSync(file)) { console.error(`슬라이드 사진 없음: ${name}`); delete b.img; continue; }
   b.img = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + U.sha256(fs.readFileSync(file)).slice(0, 8);
 }
+// 소식 사진 (config/thumbs/news-*.webp)
+for (const n of works.news || []) {
+  if (!n.img || /^https?:/.test(n.img)) continue;
+  const name = n.img.replace(/^.*\//, '');
+  const file = path.join(thumbDir, name);
+  if (!fs.existsSync(file)) { console.error(`소식 사진 없음: ${name}`); delete n.img; continue; }
+  n.img = base + 'thumbs/' + encodeURIComponent(name) + '?v=' + U.sha256(fs.readFileSync(file)).slice(0, 8);
+}
 // 작품별 음악 (config/bgm/*.mp3)
 const bgmDir = path.join(ROOT, 'config', 'bgm');
 for (const w of works.works || []) {

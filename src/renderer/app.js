@@ -488,8 +488,8 @@
     let body = '';
     if (S.commTab === 'news') {
       body = (S.notice ? `<div class="news hot"><b>공지</b><p>${esc(S.notice.text)}</p></div>` : '')
-        + (news.length ? news.map(n => `<article class="news"><div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
-            ${n.text ? `<p>${esc(n.text)}</p>` : ''}${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}</article>`).join('')
+        + (news.length ? '<div class="news-list-wide">' + news.map(n => `<article class="news ${n.img ? 'has-img' : ''}">${n.img && /^https:\/\//.test(n.img) ? `<img class="news-img" src="${esc(n.img)}" alt="" loading="lazy">` : ''}<div class="news-h"><b>${esc(n.title || '')}</b><span>${esc(n.date || '')}</span></div>
+            ${n.text ? `<p>${esc(n.text)}</p>` : ''}${n.link && /^https:\/\//.test(n.link) ? `<button class="link" data-act="open-link" data-url="${esc(n.link)}">자세히 보기 →</button>` : ''}</article>`).join('') + '</div>'
           : (!S.notice ? '<div class="empty"><b>아직 소식이 없어요</b><span>새 작품, 플레이팩, 업데이트 소식이 여기에 올라와요.</span></div>' : ''));
     } else if (S.commTab === 'board') {
       body = BD.boardHtml();

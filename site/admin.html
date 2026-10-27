@@ -213,6 +213,7 @@
 <div id="toast"></div>
 <input type="file" id="file" accept="image/png,image/jpeg,image/webp" class="hidden">
 <input type="file" id="slideFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+<input type="file" id="newsFile" accept="image/png,image/jpeg,image/webp" class="hidden">
 <input type="file" id="bgmFile" accept="audio/mpeg,.mp3" class="hidden">
 
 <script>
@@ -224,7 +225,7 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let token = '';
-  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {}, bgmUp = {}, slideUp = {};
+  let base = null, data = null, sha = null, pkg = null, pkgSha = null, uploads = {}, bgmUp = {}, slideUp = {}, newsUp = {};
   const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2600); };
   const dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
   const enc = (str) => { const bytes = new TextEncoder().encode(str); let s = ''; bytes.forEach(b => { s += String.fromCharCode(b); }); return btoa(s); };
@@ -282,6 +283,7 @@
     data.banners = Array.isArray(data.banners) ? data.banners : [];
     uploads = {};
     slideUp = {};
+    newsUp = {};
     bgmUp = {};
     const p = await getFile('package.json');
     pkg = JSON.parse(p.text); pkgSha = p.sha;
@@ -346,7 +348,7 @@
         <div class="full"><label>내용</label><textarea data-nf="text" rows="2">${esc(n.text || '')}</textarea></div>
         <div class="full"><label>링크 (선택, https)</label><input type="text" data-nf="link" value="${esc(n.link || '')}"></div>
       </div>
-      <div class="side"><button class="btn sm danger" data-na="del">삭제</button></div></div>`).join('') || '<p class="sub">소식이 없어요.</p>';
+      <div class="side">${newsSrc(n) ? `<img src="${esc(newsSrc(n))}" style="width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px">` : ''}<button class="btn sm" data-na="img">${n.img ? '사진 바꾸기' : '사진 넣기'}</button>${n.img ? '<button class="btn sm" data-na="img-del">사진 빼기</button>' : ''}<button class="btn sm danger" data-na="del">삭제</button></div></div>`).join('') || '<p class="sub">소식이 없어요.</p>';
   }
   $('#news').addEventListener('input', (e) => {
     const row = e.target.closest('[data-n]');
@@ -354,11 +356,32 @@
     data.news[Number(row.dataset.n)][e.target.dataset.nf] = e.target.value.trim();
     markDirty();
   });
+  const newsSrc = (n) => !n.img ? '' : newsUp[n.img] ? newsUp[n.img].preview : /^https?:/.test(n.img) ? n.img : RAW('config/thumbs/' + n.img);
+  let newsFor = null;
   $('#news').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-na=del]');
+    const b = e.target.closest('[data-na]');
     if (!b) return;
-    data.news.splice(Number(b.closest('[data-n]').dataset.n), 1);
+    const n = data.news[Number(b.closest('[data-n]').dataset.n)];
+    if (b.dataset.na === 'img') { newsFor = n; $('#newsFile').value = ''; $('#newsFile').click(); return; }
+    if (b.dataset.na === 'img-del') { delete newsUp[n.img]; delete n.img; }
+    if (b.dataset.na === 'del') { delete newsUp[n.img]; data.news.splice(data.news.indexOf(n), 1); }
     renderNews(); markDirty();
+  });
+  $('#newsFile').addEventListener('change', async () => {
+    const f = $('#newsFile').files[0];
+    if (!f || !newsFor) return;
+    const img = await createImageBitmap(f);   // 16:9, 1200px 폭으로 맞춰 webp
+    const W = Math.min(1200, img.width), H = Math.round(W * 9 / 16);
+    const r = Math.max(W / img.width, H / img.height), sw = W / r, sh = H / r;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    c.getContext('2d').drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, W, H);
+    const url = c.toDataURL('image/webp', 0.86);
+    if (newsFor.img) delete newsUp[newsFor.img];
+    const name = 'news-' + Date.now().toString(36) + '.webp';
+    newsUp[name] = { name, b64: url.split(',')[1], preview: url };
+    newsFor.img = name;
+    renderNews(); markDirty();
+    toast('사진을 넣었어요. 배포하기를 눌러야 올라가요');
   });
   $('#addNews').onclick = () => {
     data.news.unshift({ date: new Date().toLocaleDateString('sv-SE'), title: '', text: '', link: '' });
@@ -404,7 +427,7 @@
     return JSON.stringify(out, null, 2) + '\n';
   }
   function markDirty() {
-    const dirty = collect() !== base || Object.keys(uploads).length > 0 || Object.keys(bgmUp).length > 0 || Object.keys(slideUp).length > 0;
+    const dirty = collect() !== base || Object.keys(uploads).length > 0 || Object.keys(bgmUp).length > 0 || Object.keys(slideUp).length > 0 || Object.keys(newsUp).length > 0;
     $('#state').textContent = dirty ? '바뀐 내용이 있어요 · 배포하기를 눌러야 앱에 반영돼요' : '바뀐 내용 없음';
     $('#state').classList.toggle('dirty', dirty);
     $('#deploy').disabled = !dirty;
@@ -740,6 +763,11 @@
         try { old = (await gh('/contents/config/thumbs/' + encodeURIComponent(u.name) + '?ref=' + BRANCH)).sha; } catch (e) { /* 새 파일 */ }
         btn.textContent = '슬라이드 사진 올리는 중…';
         await putFile('config/thumbs/' + u.name, u.b64, `슬라이드 사진: ${u.name}`, old);
+      }
+      for (const id of Object.keys(newsUp)) {
+        const u = newsUp[id];
+        btn.textContent = '소식 사진 올리는 중…';
+        await putFile('config/thumbs/' + u.name, u.b64, `소식 사진: ${u.name}`, null);
       }
       for (const id of Object.keys(bgmUp)) {
         const u = bgmUp[id];
