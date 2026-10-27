@@ -289,7 +289,8 @@
         ${pk ? `<span class="tag pack">${installed.has(pk.id) ? '전용 화면' : '플레이팩'}</span>` : ''}
         ${w.url ? `<span class="play">${I.play}${hasCont(w) && P.openMode === 'continue' ? '이어하기' : '플레이'}</span>` : ''}
       </button>
-      <div class="meta"><div class="mtxt"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div><button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button></div>
+      <div class="meta"><button class="name" data-act="info" data-id="${esc(w.id)}">${esc(w.name)}</button><span>${esc(sub)}</span></div>
+      <button class="info-btn" data-act="info" data-id="${esc(w.id)}" title="작품 정보">${I.info}</button>
     </div>`;
   }
   function gridHtml() {
