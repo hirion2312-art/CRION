@@ -356,7 +356,16 @@
       "img": "banner-smvqjpgsd-mvqjq6cv.webp",
       "work": "wmvpb0ohz",
       "title": "소환수 아카데미",
-      "eyebrow": "신작"
+      "eyebrow": "플레이팩",
+      "sub": "당신의 소환수와 함께 아카데미의 전설이 되어라"
+    },
+    {
+      "id": "smvqjw6rq",
+      "img": "banner-smvqjw6rq-mvqjwd48.webp",
+      "work": "safehouse",
+      "title": "아포칼립스 안전지대의 관리자",
+      "eyebrow": "플레이팩",
+      "sub": "유일한 안전가옥의 관리자가 되어 생존하라"
     }
   ]
 }
