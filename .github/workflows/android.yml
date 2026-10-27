@@ -35,7 +35,12 @@ jobs:
       - name: 서명 열쇠 (있으면)
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          P1: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          P2: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          P3: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
+          # 값은 보이지 않게, 들어왔는지만 표시
+          echo "::notice::비밀값 확인 — KEYSTORE_B64:$([ -n "$KS" ] && echo 있음 || echo 없음) KEYSTORE_PASSWORD:$([ -n "$P1" ] && echo 있음 || echo 없음) KEY_PASSWORD:$([ -n "$P2" ] && echo 있음 || echo 없음) KEY_ALIAS:$([ -n "$P3" ] && echo 있음 || echo 없음)"
           if [ -n "$KS" ]; then echo "$KS" | base64 -d > "$RUNNER_TEMP/crion.jks"; echo "CRION_KEYSTORE_FILE=$RUNNER_TEMP/crion.jks" >> "$GITHUB_ENV"; echo "정식 열쇠로 서명"; else echo "::warning::서명 열쇠 비밀값이 없어 시험용(디버그) 열쇠로 서명해요. 이 경우 새 APK를 덮어 설치하지 못하고 지웠다가 다시 설치해야 할 수 있어요."; fi
       - name: APK 만들기
         env:
