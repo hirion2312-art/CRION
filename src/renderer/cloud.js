@@ -210,6 +210,25 @@
     try { return Number(await this.rest('POST', 'rpc/crion_schema_version', { body: {} })) || 1; } catch (e) { return 1; }
   };
 
+  // ---------- 사용 통계 ----------
+  // 하루 한 번 "오늘 켰어요"만 (날짜·임의 번호·기기 종류). 계정 로그인 중이면 계정으로, 아니면 기기 익명 번호로
+  //  설계도가 v4 전이면 서버가 함수를 몰라서 실패 → 조용히 넘어간다. 같은 날은 한 번만 보낸다
+  Cloud.prototype.ping = async function (plat, today) {
+    if (!this.cfg) return false;
+    const key = 'crion.cloud.ping';
+    try { if (this.ls && this.ls.getItem(key) === today) return false; } catch (e) { /* 무시 */ }
+    try {
+      await this.rest('POST', 'rpc/crion_ping', { as: this.accountUid() ? 'account' : 'user', body: { p_plat: String(plat || '').slice(0, 12) } });
+      try { if (this.ls) this.ls.setItem(key, today); } catch (e) { /* 무시 */ }
+      return true;
+    } catch (e) { return false; }
+  };
+  // 관리자 전용 숫자 (supabase/schema.sql crion_stats)
+  Cloud.prototype.stats = async function (days) {
+    try { return await this.rest('POST', 'rpc/crion_stats', { as: 'admin', body: { p_days: Number(days) || 30 } }); }
+    catch (e) { if (e && e.status === 404) throw new Error('서버 설계도가 옛날 것(v3)이에요. 관리 페이지 → 서버 연결 → 설계도 복사 → Run 을 한 번 해 주세요'); throw e; }
+  };
+
   // 관리자 로그인: 이메일·비밀번호 + admins 표에 있어야 통과
   Cloud.prototype.adminLogin = async function (email, password) {
     if (!this.cfg) throw new Error('서버가 아직 준비되지 않았어요');

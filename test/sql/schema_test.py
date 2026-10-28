@@ -55,7 +55,7 @@ def main():
     psql(f"insert into auth.users (id, email) values ('{A}', 'a@example.com'), ('{B}', 'b@example.com')")
     run_file(os.path.join(ROOT, 'supabase/schema.sql'))   # 회원이 생긴 뒤 다시 실행해도 관리자는 그대로
     check('관리자 자동 지정 = 이메일로 만든 첫 계정 하나', one('select string_agg(uid::text, \',\') from public.admins') == ADM)
-    check('설계도 버전 3', as_user(None, 'select public.crion_schema_version()', role='anon')[1] == '3')
+    check('설계도 버전 4', as_user(None, 'select public.crion_schema_version()', role='anon')[1] == '4')
     D = 'id.hirion2312-art.github.io'
     psql(f"insert into auth.users (email) values ('taken_id@{D}')")
     psql('delete from public.admins'); run_file(os.path.join(ROOT, 'supabase/schema.sql'))
@@ -161,6 +161,24 @@ def main():
     check('관리자가 글쓰기 막으면 못 씀', ok and not ok2, err2)
     ok, out = as_user(A, f"update public.profiles set banned = false, nick = 'Alice2' where uid = '{A}' returning banned, nick")
     check('막힌 사람이 스스로 풀 수 없음 (닉네임은 바뀜)', ok and out == 't|Alice2', out)
+
+    # 사용 통계
+    ok, err = as_user(C, "select public.crion_ping('Android')", anon=True)
+    ok2, _ = as_user(C, "select public.crion_ping('android')", anon=True)   # 같은 날 두 번 = 한 줄
+    ok3, _ = as_user(A, "select public.crion_ping('win')")
+    check('하루 한 번 켰어요 기록 (익명·계정)', ok and ok2 and ok3 and one("select count(*) from public.daily_active") == '2', err)
+    check('기기 종류는 영어 소문자만', one(f"select plat from public.daily_active where uid = '{C}'") == 'android')
+    ok, out = as_user(A, "select count(*) from public.daily_active")
+    check('사용 기록 표는 아무도 직접 못 읽음', (not ok) or out == '0', out)
+    ok, err = as_user(A, "select public.crion_stats(30)")
+    check('통계는 관리자만', not ok and '관리자' in err, err)
+    ok, out = as_user(None, "select public.crion_stats(30)", role='anon')
+    check('로그인 안 한 사람은 통계 못 봄', not ok, out)
+    ok, out = as_user(ADM, "select public.crion_stats(30)")
+    st = json.loads(out) if ok else {}
+    tot = st.get('total', {})
+    check('관리자 통계: 30일 칸 · 오늘 켠 2명 · 계정 수(관리자 제외)', ok and len(st.get('days', [])) == 30 and tot.get('today') == 2 and st['days'][-1]['active'] == 2 and st['days'][-1]['activeAcc'] == 1 and tot.get('accounts', 0) >= 2, out[:300])
+    check('관리자 통계: 기기 종류별', ok and st.get('plat', {}).get('android') == 1 and st.get('plat', {}).get('win') == 1, str(st.get('plat')))
 
     # 계정 지우기
     ok, err = as_user(B, "select public.delete_my_account()")

@@ -570,7 +570,7 @@
     try {
       const r = await fetch(url + '/rest/v1/rpc/crion_schema_version', { method: 'POST', headers: srvH(key), body: '{}' });
       const v = r.ok ? Number(await r.json()) : 0;
-      v >= 3 ? line('ok', `설계도 적용됨 (v${v})`) : (line('bad', v ? `5번: 설계도가 옛날 것(v${v})이에요. 설계도 복사 → Run 을 다시 해 주세요` : '5번: 설계도(SQL)를 아직 Run 하지 않았어요' + (r.status === 404 ? '' : ` (${r.status})`)), fatal = true);
+      v >= 4 ? line('ok', `설계도 적용됨 (v${v})`) : (line('bad', v ? `5번: 설계도가 옛날 것(v${v})이에요. 설계도 복사 → Run 을 다시 해 주세요` : '5번: 설계도(SQL)를 아직 Run 하지 않았어요' + (r.status === 404 ? '' : ` (${r.status})`)), fatal = true);
     } catch (e) { line('bad', '설계도 확인 실패: ' + e.message); fatal = true; }
     const em = $('#srvAdmEmail').value.trim(), pw = $('#srvAdmPw').value;
     if (em && pw) {

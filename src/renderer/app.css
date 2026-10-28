@@ -680,3 +680,29 @@ select.field { height: 42px; }
 .soon-box { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; padding: 16px 18px; border-radius: 14px; background: var(--accent-weak); border: 1px solid var(--accent-line); }
 .soon-box b { color: var(--accent-ink); font-size: 15px; }
 .soon-box span { color: var(--ink2); font-size: 13.5px; line-height: 1.6; }
+/* 사용자 통계 (개발자 모드) */
+.st-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.st-tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow); }
+.st-tile b { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+.st-tile span { font-size: 13px; color: var(--ink2); font-weight: 700; }
+.st-tile em { font-style: normal; font-size: 12px; color: var(--accent-ink); font-weight: 700; }
+.st-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px 12px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.st-card h3 { margin: 0 0 10px; font-size: 15px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.st-card h3 small { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.st-svg { width: 100%; height: 170px; display: block; overflow: visible; }
+.st-svg text { font-size: 11px; fill: var(--muted); }
+.st-svg .mx { font-size: 10px; }
+.st-svg .ax { stroke: var(--line); } .st-svg .gr { stroke: var(--line2); stroke-dasharray: 3 4; }
+.st-svg g:hover rect[fill]:not([fill=transparent]) { opacity: .8; }
+.st-leg { display: flex; gap: 14px; margin-top: 6px; font-size: 12.5px; color: var(--ink2); font-weight: 600; }
+.st-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.st-plat { display: flex; flex-direction: column; gap: 8px; }
+.st-plat div { display: grid; grid-template-columns: 80px 1fr 40px; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.st-plat i { height: 10px; border-radius: 999px; background: var(--line2); overflow: hidden; }
+.st-plat i b { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.st-plat em { font-style: normal; text-align: right; color: var(--ink2); }
+.st-login { max-width: 420px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; }
+.st-login span { color: var(--muted); font-size: 13px; }
+.st-login input { height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; }
+.st-login .err { color: var(--bad); font-size: 13px; margin: 0; }
+@media (max-width: 720px) { .st-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .st-tile b { font-size: 24px; } }

@@ -1,4 +1,4 @@
--- CRION 서버 설계도 (Supabase) — v3: 아이디 계정 · 기록 동기화 · 커뮤니티 · 신고함
+-- CRION 서버 설계도 (Supabase) — v4: 아이디 계정 · 기록 동기화 · 커뮤니티 · 신고함 · 사용 통계
 -- 사용법: Supabase 프로젝트 > SQL Editor > New query 에 이 파일 전체를 붙여넣고 Run.
 -- 여러 번 실행해도 괜찮아요 (이미 있는 표·글은 그대로 두고 빠진 것만 만들어요).
 -- 순서: 관리자 계정(이메일)을 먼저 만들고 이 파일을 실행하면, 그 계정이 자동으로 관리자가 돼요.
@@ -312,8 +312,72 @@ create policy likes_ins on public.post_likes for insert to authenticated with ch
 drop policy if exists likes_del on public.post_likes;
 create policy likes_del on public.post_likes for delete to authenticated using (uid = auth.uid());
 
+-- ───────── 사용 통계 (v4) ─────────
+-- 앱이 하루 한 번 "오늘 켰어요"(crion_ping)만 남긴다: 날짜 · 기기/계정 임의 번호 · 계정인지 · 기기 종류(win/mac/android).
+-- 이름·대화·작품 기록은 없음. 400일 지난 것은 지운다. 표는 아무도 직접 못 읽고, 관리자만 crion_stats 로 숫자 합계를 본다.
+create table if not exists public.daily_active (
+  day date not null,
+  uid uuid not null references auth.users(id) on delete cascade,
+  kind text not null default 'anon' check (kind in ('anon', 'account')),
+  plat text not null default '' check (char_length(plat) <= 12),
+  primary key (day, uid)
+);
+create index if not exists daily_active_day on public.daily_active (day);
+alter table public.daily_active enable row level security;   -- 정책 없음 = 직접 읽기·쓰기 불가 (아래 함수로만)
+
+create or replace function public.crion_today() returns date
+language sql stable as $$ select (now() at time zone 'Asia/Seoul')::date $$;
+
+create or replace function public.crion_ping(p_plat text default '') returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  insert into public.daily_active (day, uid, kind, plat)
+  values (public.crion_today(), auth.uid(),
+          case when public.is_anon_user() then 'anon' else 'account' end,
+          left(regexp_replace(lower(coalesce(p_plat, '')), '[^a-z0-9]', '', 'g'), 12))
+  on conflict (day, uid) do nothing;
+  if random() < 0.02 then delete from public.daily_active where day < public.crion_today() - 400; end if;
+end $$;
+
+-- 관리자 전용: 최근 p_days 일의 날짜별 숫자 + 합계 (한국 시간 기준 날짜)
+--  join = 새 CRION 계정 가입 / first = 처음 켠 기기(익명 번호가 처음 생긴 날) / active = 그날 켠 사람 / activeAcc = 그중 계정
+create or replace function public.crion_stats(p_days int default 30) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare
+  n int := least(greatest(coalesce(p_days, 30), 7), 365);
+  t date := public.crion_today();
+  r json;
+begin
+  if not public.is_admin() then raise exception '관리자만 볼 수 있어요'; end if;
+  with days as (select (t - g)::date as day from generate_series(0, n - 1) g),
+  u as (select (created_at at time zone 'Asia/Seoul')::date as day, coalesce(is_anonymous, false) as anon
+        from auth.users where id not in (select uid from public.admins)),
+  a as (select day, kind from public.daily_active where day > t - n)
+  select json_build_object(
+    'today', t,
+    'days', (select json_agg(json_build_object(
+        'day', d.day,
+        'join', (select count(*) from u where u.day = d.day and not u.anon),
+        'first', (select count(*) from u where u.day = d.day and u.anon),
+        'active', (select count(*) from a where a.day = d.day),
+        'activeAcc', (select count(*) from a where a.day = d.day and a.kind = 'account')) order by d.day) from days d),
+    'total', json_build_object(
+        'accounts', (select count(*) from auth.users where not coalesce(is_anonymous, false) and id not in (select uid from public.admins)),
+        'devices', (select count(*) from auth.users where coalesce(is_anonymous, false)),
+        'nicks', (select count(*) from public.profiles),
+        'today', (select count(*) from public.daily_active where day = t),
+        'week', (select count(distinct uid) from public.daily_active where day > t - 7),
+        'month', (select count(distinct uid) from public.daily_active where day > t - 30),
+        'since', (select min(day) from public.daily_active)),
+    'plat', (select coalesce(json_object_agg(plat, c), '{}'::json) from
+              (select coalesce(nullif(plat, ''), 'etc') as plat, count(distinct uid) as c from public.daily_active where day > t - 30 group by 1) x)
+  ) into r;
+  return r;
+end $$;
+
 -- 관리 페이지가 "설계도가 최신인지" 확인하는 표시
-create or replace function public.crion_schema_version() returns int language sql immutable as $$ select 3 $$;
+create or replace function public.crion_schema_version() returns int language sql immutable as $$ select 4 $$;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.posts, public.comments, public.profiles to anon;
@@ -324,3 +388,5 @@ grant execute on function public.crion_schema_version() to anon, authenticated;
 grant execute on function public.crion_id_available(text), public.crion_nick_available(text) to anon, authenticated;
 revoke execute on function public.crion_admin_set_password(text, text) from public, anon;
 grant execute on function public.crion_admin_set_password(text, text) to authenticated;
+revoke execute on function public.crion_ping(text), public.crion_stats(int) from public, anon;
+grant execute on function public.crion_ping(text), public.crion_stats(int) to authenticated;

@@ -35,6 +35,7 @@
     trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
     menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>', 18),
     key: svg('<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/>', 19),
+    chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 19),
     edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>', 15),
     up: svg('<path d="m6 15 6-6 6 6"/>', 15),
     dn: svg('<path d="m6 9 6 6 6-6"/>', 15),
@@ -161,7 +162,7 @@
     const packUpd = S.packs.filter(p => installed.needsUpdate(p)).length;
     return `<nav class="nav ${P.navSmall ? 'small' : ''}">
       <div class="nav-brand"><img class="wordmark" src="logo.png" alt="CRION"><img class="mark" src="icon.png" alt="CRION"></div>
-      <div class="nav-list">${NAV.concat(S.dev.repo ? [['dev', '작품 관리', I.key], ['inbox', '신고함', I.comm]] : []).map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}${k === 'inbox' && BD.newCount() ? `<em>${BD.newCount()}</em>` : ''}</button>`).join('')}</div>
+      <div class="nav-list">${NAV.concat(S.dev.repo ? [['dev', '작품 관리', I.key], ['stats', '통계', I.chart], ['inbox', '신고함', I.comm]] : []).map(([k, l, ic]) => `<button class="nav-i ${S.view === k ? 'on' : ''}" data-act="go" data-v="${k}" data-tut="${k}" title="${l}">${ic}<span>${l}</span>${k === 'store' && packUpd ? `<em>${packUpd}</em>` : ''}${k === 'community' && S.cat.news.length && !newsSeen() ? '<i class="dot"></i>' : ''}${k === 'inbox' && BD.newCount() ? `<em>${BD.newCount()}</em>` : ''}</button>`).join('')}</div>
       <div class="nav-foot">
         ${upd ? `<button class="nav-upd" data-act="${upd.type === 'engine' ? 'relaunch' : 'open-link'}" data-url="${esc(upd.url || '')}">${I.spark}<span>${upd.type === 'engine' ? '새 버전 준비됨<small>눌러서 다시 시작</small>' : '새 설치 파일이 나왔어요<small>눌러서 받기</small>'}</span></button>` : ''}
         ${S.dev.repo ? `<button class="nav-dev" data-act="dev-lock" title="개발자 잠그기">${I.lock}<span>개발자 모드 · 잠그기</span></button>` : ''}
@@ -777,6 +778,68 @@
     const [cls, txt] = d.status !== 'completed' ? ['run', '서버에 반영하는 중…'] : d.conclusion === 'success' ? ['ok', '모든 사람 앱에 반영됨'] : ['bad', '반영 실패 · GitHub Actions 확인 필요'];
     return `<div class="dev-dep ${cls}" id="devDeploy"><i></i>${txt}<small>${ago(Date.parse(d.at))}</small></div>`;
   }
+  // ---------- 사용자 통계 (개발자 모드 · 관리자 로그인) ----------
+  //  앱은 하루 한 번 '오늘 켰어요'만 서버에 남긴다(날짜·임의 번호·기기 종류). 숫자 합계는 관리자만 본다 (schema.sql crion_stats)
+  const kstDay = (d) => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d || new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  const platKey = () => { const p = String(S.info && S.info.platform || '').toLowerCase(); return /android/.test(p) ? 'android' : /win/.test(p) ? 'win' : /darwin|mac/.test(p) ? 'mac' : /linux/.test(p) ? 'linux' : 'etc'; };
+  function pingToday() { if (cloud.enabled()) cloud.ping(platKey(), kstDay()).catch(() => {}); }
+  const ST = { days: 30, data: null, busy: false, err: '' };
+  async function statsLoad() {
+    ST.busy = true; ST.err = ''; if (S.view === 'stats') render();
+    try { ST.data = await cloud.stats(ST.days); } catch (e) { ST.err = e.message || String(e); }
+    ST.busy = false; if (S.view === 'stats') render();
+  }
+  const PLAT = { win: 'Windows', mac: 'Mac', android: 'Android', linux: 'Linux', etc: '기타' };
+  function barChart(days, keys, colors, names) {
+    if (!days.length) return '<p class="muted">아직 기록이 없어요</p>';
+    const W = 720, H = 170, pad = 22, n = days.length || 1;
+    const max = Math.max(1, ...days.map(d => keys.reduce((t, k) => t + (Number(d[k]) || 0), 0)));
+    const bw = (W - pad) / n, gap = Math.min(4, bw * 0.25);
+    const md = (s) => String(s).slice(5).replace('-', '.');
+    const bars = days.map((d, i) => {
+      let y = H - 18;
+      const tip = `${md(d.day)} · ` + keys.map((k, j) => `${names[j]} ${Number(d[k]) || 0}`).join(' · ');
+      return `<g><title>${esc(tip)}</title>` + keys.map((k, j) => {
+        const v = Number(d[k]) || 0; const h = v / max * (H - 36);
+        y -= h; return v ? `<rect x="${(pad + i * bw + gap / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1, bw - gap).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${colors[j]}"/>` : '';
+      }).join('') + `<rect x="${(pad + i * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H}" fill="transparent"/></g>`;
+    }).join('');
+    const lab = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text x="${(pad + i * bw + bw / 2).toFixed(1)}" y="${H - 3}" text-anchor="middle">${md(days[i].day)}</text>`).join('');
+    return `<svg class="st-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">
+      <line x1="${pad}" x2="${W}" y1="${H - 18}" y2="${H - 18}" class="ax"/><line x1="${pad}" x2="${W}" y1="18" y2="18" class="gr"/>
+      <text x="0" y="22" class="mx">${max}</text><text x="0" y="${H - 20}" class="mx">0</text>${bars}${lab}</svg>
+      <div class="st-leg">${names.map((nm, j) => `<span><i style="background:${colors[j]}"></i>${esc(nm)}</span>`).join('')}</div>`;
+  }
+  function statsHtml() {
+    const head = pageHead('사용자 통계', '새로 온 사람과 날마다 켜는 사람 수예요. 한국 시간 기준 · 관리자만 볼 수 있어요.',
+      cloud.isAdmin() ? `<span class="seg">${[7, 30, 90].map(n => `<button data-act="st-days" data-v="${n}" class="${ST.days === n ? 'on' : ''}">${n}일</button>`).join('')}</span><button class="btn" data-act="st-reload" ${ST.busy ? 'disabled' : ''}>${I.reload}새로고침</button>` : '');
+    let body;
+    if (!cloud.enabled()) body = '<div class="empty"><b>서버가 아직 연결되지 않았어요</b><span>관리 페이지 → 서버 연결에서 먼저 연결해 주세요.</span></div>';
+    else if (!cloud.isAdmin()) body = `<div class="st-login"><b>관리자 로그인</b><span>통계는 관리자 이메일 계정으로만 볼 수 있어요. (신고함 로그인과 같아요)</span>
+        <input id="stEm" type="email" placeholder="관리자 이메일" value="${esc(lsGet('crion.cloud.email') || '')}"><input id="stPw" type="password" placeholder="비밀번호">
+        <button class="btn primary" data-act="st-login">로그인하고 보기</button>${ST.err ? `<p class="err">${esc(ST.err)}</p>` : ''}</div>`;
+    else if (ST.err) body = `<div class="empty"><b>통계를 불러오지 못했어요</b><span>${esc(ST.err)}</span><button class="btn" data-act="st-reload">다시 시도</button></div>`;
+    else if (!ST.data) body = '<div class="empty"><span class="spin"></span><b>불러오는 중이에요</b></div>';
+    else {
+      const d = ST.data && typeof ST.data === 'object' ? ST.data : {}, t = d.total || {}, days = Array.isArray(d.days) ? d.days.filter(x => x && x.day) : [];
+      const sum = (k) => days.reduce((a, x) => a + (Number(x[k]) || 0), 0);
+      const tile = (n, l, sub) => `<div class="st-tile"><b>${Number(n || 0).toLocaleString()}</b><span>${l}</span>${sub ? `<em>${sub}</em>` : ''}</div>`;
+      const td = days[days.length - 1] || {};
+      const plat = Object.entries(d.plat || {}).sort((a, b) => b[1] - a[1]);
+      const pt = plat.reduce((a, x) => a + x[1], 0) || 1;
+      body = `<div class="st-tiles">
+          ${tile(t.today, '오늘 켠 사람', `계정 ${td.activeAcc || 0}`)}${tile(t.week, '최근 7일 켠 사람')}${tile(t.month, '최근 30일 켠 사람')}
+          ${tile(t.accounts, 'CRION 계정 전체', `오늘 +${td.join || 0}`)}${tile(t.devices, '앱을 켠 기기 전체', `오늘 +${td.first || 0}`)}${tile(t.nicks, '닉네임 만든 사람')}</div>
+        <section class="st-card"><h3>날마다 켠 사람 <small>${ST.days}일 동안 연인원 ${sum('active').toLocaleString()}</small></h3>
+          ${barChart(days.map(x => Object.assign({}, x, { anonOnly: Math.max(0, (x.active || 0) - (x.activeAcc || 0)) })), ['activeAcc', 'anonOnly'], ['#c8381a', '#fdb39f'], ['계정으로', '가입 없이'])}</section>
+        <section class="st-card"><h3>새로 온 사람 <small>${ST.days}일 동안 새 계정 ${sum('join')} · 처음 켠 기기 ${sum('first')}</small></h3>
+          ${barChart(days, ['join', 'first'], ['#17151a', '#fc5230'], ['새 CRION 계정', '처음 켠 기기'])}</section>
+        <section class="st-card"><h3>기기 종류 <small>최근 30일 켠 사람</small></h3>
+          <div class="st-plat">${plat.length ? plat.map(([k, v]) => `<div><span>${esc(PLAT[k] || k)}</span><i><b style="width:${(v / pt * 100).toFixed(1)}%"></b></i><em>${v}</em></div>`).join('') : '<p class="muted">아직 기록이 없어요</p>'}</div></section>
+        <p class="muted note-line">'켠 사람'은 ${t.since ? esc(String(t.since).replace(/-/g, '.')) + '부터' : '이번 업데이트부터'} 모아요 (앱이 하루 한 번 날짜만 남겨요). '처음 켠 기기'는 신고·게시판·통계로 서버에 처음 연결된 날이라 예전 숫자는 적게 나올 수 있어요. 막대에 마우스를 올리면 그날 숫자가 보여요.</p>`;
+    }
+    return `<main class="page"><div class="page-in narrow">${head}${body}</div></main>`;
+  }
   function devHtml() {
     const d = S.dev.data;
     const b = regBase();
@@ -1167,7 +1230,7 @@
       + row('계정 지우기', '서버에 있는 아이디·동기화 기록·닉네임을 바로 지워요 · 이 기기의 기록은 남아요', '<button class="btn sm ghost danger" data-act="acct-open" data-v="delete">계정 지우기</button>')
       + `<p class="acct-privacy">${PRIV_SHORT} <button class="link" data-act="open-link" data-url="${esc(privacyUrl())}">개인정보 처리방침</button></p>`;
   }
-  const PRIV_SHORT = '아이디·비밀번호(암호화)·닉네임·플레이 기록·게시글만 로그인·기록 맞추기·게시판에 써요. 이메일·실명·전화번호는 받지 않아요. 서버는 Supabase(미국 회사, 서울 데이터센터)에 맡겨 보관하고, 계정을 지우면 바로 삭제돼요. 만 14세 미만은 가입할 수 없어요.';
+  const PRIV_SHORT = '아이디·비밀번호(암호화)·닉네임·플레이 기록·게시글만 로그인·기록 맞추기·게시판에 써요. 이메일·실명·전화번호는 받지 않아요. 몇 명이 쓰는지 알기 위해 앱을 켠 날짜·기기 종류만 하루 한 번 익명 번호로 남겨요(400일 뒤 삭제). 서버는 Supabase(미국 회사, 서울 데이터센터)에 맡겨 보관하고, 계정을 지우면 바로 삭제돼요. 만 14세 미만은 가입할 수 없어요.';
   const privacyUrl = () => (regBase() || 'https://hirion2312-art.github.io/CRION/') + 'privacy.html';
   document.addEventListener('input', (e) => {
     if (e.target && e.target.id === 'acId') { ACC.idOk = ''; setChk('acIdChk', ''); }
@@ -1312,6 +1375,7 @@
     else if (S.view === 'settings') main = settingsHtml();
     else if (S.view === 'dev' && S.dev.repo) main = devHtml();
     else if (S.view === 'inbox' && S.dev.repo) main = BD.inboxHtml();
+    else if (S.view === 'stats' && S.dev.repo) main = statsHtml();
     else main = homeHtml();
     app.innerHTML = navHtml() + main;
     if (S.view === 'login') bindWebview();
@@ -1325,6 +1389,7 @@
     render();
     const pg = $('.page'); if (pg) pg.scrollTop = 0;
     if (view === 'dev' && S.dev.repo && !S.dev.data && !S.dev.busy) devLoad();
+    if (view === 'stats' && S.dev.repo && cloud.isAdmin() && !ST.data && !ST.busy) statsLoad();
     if (view === 'store' && S.packsState !== 'loading') loadPacks().then(() => { if (S.view === 'store') render(); });
   }
   const refresh = () => { if (S.view !== 'play' && S.view !== 'login') render(); };
@@ -1419,6 +1484,14 @@
       case 'dev-forgot': devLoginModal('setup', vault.exists() ? '새 열쇠와 비밀번호를 넣으면 예전 것은 지워져요' : ''); break;
       case 'dev-lock': devLock(); break;
       case 'dev-reload': devLoad(); break;
+      case 'st-days': ST.days = Number(el.dataset.v) || 30; ST.data = null; statsLoad(); break;
+      case 'st-reload': ST.data = null; statsLoad(); break;
+      case 'st-login': {
+        const em = ($('#stEm') || {}).value || '', pw = ($('#stPw') || {}).value || '';
+        if (!em || !pw) { toast('이메일과 비밀번호를 넣어 주세요'); break; }
+        try { await cloud.adminLogin(em, pw); lsSet('crion.cloud.email', em.trim()); ST.err = ''; statsLoad(); } catch (e) { ST.err = e.message; render(); }
+        break;
+      }
       case 'dev-edit': if (S.dev.data) devEditModal(id); break;
       case 'dev-pick': { const f = $('#devFile'); if (f) { f.value = ''; f.click(); } break; }
       case 'dev-save': devSave(); break;
@@ -1482,9 +1555,10 @@
     if (acctOn()) { await cloud.loadProfile().catch(() => null); }
     render();
     if (acctOn()) syncNow(false);
+    setTimeout(pingToday, 4000);
     api.engineReady();
     hideSplash();
-    setInterval(() => loadCatalog().then(refresh), 30 * 60 * 1000);
+    setInterval(() => { loadCatalog().then(refresh); pingToday(); }, 30 * 60 * 1000);
   })().catch((err) => { console.error(err); hideSplash(); });
 
   // 플레이 시간: 플레이 화면이 열려 있고 창이 보일 때만 센다

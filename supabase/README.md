@@ -23,4 +23,4 @@
 - 시험: `python3 test/sql/schema_test.py` (로컬 Postgres + `test/sql/supabase_stub.sql`)
 
 ## 설계도 업데이트
-설계도(schema.sql)가 바뀌면 관리 페이지 → 서버 연결 → **설계도 복사** → SQL Editor 에 붙여넣고 **Run** 한 번. 기존 글·계정은 그대로예요. 지금 버전: v3 (아이디 가입·중복 확인·관리자 비밀번호 초기화)
+설계도(schema.sql)가 바뀌면 관리 페이지 → 서버 연결 → **설계도 복사** → SQL Editor 에 붙여넣고 **Run** 한 번. 기존 글·계정은 그대로예요. 지금 버전: v4 (사용 통계 추가 — 개발자 모드 「사용자 통계」)

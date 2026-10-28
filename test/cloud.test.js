@@ -37,6 +37,19 @@ test('익명 로그인 → 저장 → 재사용 → 만료 전 갱신', async ()
   assert.ok(s.calls[1].url.includes('refresh_token'));
   assert.strictEqual(u.access, 'A2');
 });
+test('사용 통계: 하루 한 번만 · 실패는 조용히 · 관리자 통계', async () => {
+  const s = fake(c => c.url.endsWith('/auth/v1/signup') ? R(tok(1)) : c.url.endsWith('rpc/crion_ping') ? R(null, 204) : c.url.endsWith('rpc/crion_stats') ? R({ days: [], total: { today: 3 } }) : R([]));
+  const ls = mem();
+  const c = new Cloud(CFG, { fetch: s.f, storage: ls });
+  assert.strictEqual(await c.ping('win', '2026-10-28'), true);
+  assert.strictEqual(await c.ping('win', '2026-10-28'), false, '같은 날 두 번째는 안 보냄');
+  const pings = s.calls.filter(x => x.url.endsWith('rpc/crion_ping'));
+  assert.strictEqual(pings.length, 1); assert.deepStrictEqual(pings[0].body, { p_plat: 'win' });
+  assert.strictEqual(await c.ping('win', '2026-10-29'), true, '다음 날은 다시');
+  const bad = new Cloud(CFG, { fetch: fake(c => c.url.endsWith('/auth/v1/signup') ? R(tok(2)) : R({ message: 'not found' }, 404)).f, storage: mem() });
+  assert.strictEqual(await bad.ping('mac', '2026-10-28'), false, '옛 설계도면 조용히 실패');
+  await assert.rejects(() => c.stats(30), /관리자 로그인/);
+});
 test('익명 로그인이 꺼져 있으면 안내', async () => {
   const s = fake(() => R({ user: { id: 'x' } }));
   await assert.rejects(new Cloud(CFG, { fetch: s.f, storage: mem() }).ensureUser(), /익명 로그인/);
