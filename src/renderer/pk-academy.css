@@ -685,3 +685,42 @@
   .ak-title-in { width: 94%; }
   .ak-saves { width: 100%; }
 }
+
+/* ===== 폰 세로 화면 (모바일 우선 재구성) ===== */
+.ak-nav, .ak-more, .ak-place .ak-pday { display: none; }
+@media (max-width: 760px) and (orientation: portrait) {
+  /* 오른쪽 위: 수첩 단추 대신 ⋯ (배지·지난 대사·설정·CRION 메뉴). 수첩은 아래 탭 */
+  .ak-hudbtn { display: none !important; }
+  .ak-more { display: flex; position: absolute; z-index: 8; top: 10px; right: 10px; width: 42px; height: 42px; align-items: center; justify-content: center; gap: 3px; border-radius: 12px; background: rgba(10,14,40,.72); box-shadow: 0 0 0 1px rgba(217,178,95,.45); }
+  .ak-more i { width: 4px; height: 4px; border-radius: 50%; background: #f2e9d4; }
+  /* 장소 옆에 날짜 (아래 시간대 띠는 숨김) */
+  .ak-place { top: 10px; left: 10px; max-width: calc(100% - 70px); flex-wrap: wrap; row-gap: 0; }
+  .ak-place .ak-pday { display: block; flex-basis: 100%; font-style: normal; font-size: 12px; opacity: .8; }
+  .ak-time { display: none; }
+  .ak-main { padding: 0; position: relative; }
+  /* 겹창(도감·지도·인물…)은 아래 탭 위까지만 덮어서 탭으로 바로 바꿔 볼 수 있게 */
+  .ak-scrim { bottom: calc(58px + env(safe-area-inset-bottom)); padding: 0; place-items: stretch; }
+  .ak-scrim .ak-modal { max-height: none; height: 100%; border-radius: 0; }
+  .ak.typing .ak-scrim { bottom: 0; }
+  .ak-stage { border-radius: 0; }
+  /* 대사창 */
+  .ak-text { font-size: 16px; }
+  .ak-name { font-size: 14.5px; }
+  .ak-dlg-tools button { min-height: 32px; padding: 5px 12px; font-size: 13px; }
+  /* 선택지 단추 크게 */
+  .ak-hints button { min-height: 44px; font-size: 14.5px; }
+  /* 입력창 */
+  .ak-foot { padding: 6px 8px; padding-bottom: max(6px, var(--kb, 0px)); }
+  .ak-input textarea { font-size: 16px; min-height: 44px; }
+  .ak-btn { min-height: 44px; font-size: 14.5px; }
+  /* 학생 수첩·겹창: 아래 탭 위까지 */
+  .ak-hud { padding-bottom: 16px; }
+  .ak-modal header h3 { font-size: 17px; }
+  /* 아래 탭 */
+  .ak-nav { display: flex; flex: none; background: #0a0e28; border-top: 1px solid rgba(217,178,95,.25); padding: 2px 4px calc(2px + env(safe-area-inset-bottom)); z-index: 20; }
+  .ak-nav button { flex: 1; min-width: 0; height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #a3abcc; font-size: 11.5px; font-weight: 600; border-radius: 12px; }
+  .ak-nav button b { font-size: 21px; line-height: 1; filter: grayscale(.5); opacity: .85; }
+  .ak-nav button.on { color: var(--ak-accent); background: rgba(217,178,95,.12); }
+  .ak-nav button.on b { filter: none; opacity: 1; }
+  .ak.typing .ak-nav { display: none; }
+}

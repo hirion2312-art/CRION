@@ -28,7 +28,9 @@
     chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
     gear: '<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     pin: '<path d="M12 22s7-6.6 7-12a7 7 0 0 0-14 0c0 5.4 7 12 7 12zm0-9.2a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6z"/>',
-    up: '<path d="M6 15l6-6 6 6"/>', down: '<path d="M6 9l6 6 6-6"/>'
+    up: '<path d="M6 15l6-6 6 6"/>', down: '<path d="M6 9l6 6 6-6"/>',
+    more: '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>',
+    lobby: '<path d="M3 11l9-7 9 7M5 9.5V20h14V9.5"/><path d="M10 20v-5h4v5"/>', phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>'
   };
   const ic = (k) => `<svg class="ic" viewBox="0 0 24 24">${ICON[k]}</svg>`;
   const RES = [['food', '식량', '식', '#d8b56a'], ['med', '의료품', '약', '#e39a9a'], ['mat', '자재', '자', '#bdbdbd'], ['fuel', '연료', '연', '#e0a35a'], ['rare', '희귀', '희', '#9fd0e6'], ['rmat', '연구재료', '재', '#b6a3e0']];
@@ -105,6 +107,7 @@
         <button class="sh-fb" data-sh="regen" title="크랙에서 다시 생성">다시</button>
         <button class="sh-fb primary" data-sh="send">보내기</button>
       </footer>
+      <nav class="sh-tabs" id="sh-tabs"></nav>
       <div class="layer" id="sh-splash"><img alt="HIRION GAMES"><small>TAP TO SKIP</small></div>
       <div class="layer" id="sh-title" hidden></div>
       <div class="layer" id="sh-cine" hidden></div>
@@ -115,11 +118,14 @@
     const $ = (s) => el.querySelector(s);
     const shRoot = $('.sh');
     const narrow = () => { try { return root.matchMedia('(max-width: 720px)').matches; } catch (e) { return false; } };
-    if (narrow()) $('#sh-in').placeholder = '하고 싶은 걸 그대로 적어 보세요';
+    if (narrow()) $('#sh-in').placeholder = '말이나 행동을 적어요';
     const portrait = () => { const st = $('.sh-stage'); return !!st && st.clientHeight > st.clientWidth; };
     // 숨김 넘침 상자가 포커스·클릭 때문에 스스로 스크롤되지 않게 (화면이 위로 밀리는 것 방지)
     [shRoot, $('.sh-stage'), $('#sh-scene')].forEach(n => n.addEventListener('scroll', () => { if (n.scrollTop || n.scrollLeft) { n.scrollTop = 0; n.scrollLeft = 0; } }));
     shRoot.classList.toggle('nofx', !M.prefs.fx);
+    // 입력 중(키보드)에는 아래 탭을 숨겨 입력창이 키보드 바로 위에 붙게
+    shRoot.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) shRoot.classList.add('typing'); });
+    shRoot.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !shRoot.contains(a) || !a.matches('textarea, input')) shRoot.classList.remove('typing'); }, 60); });
     const toast = (t) => o.toast(t);
 
     // ---------- 음악 (팩 manifest의 bgm 맵 · 장면 고르기는 CrionSafehouse.pickBgm) ----------
@@ -184,7 +190,19 @@
       hc.innerHTML = `<div class="hc">${RES.map(([k, n, c, col]) => `<span class="hi"><i style="background:${col}">${c}</i><span class="lb">${n}</span><b class="num ${st[k] === 0 && (k === 'food' || k === 'med') ? 'low' : ''}">${nOr(st[k])}</b></span>`).join('')}${st.rlv != null ? `<span class="sep"></span><span class="hi"><span class="lb">연구</span><b class="num">Lv ${st.rlv}</b></span>` : ''}</div>`;
       $('#sh-hudr').innerHTML = `<button class="${R.view === 'log' ? 'on' : ''}" data-sh="go" data-k="log">${ic('log')}<span>운영일지</span></button>
         <button data-sh="lines">${ic('chat')}<span>지난 대사</span></button>
-        <button data-sh="set">${ic('gear')}<span>설정</span></button>`;
+        <button data-sh="set">${ic('gear')}<span>설정</span></button>
+        <button data-sh="more" class="sh-more" aria-label="메뉴">${ic('more')}</button>`;
+      renderTabs();
+    }
+    // 폰 세로 화면: 아래 탭 (로비 · 관리 폰 · 주민 · 파견 · 건물) — 넓은 화면에서는 CSS로 숨김
+    const STABS = [['lobby', '로비', 'lobby'], ['phone', '관리 폰', 'phone'], ['people', '주민', 'people'], ['explore', '파견', 'map'], ['building', '건물', 'building']];
+    function renderTabs() {
+      const nav = $('#sh-tabs'); if (!nav) return;
+      const cur = R.view === 'lobby' ? (R.phone === 'down' ? 'phone' : 'lobby') : R.view;
+      const st = st0();
+      const hurt = Object.values(M.people || {}).filter(p => p.st === 'res' && p.hurt).length;
+      const disp = (st.dispatch || []).length;
+      nav.innerHTML = STABS.map(([k, n, i]) => { const b = k === 'people' ? hurt : k === 'explore' ? disp : 0; return `<button data-sh="tab" data-k="${k}" class="${cur === k ? 'on' : ''}">${ic(i)}${b ? `<em>${b}</em>` : ''}<span>${n}</span></button>`; }).join('');
     }
 
     // ---------- 스마트폰 ----------
@@ -192,6 +210,7 @@
     function renderPhone() {
       const ph = $('#sh-phone');
       ph.className = R.phone;
+      renderTabs();
       const st = st0();
       const chores = (st.chores || []);
       const disp = st.dispatch || [], wait = st.wait || [];
@@ -713,7 +732,7 @@
     // ---------- 입력 ----------
     // 세로 화면: 올라온 관리 폰 밖을 누르면 폰만 접는다
     el.addEventListener('click', (e) => {
-      if (R.phone === 'down' && portrait() && !e.target.closest('#sh-phone') && !e.target.closest('.sh-foot') && !e.target.closest('#sh-modal') && !e.target.closest('.layer:not([hidden])')) {
+      if (R.phone === 'down' && portrait() && !e.target.closest('#sh-phone') && !e.target.closest('.sh-foot') && !e.target.closest('#sh-tabs') && !e.target.closest('#sh-modal') && !e.target.closest('.layer:not([hidden])')) {
         e.stopPropagation(); e.preventDefault(); R.phone = 'peek'; renderPhone();
       }
     }, true);
@@ -756,6 +775,19 @@
         case 'xclear': R.team = []; R.region = null; R.withMe = false; R.keeper = ''; render(); break;
         case 'dexf': R.dexf = t.dataset.k; render(); break;
         case 'lines': openModal('lines'); break;
+        case 'more': {
+          const gv = (v) => () => { if (R.waiting && v !== 'log') { toast('응답이 오면 열 수 있어요'); return; } go(v); };
+          if (o.menu) o.menu([{ label: '연구소', fn: gv('lab') }, { label: '생존자 도감', fn: gv('dex') }, { label: '운영일지', fn: gv('log') }, { label: '지난 대사', fn: () => openModal('lines') }, { label: '플레이팩 설정', fn: () => openModal('set') }]);
+          else openModal('set');
+          break;
+        }
+        case 'tab': {
+          const v = t.dataset.k;
+          if (v === 'lobby') { if (R.view !== 'lobby') go('lobby'); else { R.phone = 'peek'; renderPhone(); renderTabs(); } break; }
+          if (v === 'phone') { if (R.view !== 'lobby') go('lobby'); R.phone = R.phone === 'down' ? 'peek' : 'down'; renderPhone(); renderTabs(); break; }
+          if (R.waiting) { toast('응답이 오면 열 수 있어요'); break; }
+          go(v); break;
+        }
         case 'set': openModal('set'); break;
         case 'mclose': closeModal(); break;
         case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); if (t.dataset.key === 'music' && bgm) { if (M.prefs.music) { const id = bgmId; bgmId = ''; playBgm(id || SH.pickBgm(man, { screen: R.mode === 'title' ? 'title' : '', regions: regionNames, status: M.status })); } else bgm.stop(); } shRoot.classList.toggle('nofx', !M.prefs.fx); setMood(R.mood); openModal('set'); break; }

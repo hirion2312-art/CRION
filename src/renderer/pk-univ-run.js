@@ -24,6 +24,7 @@
     back: '<path d="M15 5l-7 7 7 7"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', chat: '<path d="M4 5h16v11H9l-5 4z"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
     phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>', pin: '<path d="M12 21s6-5.6 6-10.2A6 6 0 0 0 6 10.8C6 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/>',
     send: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>', insta: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9"/>',
+    more: '<circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/>', stage: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
     map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>', lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>', refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>'
   };
   const ic = (k) => `<svg class="ic" viewBox="0 0 24 24">${ICON[k] || ''}</svg>`;
@@ -105,6 +106,7 @@
         <button class="uv-fb" data-uv="regen" title="크랙에서 다시 생성">다시</button>
         <button class="uv-fb primary" data-uv="send">보내기</button>
       </footer>
+      <nav class="uv-tabs" id="uv-tabs"></nav>
       <div class="uv-layer" id="uv-title" hidden></div>
       <div class="uv-layer" id="uv-cine" hidden></div>
       <div class="uv-layer" id="uv-exam" hidden></div>
@@ -115,9 +117,12 @@
     const uvRoot = $('.uv');
     const narrow = () => { try { return root.matchMedia('(max-width: 760px)').matches; } catch (e) { return false; } };
     const portrait = () => { const m = $('.uv-main'); return !!m && m.clientHeight > m.clientWidth * 1.05; };
-    if (narrow()) { $('#uv-in').placeholder = '하고 싶은 말과 행동을 적어 보세요'; R.phone = 'closed'; }
+    if (narrow()) { $('#uv-in').placeholder = '말이나 행동을 적어요'; R.phone = 'closed'; }
     [uvRoot, $('.uv-main'), $('#uv-stage')].forEach(n => n.addEventListener('scroll', () => { if (n.scrollTop || n.scrollLeft) { n.scrollTop = 0; n.scrollLeft = 0; } }));
     uvRoot.classList.toggle('nofx', !M.prefs.fx);
+    // 키보드가 올라온 동안(입력 중)은 아래 탭을 숨겨 입력창이 키보드 바로 위에 붙게
+    uvRoot.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) uvRoot.classList.add('typing'); });
+    uvRoot.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !uvRoot.contains(a) || !a.matches('textarea, input')) uvRoot.classList.remove('typing'); }, 60); });
     const toast = (t) => o.toast(t);
 
     // ---------- 벚꽃 ----------
@@ -257,7 +262,18 @@
       $('#uv-hud').innerHTML = `<div class="uv-when"><b>${st.week ? st.week + '주차' : '입학'}</b><span>${esc([st.day ? st.day + '요일' : '', st.time || ''].filter(Boolean).join(' '))}</span></div>
         <div class="uv-loc">${ic('pin')}${esc(st.place || '리온대학교')}</div>
         <div class="uv-chips">${grade ? `<span class="uv-grade g-${grade}">${grade}급</span>` : ''}${g != null ? `<span class="uv-chip">평점 <b>${g.toFixed(2)}</b></span>` : ''}${st.next ? `<span class="uv-chip next">📝 ${esc(st.next)}</span>` : ''}</div>`;
-      $('#uv-tr').innerHTML = `<button data-uv="phone" class="uv-phbtn">${ic('phone')}<span class="uv-phl">폰</span><em class="uv-tbadge" hidden></em></button><button data-uv="lines">${ic('chat')}<span>지난 대사</span></button><button data-uv="set">${ic('gear')}<span>설정</span></button>`;
+      $('#uv-tr').innerHTML = `<button data-uv="phone" class="uv-phbtn">${ic('phone')}<span class="uv-phl">폰</span><em class="uv-tbadge" hidden></em></button><button data-uv="lines">${ic('chat')}<span>지난 대사</span></button><button data-uv="set">${ic('gear')}<span>설정</span></button><button data-uv="more" class="uv-more" aria-label="메뉴">${ic('more')}</button>`;
+    }
+    // 폰 세로 화면: 아래 탭 (무대 · 가가오톡 · 폰 · 인연 · 시간표) — 넓은 화면에서는 CSS로 숨김
+    const TABS = [['stage', '무대'], ['kakao', '가가오톡'], ['home', '폰'], ['heart', '인연'], ['table', '시간표']];
+    function renderTabs() {
+      const nav = $('#uv-tabs'); if (!nav) return;
+      const cur = R.phone !== 'open' ? 'stage' : !R.app ? 'home' : R.app;
+      const k = unreadKakao(), r = unreadRiv() + (M.instaNew || 0);
+      nav.innerHTML = TABS.map(([id, nm]) => {
+        const n = id === 'kakao' ? k : id === 'home' ? r : 0;
+        return `<button data-uv="tab" data-k="${id}" class="${cur === id ? 'on' : ''}">${ic(id === 'home' ? 'phone' : id)}${n ? `<em>${n > 99 ? '99+' : n}</em>` : ''}<span>${nm}</span></button>`;
+      }).join('');
     }
 
     // ---------- 알림 뜨기 (가가오톡·호감도·과제) ----------
@@ -282,6 +298,7 @@
       const tb = el.querySelector('.uv-tbadge'), pb = el.querySelector('.uv-phbtn');
       if (tb) { tb.hidden = !n || R.phone === 'open'; tb.textContent = n > 99 ? '99+' : n; }
       if (pb) { pb.classList.toggle('on', R.phone === 'open'); pb.querySelector('.uv-phl').textContent = R.phone === 'open' ? '폰 접기' : '폰'; }
+      renderTabs();
     }
     function clockText() {
       const st = st0();
@@ -1017,7 +1034,7 @@
     // ---------- 입력 ----------
     el.addEventListener('click', (e) => {
       // 세로 화면: 열린 폰 밖을 누르면 폰만 접는다
-      if (R.phone === 'open' && portrait() && !e.target.closest('#uv-phone') && !e.target.closest('.uv-foot') && !e.target.closest('#uv-modal') && !e.target.closest('.uv-layer:not([hidden])') && !e.target.closest('#uv-banner')) {
+      if (R.phone === 'open' && portrait() && !e.target.closest('#uv-phone') && !e.target.closest('.uv-foot') && !e.target.closest('#uv-tabs') && !e.target.closest('#uv-modal') && !e.target.closest('.uv-layer:not([hidden])') && !e.target.closest('#uv-banner')) {
         e.stopPropagation(); e.preventDefault(); R.phone = 'closed'; renderPhone(); return;
       }
     }, true);
@@ -1058,6 +1075,8 @@
         case 'ex-close': exClose(); break;
         case 'open-exam-site': if (o.openExternal && data.examUrl) o.openExternal(data.examUrl); break;
         case 'lines': openModal('lines'); break;
+        case 'more': if (o.menu) o.menu([{ label: '지난 대사', fn: () => openModal('lines') }, { label: '플레이팩 설정', fn: () => openModal('set') }]); else openModal('set'); break;
+        case 'tab': { const id = t.dataset.k; if (id === 'stage') { R.phone = 'closed'; renderPhone(); } else { R.app = id === 'home' ? '' : id; R.sub = null; R.phone = 'open'; renderPhone(); } break; }
         case 'set': openModal('set'); break;
         case 'mclose': closeModal(); break;
         case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); uvRoot.classList.toggle('nofx', !M.prefs.fx); openModal('set'); break; }

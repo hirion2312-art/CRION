@@ -558,3 +558,69 @@
 .uv .uv-tr .uv-phbtn.on{background:rgba(230,200,131,.9);color:#1a1a2e;border-color:transparent}
 .uv .uv-tbadge{position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;border-radius:10px;font-style:normal;font-size:10px;font-weight:800;padding:1px 5px}
 @media (max-width:760px){ .uv .uv-tr .uv-phbtn span.uv-phl{display:inline} .uv .uv-tr .uv-phbtn.on{display:none} }
+
+/* ===== 폰 세로 화면 (모바일 우선 재구성) ===== */
+.uv .uv-tabs{display:none}
+.uv .uv-tr .uv-more{display:none}
+@media (max-width:760px) and (orientation:portrait){
+  .uv{font-size:15px}
+  /* 상태줄: 왼쪽 주차·장소, 오른쪽 ⋯ 하나 (CRION 머리줄은 이 메뉴로 합침) */
+  .uv .uv-tr{top:8px;right:8px}
+  .uv .uv-tr > button:not(.uv-more){display:none}
+  .uv .uv-tr .uv-more{display:grid;place-items:center;width:42px;height:42px;padding:0;border-radius:12px}
+  .uv .uv-tr .uv-more .ic{width:22px;height:22px}
+  .uv .uv-more .ic circle{fill:currentColor}
+  .uv .uv-hud{left:12px;top:10px;max-width:calc(100% - 70px);gap:5px}
+  .uv .uv-when b{font-size:20px}
+  .uv .uv-when span,.uv .uv-loc{font-size:13.5px}
+  .uv .uv-chip,.uv .uv-grade{font-size:12px}
+  /* 알림: 상태줄 바로 아래, 두 개까지 — 얼굴·대사창을 가리지 않게 */
+  .uv .uv-pops{top:122px;bottom:auto;left:12px;right:12px;align-items:stretch}
+  .uv .uv-pop{font-size:13.5px;padding:9px 12px}
+  .uv .uv-pops > .uv-pop:nth-last-child(n+3){display:none}
+  /* 대사창 */
+  .uv .uv-dlg{left:8px;right:8px;width:auto;transform:none;bottom:8px;padding:22px 16px 14px;min-height:120px}
+  .uv .uv-dline{font-size:16px;line-height:1.7}
+  .uv .k-sys .uv-dline{font-size:14.5px}
+  /* 폰: 테두리 없이 화면 전체 (진짜 폰 앱처럼). 닫으면 무대 */
+  .uv .uv-phone{position:absolute;inset:0;top:0;bottom:0;left:0;right:0;width:auto;height:auto;padding:0;transform:none;transition:opacity .2s;z-index:12}
+  .uv .uv-phone.closed{transform:none;opacity:0;visibility:hidden;pointer-events:none;padding:0}
+  .uv .uv-phone.closed .uv-dev{visibility:hidden}
+  .uv .uv-dev{border-radius:0;padding:0;box-shadow:none}
+  .uv .uv-scr{border-radius:0}
+  .uv .uv-sbar{display:none}
+  .uv .uv-ahead{padding:8px 10px;font-size:16px;min-height:52px}
+  .uv .uv-ahead > button{width:40px;height:40px}
+  .uv .uv-ahead .uv-n,.uv .uv-ahead > b small{font-size:12.5px}
+  .uv .uv-home{padding-top:14px}
+  .uv .uv-appi{font-size:12.5px;gap:6px}
+  .uv .uv-dock button{font-size:13px;padding:11px 8px}
+  /* 가가오톡 */
+  .uv .uv-krow{padding:12px 14px}
+  .uv .uv-krow b{font-size:15px} .uv .uv-krow em{font-size:13.5px}
+  .uv .uv-kav{width:40px;height:40px;border-radius:14px}
+  .uv .uv-km b{font-size:12.5px}
+  .uv .uv-km p{font-size:15px;padding:8px 12px}
+  .uv .uv-kcomp{padding:8px 10px}
+  .uv .uv-kcomp input{font-size:16px;padding:9px 14px}
+  .uv .uv-kcomp button{width:42px;height:42px}
+  /* 뤼브리타임·시간표·인연 */
+  .uv .uv-rpost h4{font-size:17px} .uv .uv-rpost p{font-size:15px}
+  .uv .uv-tt{font-size:12px;grid-template-columns:24px repeat(5,minmax(0,1fr))}
+  .uv .uv-tc{min-height:40px}
+  .uv .uv-tc span{font-size:11px}
+  .uv .uv-crow{padding:11px 12px}
+  .uv .uv-crow b{font-size:14.5px} .uv .uv-crow small{font-size:12px}
+  .uv .uv-gpa small{font-size:12.5px}
+  /* 입력창: 16px(폰이 확대하지 않게), 키보드 위에 붙음 */
+  .uv .uv-foot{padding:6px 8px;gap:6px;padding-bottom:max(6px,var(--kb,0px))}
+  .uv .uv-foot textarea{font-size:16px;min-height:44px;padding:10px 12px}
+  .uv .uv-fb{min-height:44px;font-size:14.5px}
+  /* 아래 탭 */
+  .uv .uv-tabs{display:flex;flex:none;background:#080c1c;border-top:1px solid rgba(255,255,255,.08);padding:2px 4px calc(2px + env(safe-area-inset-bottom));z-index:20}
+  .uv .uv-tabs button{flex:1;min-width:0;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--sub);font-size:11.5px;font-weight:600;position:relative;border-radius:12px}
+  .uv .uv-tabs button .ic{width:23px;height:23px}
+  .uv .uv-tabs button.on{color:var(--gold)}
+  .uv .uv-tabs button em{position:absolute;top:4px;left:calc(50% + 6px);background:var(--bad,#e5484d);color:#fff;border-radius:9px;font-style:normal;font-size:10.5px;font-weight:800;padding:0 5px;line-height:17px;min-width:17px}
+  .uv.typing .uv-tabs{display:none}
+}

@@ -7,6 +7,7 @@
 - `src/renderer/` = 화면 엔진. 바꾸고 `engine.json`의 `version`을 올려 push 하면 설치된 앱이 자동으로 받는다(다음 재시작에 적용).
   - 0.4부터 플레이는 **크랙 화면 그대로**(webview). 응답을 읽어 다시 그리던 공용 게임 화면은 `archive/common-game-ui/`에 보관 — 플레이팩 만들 때 기반
   - `app.js`, `app.css`, `index.html` 화면: 왼쪽 메뉴(홈·스토어·커뮤니티·내 기록·설정), 시작 애니메이션, 첫 실행 사용법
+  - **폰 공통 틀(0.10~)**: 폰 세로(≤760px)+플레이팩 화면이면 CRION 머리줄(.pbar)을 숨기고(`#app.pkv`), 팩 상태줄의 ⋯ 단추가 `o.menu(extra)`(나가기·크랙 화면·새로고침·신고 + 팩 항목)를 연다. 팩마다 아래 탭(`.uv-tabs`/`.sh-tabs`/`.ak-nav`), 입력 중엔 탭 숨김(`.typing`), 키보드 높이 `--kb`, 알림은 위쪽. PC 화면은 그대로. 폰 화면 시험: `run_univ.py`(360·390·430), `run_mobile.py`, `run_mobile_academy.py`
   - `crack-preload.js` 크랙 화면 안 도우미: 주소·대화 화면 여부 알림(이어하기용), 진단. **플레이팩이 켜진 작품에서만**(호스트가 `crion:config {play:true}`) 응답 읽기·보내기(사용자 한 번 누름 = 한 번). 시험 `test/ui/run_preload.py`
   - `packstore.js` 팩 파일 받기·IndexedDB 저장·blob 주소 / `packrun.js` 팩 실행기(runner `academy` = 소환수 아카데미 학생 수첩) / `pk-academy.js` 응답 해석(시험 `test/academy.test.js`) / `pk-academy.css`
   - `pk-safehouse-run.js` 팩 실행기(runner `safehouse` = 「아포칼립스 안전지대의 관리자」, 프로젝트 A 화면) / `pk-safehouse.js` 응답 해석(시험 `test/safehouse.test.js`) / `pk-safehouse.css`(`.sh` 아래로 가둠). 화면 시험 `python3 test/ui/run_safehouse.py`

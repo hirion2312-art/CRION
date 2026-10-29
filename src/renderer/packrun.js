@@ -110,8 +110,9 @@
           <div class="ak-bg"><i></i><i></i></div><div class="ak-tint"></div>
           <div class="ak-season"></div><div class="ak-fx"></div>
           <div class="ak-sprites"><div class="ak-sp" data-slot="0"></div><div class="ak-sp" data-slot="1"></div><div class="ak-sp" data-slot="2"></div></div>
-          <div class="ak-place"><b></b><span></span></div>
+          <div class="ak-place"><b></b><span></span><em class="ak-pday"></em></div>
           <button class="ak-hudbtn" data-ak="hud-toggle" aria-label="학생 수첩 열기">📒<span>수첩</span></button>
+          <button class="ak-more" data-ak="more" aria-label="메뉴"><i></i><i></i><i></i></button>
           <div class="ak-battle" hidden></div>
           <div class="ak-cg" hidden><img alt=""></div>
           <div class="ak-dlg" data-ak="next">
@@ -133,11 +134,22 @@
         </div>
         <div class="ak-time" id="akTime"></div>
       </footer>
+      <nav class="ak-nav" id="akTabs">${[['hud-toggle', '📒', '수첩'], ['m-dex', '📖', '도감'], ['m-map', '🗺️', '지도'], ['m-people', '👥', '인물'], ['m-bag', '🎒', '주머니']].map(([k, i, n]) => `<button data-ak="tab" data-k="${k}"><b>${i}</b><span>${n}</span></button>`).join('')}</nav>
       <div class="ak-banner" id="akBanner" hidden></div>
       <div class="ak-layer" id="akLayer"></div>
     </div>`;
     const $ = (s) => el.querySelector(s);
     const stage = $('#akStage');
+    // 폰 아래 탭: 지금 열린 것 표시
+    function tabsOn() {
+      const akr = el.querySelector('.ak'); if (!akr) return;
+      const EM = { 'm-dex': '📖', 'm-map': '🗺️', 'm-people': '👥', 'm-bag': '🎒' };
+      const hud = akr.classList.contains('hud-on'), m = ($('#akLayer') && $('#akLayer').innerHTML.trim() && R.modal) || '';
+      el.querySelectorAll('#akTabs button').forEach(b => { const k = b.dataset.k; b.classList.toggle('on', k === 'hud-toggle' ? hud : !hud && !!m && (m === k || String(m).startsWith(EM[k]))); });
+    }
+    { const akr = el.querySelector('.ak');
+      akr.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) akr.classList.add('typing'); });
+      akr.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !akr.contains(a) || !a.matches('textarea, input')) akr.classList.remove('typing'); }, 60); }); }
     try { if (root.matchMedia('(max-width: 720px)').matches) $('#akIn').placeholder = '행동·대사 적기'; } catch (e) { /* 없음 */ }
 
     // ---------- 배경 ----------
@@ -384,6 +396,7 @@
       const pl = stage.querySelector('.ak-place');
       pl.querySelector('b').textContent = st.place || '에테르나';
       pl.querySelector('span').textContent = st.time || '';
+      pl.querySelector('.ak-pday').textContent = st.year ? `${st.year}학년 ${st.season || ''} ${st.day}일차` : '';   // 폰: 아래 시간대 띠 대신 장소 옆에
     }
 
     // ---------- 선택지 · 전투 버튼 ----------
@@ -1031,7 +1044,14 @@
         case 't-cont': continueSave(t.dataset.id); break;
         case 't-del': { const id = t.dataset.id; if (R.delAsk === id) { saves = saves.filter(x => x.id !== id); putSaves(); try { localStorage.removeItem(memKey(id)); } catch (err) { /* 없음 */ } R.delAsk = null; o.toast('세이브를 지웠어요 (크랙 대화는 그대로 남아요)'); } else { R.delAsk = id; } renderTitle(); break; }
         case 'crack': o.showCrack(true); break;
-        case 'hud-toggle': el.querySelector('.ak').classList.toggle('hud-on'); break;
+        case 'hud-toggle': el.querySelector('.ak').classList.toggle('hud-on'); tabsOn(); break;
+        case 'tab': {
+          const tk = t.dataset.k, akr = el.querySelector('.ak');
+          if (tk === 'hud-toggle') { $('#akLayer').innerHTML = ''; R.modal = null; akr.classList.toggle('hud-on'); }
+          else { akr.classList.remove('hud-on'); if (R.modal === tk) { $('#akLayer').innerHTML = ''; R.modal = null; } else { openModal(tk); R.modal = tk; } }
+          tabsOn(); break;
+        }
+        case 'more': if (o.menu) o.menu([{ label: '배지 회랑', fn: () => openModal('m-badge') }, { label: '지난 대사', fn: () => openModal('log') }, { label: '플레이팩 설정', fn: () => openModal('m-set') }]); else openModal('m-set'); break;
         case 'diag': o.diag(); break;
         case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(startUrl()); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); break;
@@ -1052,7 +1072,7 @@
           closeOverlay(); $('#akIn').value = v; doSend();
           break;
         }
-        case 'm-close': $('#akLayer').innerHTML = ''; R.modal = null; break;
+        case 'm-close': $('#akLayer').innerHTML = ''; R.modal = null; tabsOn(); break;
         case 'dex-tab': dexTab = t.dataset.v; openModal('m-dex'); break;
         case 'dex-sel': dexSel = Number(t.dataset.no); openModal('m-dex'); break;
         case 'dex-copyall': { const codes = Object.values(M.codex).map(x => x.code); if (codes.length) o.copy(codes.join(' ')); else o.toast('아직 등록한 칸이 없어요'); break; }

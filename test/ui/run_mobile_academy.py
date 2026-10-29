@@ -58,14 +58,24 @@ async def main():
             await page.evaluate("document.querySelector('.ak-dlg').click()"); await page.wait_for_timeout(60)
         await page.wait_for_timeout(500)
         await page.screenshot(path=OUT + 'ma_3_battle.png')
-        hud = await page.query_selector('[data-ak=hud-toggle]')
-        if hud:
-            await hud.click(); await page.wait_for_timeout(500); await page.screenshot(path=OUT + 'ma_4_hud.png')
-        for k in ['m-dex', 'm-people', 'm-map', 'm-set']:
-            el = await page.query_selector(f'[data-ak={k}]')
-            if not el: continue
-            await page.evaluate(f"document.querySelector('[data-ak={k}]').click()"); await page.wait_for_timeout(500)
-            await page.screenshot(path=OUT + f'ma_5_{k}.png'); await page.keyboard.press('Escape'); await page.wait_for_timeout(200)
+        await page.click('#akTabs [data-k=hud-toggle]'); await page.wait_for_timeout(500); await page.screenshot(path=OUT + 'ma_4_hud.png')
+        for k in ['m-dex', 'm-people', 'm-map', 'm-bag']:
+            await page.click(f'#akTabs [data-k={k}]'); await page.wait_for_timeout(500)
+            on = await page.evaluate(f"document.querySelector('#akTabs [data-k={k}]').classList.contains('on')")
+            if not on: errs.append('tab-on ' + k)
+            await page.screenshot(path=OUT + f'ma_5_{k}.png')
+        await page.click('#akTabs [data-k=m-bag]'); await page.wait_for_timeout(200)
+        await page.click('.ak-more'); await page.wait_for_timeout(400); await page.screenshot(path=OUT + 'ma_6_menu.png')
+        menu = await page.evaluate("[...document.querySelectorAll('.pkm-it span')].map(x=>x.textContent)")
+        print('⋯ 메뉴:', menu)
+        if '배지 회랑' not in menu or '나가기' not in menu: errs.append('menu')
+        await page.evaluate("[...document.querySelectorAll('.pkm-it')].find(b=>b.textContent.includes('플레이팩 설정')).click()"); await page.wait_for_timeout(400); await page.screenshot(path=OUT + 'ma_5_m-set.png')
+        await page.evaluate("document.querySelector('[data-ak=m-close].ak-x').click()"); await page.wait_for_timeout(200)
+        await page.click('#akIn'); await page.wait_for_timeout(200)
+        th = await page.evaluate("getComputedStyle(document.querySelector('#akTabs')).display === 'none' && getComputedStyle(document.querySelector('.pbar')).display === 'none'")
+        print('입력 중 탭 숨김 · 머리줄 숨김:', th)
+        if not th: errs.append('typing')
+        await page.screenshot(path=OUT + 'ma_7_typing.png')
         await b.close()
     print('오류:', errs or '없음')
 

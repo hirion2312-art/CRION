@@ -1071,6 +1071,33 @@
     } catch (e) { /* 정리 못 해도 계속 */ }
     lsSet('crion.detail.' + id, u);
   }
+  // ---------- 폰 공통 틀 ----------
+  //  폰 세로 화면 + 플레이팩 화면이면 CRION 머리줄(.pbar)을 숨기고, 팩이 자기 상태줄의 ⋯ 단추로 o.menu() 를 연다
+  const isPhone = () => { try { return window.matchMedia('(max-width: 760px)').matches && window.innerHeight > window.innerWidth; } catch (e) { return false; } };
+  function syncPkv() { const on = S.view === 'play' && !!(S.play && S.play.pack && !S.play.crack); const a = $('#app'); if (a) a.classList.toggle('pkv', on); document.body.classList.toggle('pkv', on); }
+  function playMenu(extra) {
+    const p = S.play; if (!p) return;
+    const row = (act, icon, label, data) => `<button class="pkm-it" data-act="${act}" ${data || ''}>${icon}<span>${label}</span></button>`;
+    const ex = (Array.isArray(extra) ? extra : []).filter(x => x && x.label && typeof x.fn === 'function');
+    S.pkMenu = ex;
+    modal(`<div class="pkm-menu">
+      <div class="pkm-h"><div class="mini">${thumbInner(p.work)}</div><b>${esc(p.work.name)}</b><button class="icon-btn" data-act="close-modal">${I.x}</button></div>
+      ${ex.length ? `<div class="pkm-g">${ex.map((x, i) => `<button class="pkm-it" data-act="pkm-x" data-i="${i}">${x.icon || ''}<span>${esc(x.label)}</span></button>`).join('')}</div>` : ''}
+      <div class="pkm-g">
+        ${row('pk-crack', I.page, '크랙 원래 화면 보기')}
+        ${row('wv-reload', I.reload, '크랙 화면 새로고침')}
+        ${row('wv-page', I.page, '작품 페이지로')}
+        ${row('report', I.flag, '문제 신고')}
+      </div>
+      <div class="pkm-g">${row('leave', I.back, '나가기')}</div>
+    </div>`, 'sheet');
+  }
+  // 키보드: 화면이 줄지 않는 기기에서도 입력창이 키보드 위에 오게 --kb(가려진 높이) 를 알려 준다
+  (function kbWatch() {
+    const vv = window.visualViewport; if (!vv) return;
+    const f = () => { const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)); document.documentElement.style.setProperty('--kb', (kb > 80 ? kb : 0) + 'px'); document.documentElement.classList.toggle('kb-open', kb > 80); };
+    vv.addEventListener('resize', f); vv.addEventListener('scroll', f); f();
+  })();
   // 플레이팩 실행
   let runner = null;
   async function startPack() {
@@ -1091,6 +1118,8 @@
         click: (id) => { const v = wv(); if (v) v.send('crion:click', Number(id)); },
         load: (u) => { const v = wv(); if (v && /^https:\/\//.test(String(u))) { if (S.play) { S.play.gate = true; if (isShare(u)) S.play.shareLoad = true; } v.loadURL(u); } },
         workUrl: S.play.work.url,
+        phone: isPhone,
+        menu: (extra) => playMenu(extra),
         detailUrl: () => workDetail(S.play && S.play.work.id),
         rescan: () => { const v = wv(); let learned = null; try { learned = JSON.parse(lsGet('crion.learned') || 'null'); } catch (err) { /* 없음 */ } if (v) v.send('crion:config', { play: true, learned, rules: {}, modes: (S.play && S.play.startModes) || [] }); },
         toast, copy: (t) => copy(t, '복사했어요: ' + t.slice(0, 40)), openExternal: (u) => api.openExternal(u),
@@ -1366,6 +1395,7 @@
   function render() {
     const app = $('#app');
     app.classList.toggle('playing', S.view === 'play');
+    syncPkv();
     let main = '';
     if (S.view === 'play' && S.play) { app.innerHTML = playHtml(); bindWebview(); return; }
     if (S.view === 'login') main = loginHtml();
@@ -1408,7 +1438,9 @@
     const act = el.dataset.act;
     if (act === 'close-modal' && el.classList.contains('scrim') && e.target !== el) return;
     const id = el.dataset.id;
+    if (el.classList.contains('pkm-it')) closeModal();
     switch (act) {
+      case 'pkm-x': { const x = (S.pkMenu || [])[Number(el.dataset.i)]; if (x) x.fn(); break; }
       case 'go': closeModal(); go(el.dataset.v); break;
       case 'nav-fold': savePref('navSmall', !P.navSmall); render(); break;
       case 'play': openWork(id); break;
@@ -1451,7 +1483,7 @@
       case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
       case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
       case 'pack-play': { const p = S.packs.find(x => x.id === id); if (p && p.soon) { toast(SOON_NOTE); break; } const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
-      case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); el.classList.toggle('on', S.play.crack); el.innerHTML = S.play.crack ? `${I.book}${packViewLabel(S.play.pack)}` : `${I.page}크랙 화면`; } break;
+      case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); syncPkv(); const cb = $('.pbar [data-act=pk-crack]'); if (cb) { cb.classList.toggle('on', S.play.crack); cb.innerHTML = S.play.crack ? `${I.book}${packViewLabel(S.play.pack)}` : `${I.page}크랙 화면`; } } break;
       // 커뮤니티
       case 'comm-tab': S.commTab = el.dataset.v; if (S.commTab === 'news') markNewsSeen(); render(); break;
       case 'form-kind': S.form.kind = el.dataset.kind; render(); break;
