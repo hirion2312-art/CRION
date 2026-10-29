@@ -12,7 +12,7 @@ async def main():
         ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         page = await ctx.new_page()
         page.on('pageerror', lambda e: errs.append(str(e)))
-        await page.add_init_script("window.__engineVersion='0.9.0'")
+        await page.add_init_script("window.__engineVersion='0.9.22'")
         await T.setup(page)
         await page.goto(T.BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(2200)
         await page.screenshot(path=OUT + 'm_a1_home.png')

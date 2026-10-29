@@ -20,7 +20,7 @@ async def main():
         ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         page = await ctx.new_page()
         page.on('pageerror', lambda e: errs.append(str(e)))
-        await page.add_init_script("window.__engineVersion='0.9.1'")
+        await page.add_init_script("window.__engineVersion='0.9.22'")
         async def reg(route):
             from urllib.parse import unquote
             path = unquote(route.request.url.split('reg.test/CRION/', 1)[-1].split('?')[0])
