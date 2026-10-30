@@ -69,7 +69,7 @@ async def run(b, name, vp, mobile):
     ctx = await b.new_context(viewport=vp, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.add_init_script("window.__engineVersion='0.10.5'")
+    await page.add_init_script("window.__engineVersion='0.10.6'")
     await T.setup(page)
     async def img(route):
         n = BYURL.get(route.request.url.split('?')[0])
@@ -107,8 +107,23 @@ async def run(b, name, vp, mobile):
     mode = await page.evaluate("window.__pk.state.mode")
     if mode != 'play': errs.append('mode ' + mode)
     await T.ipc(page, 'crion:reply', {'key': 'k0', 'segs': PRO, 'done': True}); await page.wait_for_timeout(1200)
-    await page.screenshot(path=OUT + f'mq_{name}_2_cine.png')
-    await page.click('#mq-cine .mq-skip'); await page.wait_for_timeout(900)
+    SNAP = {0, 1, 2, 4, 5, 7, 9, 11, 13, 14, 15, 16, 17, 19}
+    for k in range(0, 21):
+        # 장면 k 까지 누르며 넘긴다 (글자 쓰는 중이면 한 번은 글자 완성)
+        for _ in range(6):
+            st = await page.evaluate("window.__pk.proState()")
+            if not st or st['i'] >= k: break
+            await page.mouse.click(300, 300); await page.wait_for_timeout(90)
+        if k in SNAP and (name != 'm360' or k in (1, 15, 16)):
+            await page.wait_for_timeout(1900)
+            if os.environ.get('MQ_DEBUG') and k >= 17: print('DBG', k, await page.evaluate("JSON.stringify({cls:document.querySelector('.mq-pro').className, st:window.__pk.proState(), pend:getComputedStyle(document.querySelector('.mq-pend')).opacity, cuts:document.querySelectorAll('.mq-pcut').length, img:(document.querySelector('.mq-pcut img')||{}).src})"))
+            await page.screenshot(path=OUT + f'mq_{name}_2p_{k:02d}.png')
+    await page.wait_for_timeout(1400)
+    if os.environ.get('MQ_DEBUG'): print('DBG end', await page.evaluate("JSON.stringify({cls:document.querySelector('.mq-pro').className, pend:getComputedStyle(document.querySelector('.mq-pend')).opacity, pendz:getComputedStyle(document.querySelector('.mq-pend')).zIndex, pfx:[getComputedStyle(document.querySelector('.mq-pfx')).opacity,getComputedStyle(document.querySelector('.mq-pfx')).backgroundImage.slice(0,80)], top:document.elementFromPoint(680,400).outerHTML.slice(0,120), rect:JSON.stringify(document.querySelector('.mq-pend').getBoundingClientRect()), b:getComputedStyle(document.querySelector('.mq-pend b')).color, vis:getComputedStyle(document.querySelector('.mq-pend')).visibility, disp:getComputedStyle(document.querySelector('.mq-pend')).display, cine:JSON.stringify(document.querySelector('#mq-cine').getBoundingClientRect()), proOp:getComputedStyle(document.querySelector('.mq-pro')).opacity})"))
+    await page.screenshot(path=OUT + f'mq_{name}_2p_end.png')
+    ended = await page.evaluate("document.querySelector('.mq-pro').classList.contains('ended')")
+    if not ended: errs.append('prologue not ended')
+    await page.click('#mq-cine .mq-pend [data-mq=cine-end]'); await page.wait_for_timeout(900)
     await page.screenshot(path=OUT + f'mq_{name}_3_prologue.png')
     for _ in range(6): await page.evaluate("window.__pk.state.typing && window.__pk.state.typing.finish()"); await page.click('#mq-dlg'); await page.wait_for_timeout(150)
     await page.evaluate("window.__pk.state.typing && window.__pk.state.typing.finish()"); await page.wait_for_timeout(500)
@@ -211,6 +226,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--allow-file-access-from-files'])
         bad += await run(b, 'pc', {'width': 1360, 'height': 820}, False)
+        if os.environ.get('MQ_ONLY') == 'pc': await b.close(); sys.exit(1 if bad else 0)
         bad += await run(b, 'm', {'width': 390, 'height': 844}, True)
         bad += await run(b, 'm360', {'width': 360, 'height': 740}, True)
         await b.close()

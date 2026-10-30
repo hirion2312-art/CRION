@@ -481,16 +481,86 @@
       startBeats();
     }
     function startBeats() { R.i = R.beats.length ? 0 : -1; showBeat(R.i); }
+    // ---------- 프롤로그: 히리온 웹툰 컷을 잘라 다시 짠 장면 — 한 번 누를 때마다 다음 ----------
+    //  장면 종류: card(글자 한 장) · img(그림 + 천천히 움직임 + 자막) · cast(다섯 소녀 몽타주) · seal(왕관이 다섯으로 갈라짐)
+    let pro = null;
+    const proSrc = (p) => asset(p) || '';
     function playCine(P) {
       const c = $('#mq-cine');
-      const pics = [].concat(P.title ? [P.title] : [], P.webtoon || []);
-      c.innerHTML = `<div class="mq-webtoon">${pics.map((x, i) => `<img src="${esc(x.src)}" alt="${i ? '프롤로그 ' + i : '타이틀'}" ${i > 1 ? 'loading="lazy"' : ''}>`).join('')}
-          <div class="mq-wend">${crownSvg(gems(), true)}<small>EP. PROLOG</small><b>반지하의 마왕</b><p>8년의 잠에서 깨어난 왕. 권능 다섯 조각은 지금, 별이 된 소녀들의 손에 있다.</p><button class="mq-btn gold" data-mq="cine-end">눈을 뜬다</button></div></div>
+      const shots = ((data.prologue && data.prologue.shots) || []).filter(s => s.t !== 'img' || proSrc(s.src));
+      if (!shots.length) { M.prologue = true; save(); startBeats(); return; }
+      shots.forEach(s => [].concat(s.src || [], s.pics || []).forEach(p => { const im = new Image(); im.src = proSrc(p); }));
+      c.innerHTML = `<div class="mq-pro" data-mq="pro-next">
+          <div class="mq-pamb"></div>
+          <div class="mq-pscene"></div>
+          <i class="mq-pfx"></i>
+          <div class="mq-pprog"><i style="width:0%"></i></div>
+          <span class="mq-ptap" aria-hidden="true">눌러서 계속</span>
+          <div class="mq-pend"><div>${crownSvg(gems(), true)}<small>${esc((data.prologue && data.prologue.ep) || 'EP. PROLOG')}</small><b>${esc((data.prologue && data.prologue.title) || '반지하의 마왕')}</b><p>8년의 잠에서 깨어난 왕.<br>권능 다섯 조각은 지금, 별이 된 소녀들의 손에 있다.</p><button class="mq-btn gold" data-mq="cine-end">눈을 뜬다</button></div></div>
+        </div>
         <button class="mq-skip" data-mq="cine-end">건너뛰기</button>`;
       c.hidden = false; R.cine = true;
+      pro = { shots, i: -1, typing: null, cur: null };
       M.prologue = true; save();
+      proShow(0);
     }
-    function cineEnd() { const c = $('#mq-cine'); c.hidden = true; c.innerHTML = ''; R.cine = false; startBeats(); }
+    function proType(node, text, delay) {
+      clearInterval(pro.tT); clearTimeout(pro.dT);
+      const ms = SPEED[M.prefs.speed] == null ? 22 : SPEED[M.prefs.speed];
+      node.textContent = '';
+      if (!text) { pro.typing = null; return; }
+      if (!ms || !M.prefs.fx) { node.textContent = text; pro.typing = null; return; }
+      let k = 0;
+      pro.typing = () => { clearInterval(pro.tT); clearTimeout(pro.dT); node.textContent = text; pro.typing = null; };
+      pro.dT = setTimeout(() => { pro.tT = setInterval(() => { k++; node.textContent = text.slice(0, k); if (k >= text.length) { clearInterval(pro.tT); pro.typing = null; } }, Math.max(30, ms * 1.7)); }, delay || 0);
+    }
+    function proMove(im, s, first) {
+      const f = s.from || { x: 50, y: 50, z: 1.12 }, t = s.to || { x: 50, y: 50, z: 1.02 };
+      if (first) { im.style.transition = 'none'; im.style.objectPosition = `${f.x}% ${f.y}%`; im.style.transform = `scale(${f.z})`; void im.offsetWidth; }
+      if (!M.prefs.fx) { im.style.transition = 'none'; im.style.objectPosition = `${t.x}% ${t.y}%`; im.style.transform = `scale(${t.z})`; return; }
+      const d = s.dur || 8;
+      im.style.transition = `object-position ${d}s cubic-bezier(.25,.1,.25,1), transform ${d}s cubic-bezier(.25,.1,.25,1)`;
+      im.style.objectPosition = `${t.x}% ${t.y}%`; im.style.transform = `scale(${t.z})`;
+    }
+    function proShow(i) {
+      const c = $('#mq-cine'); if (!pro || !c) return;
+      const root = c.querySelector('.mq-pro');
+      c.querySelector('.mq-pprog i').style.width = (Math.min(i, pro.shots.length) / pro.shots.length * 100) + '%';
+      if (i >= pro.shots.length) { pro.i = i; root.classList.add('ended'); return; }
+      pro.i = i;
+      const s = pro.shots[i], prev = pro.cur;
+      const scene = c.querySelector('.mq-pscene'), amb = c.querySelector('.mq-pamb');
+      const same = s.t === 'img' && prev && prev.t === 'img' && prev.src === s.src;
+      root.className = 'mq-pro t-' + s.t + (s.tone ? ' tone-' + s.tone : '') + (s.fx ? ' mqx-' + s.fx : '');
+      if (same) {
+        proMove(scene.querySelector('.mq-pframe img'), s, false);
+      } else {
+        [...scene.children].forEach(old => { if (old.classList.contains('out')) { old.remove(); return; } old.classList.add('out'); setTimeout(() => old.remove(), 650); });
+        const n = document.createElement('div');
+        n.className = 'mq-pcut';
+        if (s.t === 'card') n.innerHTML = `<div class="mq-pcard ${esc(s.size || 'mid')}"><p></p></div>`;
+        else if (s.t === 'img') n.innerHTML = `<div class="mq-pframe"><img alt=""></div><div class="mq-pcap"><p></p></div>`;
+        else if (s.t === 'cast') n.innerHTML = `<div class="mq-pcast">${(s.pics || []).map((p, k) => `<span style="--k:${k}"><img src="${esc(proSrc(p))}" alt=""></span>`).join('')}</div><div class="mq-pcap"><p></p></div>`;
+        else if (s.t === 'seal') n.innerHTML = `<div class="mq-pseal">${crownSvg(POW.map(() => ({ on: true })), true)}<div class="mq-pshards">${POW.map((p, k) => `<i style="--k:${k};--c:${(RO[p[1]] || {}).color || '#c8a25a'}"></i>`).join('')}</div></div><div class="mq-pcap"><p></p></div>`;
+        scene.appendChild(n);
+        if (s.t === 'img') { const im = n.querySelector('img'); im.src = proSrc(s.src); proMove(im, s, true); }
+      }
+      amb.style.backgroundImage = s.t === 'img' ? cssUrl(proSrc(s.src)) : '';
+      if (s.sfx) { const x = document.createElement('b'); x.className = 'mq-psfx'; x.textContent = s.sfx; scene.lastElementChild.appendChild(x); }
+      void root.offsetWidth; root.classList.add('go');
+      const cut = scene.lastElementChild;
+      const p = cut.querySelector('.mq-pcard p, .mq-pcap p');
+      if (pro.i !== i) return;
+      if (cut.querySelector('.mq-pcap')) cut.querySelector('.mq-pcap').classList.toggle('empty', !s.cap);
+      proType(p, s.t === 'card' ? s.text : (s.cap || ''), s.t === 'card' ? 350 : s.t === 'img' && !same ? 700 : 500);
+      pro.cur = s;
+    }
+    function proNext() {
+      if (!pro) return;
+      if (pro.typing) { pro.typing(); return; }
+      if (pro.i < pro.shots.length) proShow(pro.i + 1);
+    }
+    function cineEnd() { if (pro) { clearInterval(pro.tT); clearTimeout(pro.dT); } pro = null; const c = $('#mq-cine'); c.hidden = true; c.innerHTML = ''; R.cine = false; startBeats(); }
     function showEnding(name) {
       const e = (data.endings || []).find(x => x.name === name) || { name, grade: '', hint: '' };
       const box = $('#mq-end');
@@ -641,6 +711,7 @@
         case 'mclose': closeModal(); break;
         case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); mqRoot.classList.toggle('nofx', !M.prefs.fx); openModal('set'); break; }
         case 'cine-end': cineEnd(); break;
+        case 'pro-next': if (!e.target.closest('button')) proNext(); break;
         case 'rite-close': { const b = $('#mq-rite'); b.hidden = true; b.innerHTML = ''; R.freshGem = ''; renderHud(); break; }
         case 'end-close': { const b = $('#mq-end'); b.hidden = true; b.innerHTML = ''; break; }
         case 'title': closeModal(); showTitle(); break;
@@ -664,6 +735,7 @@
       if (e.target.id === 'mq-in' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
       if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName)) return;
       if (e.key === 'Escape') { if (R.modal) closeModal(); else if (R.sub) { R.sub = null; renderPanel(); } }
+      if (R.cine && (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight') && !e.target.closest('button')) { e.preventDefault(); proNext(); return; }
       if ((e.key === ' ' || e.key === 'Enter') && !R.modal && !R.cine && $('#mq-rite').hidden && !e.target.closest('button')) { e.preventDefault(); if ($('#mq-title').hidden) next(); }
     };
     document.addEventListener('keydown', onKey);
@@ -837,7 +909,8 @@
       },
       destroy() { document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
       demo(segs) { handle(segs); },
-      state: R, memory: M, saves: () => saves
+      state: R, memory: M, saves: () => saves,
+      proState: () => pro && { i: pro.i, typing: !!pro.typing, n: pro.shots.length }
     };
   }
 
