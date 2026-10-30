@@ -387,36 +387,33 @@
 .mq .mq-mode.on{border-color:var(--gold-hi);background:rgba(200,162,90,.12)}
 
 /* ================= 타이틀 =================
-   작품 그림을 화면 가득 → 아래 '어전 바닥' 띠(금줄 위에 왕관 문장). 폰은 그림이 위쪽 가득, 띠가 그 아래로 이어진다 */
-.mq #mq-title{overflow:hidden;background:#07050a}
-.mq .mq-tart{position:absolute;inset:0;overflow:hidden;animation:mqDawn 1.6s ease-out both}
-.mq .mq-tart img{width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block;animation:mqDrift 40s ease-in-out infinite alternate}
-.mq .mq-tblur{display:none}
-.mq .mq-tart > b{display:grid;place-items:center;height:100%;font-family:var(--disp);font-size:56px;color:var(--gold-hi)}
-@keyframes mqDawn{from{opacity:0;filter:brightness(.2)}}
-@keyframes mqDrift{to{transform:scale(1.06) translateY(-1%)}}
-.mq .mq-tshade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(7,5,10,.35) 0,transparent 18%,transparent 48%,rgba(11,8,14,.82) 70%,var(--abyss) 86%)}
-.mq .mq-tfloor{position:absolute;left:0;right:0;bottom:0;z-index:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:24px;padding:46px 40px 30px;
-  border-top:1px solid rgba(239,213,149,.5);background:linear-gradient(180deg,rgba(17,12,21,.55),rgba(17,12,21,.92) 40%);box-shadow:inset 0 1px 0 rgba(17,12,21,.9),inset 0 2px 0 rgba(200,162,90,.22)}
-.mq .mq-tcrest{position:absolute;left:50%;top:0;transform:translate(-50%,-56%);padding:10px 18px 6px;background:var(--abyss);border:1px solid rgba(239,213,149,.5);border-radius:50% 50% 8px 8px/60% 60% 8px 8px;animation:mqRise 1.1s .5s cubic-bezier(.2,.7,.2,1) both}
-.mq .mq-tcrest .mq-crown{width:76px;height:44px}
-.mq .mq-tline{margin:0;font-family:var(--disp);font-size:15px;line-height:1.8;color:#d9cfbf;text-shadow:0 2px 10px #000}
-.mq .mq-tacts{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:340px;animation:mqRise 1s .8s both}
-.mq .mq-tgo{display:flex;flex-direction:column;align-items:center;gap:2px;padding:17px 24px;border-radius:6px;
-  background:linear-gradient(180deg,#9a2d4c,var(--wine) 60%,#5a1428);border:1px solid #d07090;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 3px rgba(90,20,40,.9),inset 0 0 0 4px rgba(239,213,149,.35),0 14px 40px rgba(122,31,56,.5)}
-.mq .mq-tgo b{font-family:var(--disp);font-size:20px;font-weight:800;color:#fff3e0;letter-spacing:-.01em}
+   히리온 타이틀 그림을 화면 비율에 맞게 다시 짠 것(assets/title_pc.webp 16:9 · title_m.webp 9:19.5)을 쓴다.
+   PC: 높이에 맞추고 오른쪽 정렬 — 더 넓은 창은 왼쪽 흰 바탕이 이어지고, 좁은 창은 오른쪽(인물 끝)부터 잘린다. 제목은 절대 안 잘림.
+   버튼은 그림 좌표(--x --y --w --h)로 제목 아래 흰 빈자리에. 폰: 그림 아래 검정 바닥(MADE BY 아래)에 버튼 */
+.mq #mq-title{container-type:size;overflow:hidden;background:#fff;
+  --w:calc(100cqh * 1.7778);--h:100cqh;--x:max(0px,calc(100cqw - var(--w)));--y:0px}
+.mq .mq-tstage{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:var(--h);animation:mqDawn 1.2s ease-out both}
+.mq .mq-tstage img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mq .mq-tstage img.m{display:none}
+@keyframes mqDawn{from{opacity:0}}
+.mq .mq-ttag{position:absolute;margin:0;left:calc(var(--x) + var(--w) * .037);width:calc(var(--w) * .333);top:calc(var(--y) + var(--h) * .15);text-align:center;
+  font-family:var(--disp);font-weight:600;font-size:clamp(13px,calc(var(--w) * .0092),19px);line-height:1.75;color:#3a3442;letter-spacing:.01em;animation:mqRise 1s .5s both}
+.mq .mq-tmenu{position:absolute;left:calc(var(--x) + var(--w) * .07);width:calc(var(--w) * .27);min-width:300px;top:calc(var(--y) + var(--h) * .575);display:flex;flex-direction:column;gap:8px;animation:mqRise 1s .7s both}
+.mq .mq-tgo{display:flex;flex-direction:column;align-items:center;gap:1px;padding:15px 22px;border-radius:6px;
+  background:linear-gradient(180deg,#9a2d4c,var(--wine) 60%,#5a1428);border:1px solid #c05a7a;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 3px rgba(90,20,40,.9),inset 0 0 0 4px rgba(239,213,149,.4),0 12px 30px rgba(122,31,56,.35)}
+.mq .mq-tgo b{font-family:var(--disp);font-size:19px;font-weight:800;color:#fff3e0;letter-spacing:-.01em}
 .mq .mq-tgo small{font-size:12px;color:#f0c9d4}
 .mq .mq-tgo:hover{filter:brightness(1.1)}
-.mq .mq-tcont{display:flex;align-items:baseline;justify-content:center;gap:10px;padding:11px 16px;border-radius:6px;border:1px solid rgba(239,213,149,.4);background:rgba(17,12,21,.7)}
-.mq .mq-tcont b{font-family:var(--disp);font-size:15.5px;color:var(--gold-hi)}
-.mq .mq-tcont small{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mq .mq-tside{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.mq .mq-tside span{font-size:11px;color:rgba(160,148,159,.7);margin-top:4px}
-.mq .mq-tsm{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--ivory);padding:2px 0;border-bottom:1px solid rgba(239,213,149,.3)}
-.mq .mq-tsm:hover,.mq .mq-tsm.on{color:var(--gold-hi);border-color:var(--gold-hi)}
-.mq .mq-tdrawer{position:absolute;right:0;top:0;bottom:0;z-index:3;width:min(440px,100%);padding:20px 18px;overflow-y:auto;background:var(--velvet);border-left:1px solid var(--line);box-shadow:-30px 0 60px rgba(0,0,0,.5);transform:translateX(105%);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
-.mq .mq-tdrawer.on{transform:none}
+.mq .mq-tcont{display:flex;align-items:baseline;justify-content:center;gap:10px;padding:10px 16px;border-radius:6px;border:1px solid rgba(58,52,66,.35);background:rgba(255,255,255,.75);color:#2a2430;backdrop-filter:blur(4px)}
+.mq .mq-tcont b{font-family:var(--disp);font-size:15.5px;font-weight:800;color:var(--wine)}
+.mq .mq-tcont small{font-size:12px;color:#5d5562;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mq .mq-tlinks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 16px;margin-top:4px}
+.mq .mq-tlinks button{font-family:var(--disp);font-size:14px;font-weight:700;color:#3a3442;border-bottom:1px solid rgba(58,52,66,.3);padding:1px 0}
+.mq .mq-tlinks button:hover,.mq .mq-tlinks button.on{color:var(--wine);border-color:var(--wine)}
+.mq .mq-tlinks span{font-size:11px;color:#8a8290}
+.mq .mq-tdrawer{position:absolute;right:0;top:0;bottom:0;z-index:3;width:min(440px,100%);padding:20px 18px;overflow-y:auto;background:var(--velvet);color:var(--ivory);border-left:1px solid var(--line);box-shadow:-30px 0 60px rgba(0,0,0,.35);transform:translateX(105%);visibility:hidden;transition:transform .35s cubic-bezier(.2,.7,.2,1),visibility 0s .35s}
+.mq .mq-tdrawer.on{transform:none;visibility:visible;transition-delay:0s}
 .mq .mq-tdrawer header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .mq .mq-tdrawer header b{font-family:var(--disp);font-size:22px;font-weight:800}
 .mq .mq-tdrawer .mq-x{position:static}
@@ -427,7 +424,7 @@
 .mq .mq-smeta b{font-size:13.5px;color:var(--ivory);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mq .mq-sbtns{display:flex;gap:5px;flex:none}
 .mq .mq-sbtns .mq-fb{height:34px;padding:0 11px;font-size:12px}
-@media (max-width:1000px) and (min-width:761px){ .mq .mq-tfloor{grid-template-columns:1fr auto;padding:44px 28px 24px} .mq .mq-tline{display:none} .mq .mq-tacts{width:300px} }
+/* 좁은 PC 창: 그림이 많이 잘리면 버튼 칸을 넓힌다 */
 
 /* 프롤로그 웹툰 */
 .mq #mq-cine{background:#000}
@@ -510,21 +507,21 @@
   .mq.sheet-on .mq-foot{display:none}
   .mq .mq-risk small{display:none}
   .mq.typing .mq-sugg{display:flex}
-  /* 폰: 그림은 가로 그림 그대로(잘리지 않게) + 남는 위아래는 같은 그림을 흐리게 채움. 시작 띠는 아래에 붙는다 */
-  .mq #mq-title{display:flex;flex-direction:column;overflow-y:auto}
-  .mq .mq-tart{position:relative;inset:auto;flex:1 0 auto;min-height:56vw}
-  .mq .mq-tblur{display:block;position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(22px) brightness(.68) saturate(1.3)}
-  .mq .mq-tart img{position:absolute;left:0;right:0;top:46%;height:auto;aspect-ratio:auto;transform:translateY(-50%);object-fit:contain;animation:none;box-shadow:0 20px 50px rgba(0,0,0,.6)}
-  .mq .mq-tshade{display:none}
-  .mq .mq-tart::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,10,.4),transparent 18%,transparent 78%,var(--abyss))}
-  .mq .mq-tfloor{position:relative;flex:none;grid-template-columns:1fr;justify-items:center;text-align:center;gap:18px;padding:52px 20px calc(24px + env(safe-area-inset-bottom));margin-top:-1px;border-top:0;box-shadow:none;background:var(--abyss)}
-  .mq .mq-tfloor::before{content:"";position:absolute;left:20px;right:20px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(239,213,149,.6),transparent)}
-  .mq .mq-tline{font-size:14.5px}
-  .mq .mq-tacts{width:100%;max-width:400px}
-  .mq .mq-tgo b{font-size:19px}
-  .mq .mq-tside{align-items:center;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px 18px}
-  .mq .mq-tside span{flex-basis:100%;text-align:center}
-  .mq .mq-tdrawer{position:fixed;left:0;right:0;top:auto;bottom:0;width:auto;max-height:78%;border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;transform:translateY(105%)}
+  /* 폰 타이틀: 세로 그림을 화면 폭보다 살짝 크게(제목이 안 잘리게 오른쪽으로 조금 치우침) 위에 붙이고,
+     그림 아래쪽 검정과 이어지는 바닥에 버튼을 둔다 → 제목·MADE BY 글자를 절대 가리지 않음 */
+  .mq #mq-title{background:#020202;--w:min(100cqw,calc(100cqh * .5077));--h:calc(var(--w) * 2.1667);--x:calc((100cqw - var(--w)) / 2);--y:0px}
+  .mq .mq-tstage img.pc{display:none} .mq .mq-tstage img.m{display:block}
+  .mq .mq-ttag{display:none}
+  .mq .mq-tmenu{left:max(18px,calc((100cqw - 420px) / 2));right:max(18px,calc((100cqw - 420px) / 2));width:auto;min-width:0;top:auto;bottom:calc(16px + env(safe-area-inset-bottom));gap:7px}
+  .mq .mq-tgo{padding:13px 18px}
+  @media (max-height:780px){ .mq .mq-tgo{padding:10px 16px} .mq .mq-tcont{padding:8px 14px} .mq .mq-tlinks span{display:none} }
+  .mq .mq-tgo b{font-size:18.5px}
+  .mq .mq-tcont{background:rgba(255,255,255,.04);border-color:rgba(239,213,149,.4);color:var(--ivory)}
+  .mq .mq-tcont b{color:var(--gold-hi)} .mq .mq-tcont small{color:#c9c0cc}
+  .mq .mq-tlinks{margin-top:4px}
+  .mq .mq-tlinks button{color:#efe6d6;border-color:rgba(239,230,214,.35)}
+  .mq .mq-tlinks span{flex-basis:100%;text-align:center;color:#7d7480}
+  .mq .mq-tdrawer{position:absolute;left:0;right:0;top:auto;bottom:0;width:auto;max-height:78%;border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;transform:translateY(105%)}
   .mq .mq-box{padding:22px 16px 18px}
   .mq .mq-banner.center{padding:22px 16px}
 }

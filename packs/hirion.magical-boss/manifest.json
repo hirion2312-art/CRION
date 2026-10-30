@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.magical-boss",
   "name": "마법소녀의 최종보스 · 마왕의 작전실",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "runner": "maou",
   "workId": "magical",
   "workName": "마법소녀의 최종보스",
@@ -29,7 +29,7 @@
     "store/shot3.webp"
   ],
   "ui": "ui.html",
-  "minEngine": "0.10.4",
+  "minEngine": "0.10.5",
   "mode": "hybrid",
   "identity": "이 작품의 플레이 화면은 반지하에서 다시 깨어난 마왕의 작전실처럼 보인다."
 }

@@ -69,7 +69,7 @@ async def run(b, name, vp, mobile):
     ctx = await b.new_context(viewport=vp, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.add_init_script("window.__engineVersion='0.10.4'")
+    await page.add_init_script("window.__engineVersion='0.10.5'")
     await T.setup(page)
     async def img(route):
         n = BYURL.get(route.request.url.split('?')[0])
@@ -193,6 +193,11 @@ async def run(b, name, vp, mobile):
     await page.screenshot(path=OUT + f'mq_{name}_c_title2.png')
     await page.evaluate("document.querySelector('[data-mq=t-saves]').click()"); await page.wait_for_timeout(600)
     await page.screenshot(path=OUT + f'mq_{name}_c_saves.png')
+    if name == 'pc':
+        await page.evaluate("document.querySelector('[data-mq=t-saves]').click()"); await page.wait_for_timeout(300)
+        for vw, vh in [(1000, 760), (1920, 900)]:
+            await page.set_viewport_size({'width': vw, 'height': vh}); await page.wait_for_timeout(500)
+            await page.screenshot(path=OUT + f'mq_{name}_c_title_{vw}.png')
     over = await page.evaluate("document.documentElement.scrollWidth > innerWidth")
     if over: errs.append('horizontal overflow')
     M = await page.evaluate("JSON.stringify({st: window.__pk.memory.status.day, pw: window.__pk.memory.powers, aff: window.__pk.memory.aff, clues: window.__pk.memory.clues.length, seen: Object.keys(window.__pk.memory.seen).length})")
