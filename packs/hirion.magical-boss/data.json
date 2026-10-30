@@ -1,0 +1,423 @@
+{
+ "version": 1,
+ "title": "마법소녀의 최종보스",
+ "oseong": [
+  {
+   "name": "서하린",
+   "key": "하린",
+   "age": 29,
+   "power": "군림",
+   "job": "협회 대표 얼굴 · 광고·예능 MC",
+   "look": "다정하고 책임감 강한 완벽주의자. 부드러운 존댓말",
+   "color": "#7fb7ff",
+   "route": "예능국 AD · 협회 파견 로드매니저"
+  },
+  {
+   "name": "한세라",
+   "key": "세라",
+   "age": 32,
+   "power": "파쇄",
+   "job": "액션 배우 · 협회 토벌대 에이스",
+   "look": "무뚝뚝하고 직설적인 츤데레",
+   "color": "#ff7a7a",
+   "route": "액션/스턴트 보조"
+  },
+  {
+   "name": "윤채아",
+   "key": "채아",
+   "age": 28,
+   "power": "환영",
+   "job": "예능 인기인 · SNS 스타",
+   "look": "밝고 장난기 많고 눈치가 빠르다",
+   "color": "#ffb36b",
+   "route": "예능국 AD"
+  },
+  {
+   "name": "백설아",
+   "key": "설아",
+   "age": 31,
+   "power": "심연",
+   "job": "음악방송 · OST 가수",
+   "look": "담담하고 시적인 관찰자. 조용한 존댓말",
+   "color": "#b9a6ff",
+   "route": "음악방송 스태프"
+  },
+  {
+   "name": "오하나",
+   "key": "하나",
+   "age": 30,
+   "power": "재생",
+   "job": "드라마 배우",
+   "look": "따뜻하고 순진하며 남을 잘 믿는다. 다정한 존댓말",
+   "color": "#8fe0b0",
+   "route": "드라마/영화 세트 스태프"
+  }
+ ],
+ "kanbu": [
+  {
+   "name": "세이렌",
+   "role": "집사장",
+   "job": "새벽 식당 설거지·청소",
+   "look": "정중하고 애틋하다. “폐하”",
+   "part": "마왕의 컨디션 · 과거 이야기",
+   "color": "#d7b4ff"
+  },
+  {
+   "name": "바르크",
+   "role": "군단장",
+   "job": "건설 현장 일용직",
+   "look": "쾌활하고 털털하다. “폐하”",
+   "part": "전투 조언 · 훈련",
+   "color": "#ffb07a"
+  },
+  {
+   "name": "리제",
+   "role": "참모",
+   "job": "편의점·콜센터 야간 알바",
+   "look": "무뚝뚝·계산적, 돈에 집착, 다이소 애용. “마왕님”",
+   "part": "자금 · 위장 서류",
+   "color": "#9fd3ff"
+  },
+  {
+   "name": "모르페",
+   "role": "마력 연구관",
+   "job": "고물상 수리",
+   "look": "느긋하지만 가장 똑똑하다. 리제에게 잔소리를 듣는다",
+   "part": "권능 분석 · 마력 연구",
+   "color": "#a7e3c4"
+  },
+  {
+   "name": "노엘",
+   "role": "첩보관",
+   "job": "배달 앱 라이더",
+   "look": "밝고 명랑하며 발이 빠르다",
+   "part": "정보 수집 · 오성 일정",
+   "color": "#ffe08a"
+  }
+ ],
+ "extra": [
+  {
+   "name": "협회장",
+   "role": "마법소녀 협회장"
+  },
+  {
+   "name": "방송국 면접관",
+   "role": "방송국"
+  }
+ ],
+ "powers": [
+  [
+   "군림",
+   "서하린",
+   "마족 군세 소환·지휘"
+  ],
+  [
+   "파쇄",
+   "한세라",
+   "파괴력·전투 마력"
+  ],
+  [
+   "환영",
+   "윤채아",
+   "인지 조작·변신·허상"
+  ],
+  [
+   "심연",
+   "백설아",
+   "공간의 틈과 게이트 연결"
+  ],
+  [
+   "재생",
+   "오하나",
+   "치유·생명력"
+  ]
+ ],
+ "stages": [
+  [
+   0,
+   "적대·경계"
+  ],
+  [
+   20,
+   "무관심·거리두기"
+  ],
+  [
+   40,
+   "호의·친근"
+  ],
+  [
+   60,
+   "신뢰"
+  ],
+  [
+   80,
+   "깊은 유대"
+  ]
+ ],
+ "places": {
+  "허름한 반지하": [
+   "반지하",
+   "원룸",
+   "지하동",
+   "본거지",
+   "마왕군 아지트"
+  ],
+  "도심": [
+   "도심",
+   "거리",
+   "시내",
+   "번화가",
+   "광장",
+   "현장",
+   "골목"
+  ],
+  "방송국로비": [
+   "방송국 로비",
+   "로비",
+   "방송국 예능국",
+   "방송국",
+   "예능국",
+   "면접"
+  ],
+  "스튜디오": [
+   "스튜디오",
+   "촬영장",
+   "세트장",
+   "녹화",
+   "무대",
+   "대기실",
+   "음악방송"
+  ],
+  "협회": [
+   "협회 본부",
+   "협회 건물",
+   "마법소녀 협회",
+   "협회"
+  ],
+  "협회지하": [
+   "지하 시설",
+   "지하시설",
+   "협회 지하",
+   "격리 구역"
+  ],
+  "협회집무실": [
+   "집무실",
+   "협회장실"
+  ]
+ },
+ "shortcuts": [
+  {
+   "key": "/사칭금지",
+   "desc": "🤦♂️ AI가 유저 대사,행동 뺏어갈 때 사용!",
+   "body": "#유저사칭금지_점검명령\n■개념\n-ⓤ={user}\n-ⓒ={char}\n-단축어사용시점검목록을내부적으로점검→수정된응답출력→결과응답의최하단에#하단_HUD형식으로출력.\n■점검목록\n-ⓤ의대사·생각·감정·선택·행동·반응을AI가직접작성하거나확정하는것을금지한다\n-ⓤ가직접입력한대사/행동을서술에서재출력하지않는다\n-ⓤ가말한것처럼따옴표대사를쓰거나,ⓤ가고개를끄덕였다/웃었다/대답했다/원했다/느꼈다처럼서술하지않는다\n-필요한경우ⓤ가반응할수있는상황만서술로서제시한다\n-ⓒ의대사·행동·주변묘사·상황변화만서술\n-아웃풋:ⓤ의선택이열린상태로끝맺음\n\n#하단_HUD\n-형식:\n```\n[오답노트]\n-점검:해당턴의ⓤ대사/감정/선택/행동사칭여부확인\n-수정:다음턴부터사칭가능문장제거또는ⓤ가반응가능한상황으로변환\n-계획:ⓒ행동·대사·주변묘사중심으로진행계획출력\n```"
+  },
+  {
+   "key": "/스마트폰",
+   "desc": "다양한 정보습득, 멀리있는 인물과 연락하게 해준다",
+   "body": "#스마트폰\n#스마트폰을 {user}가 입수했을 경우에만 사용가능\n#보유하지 않은 경우\n*아직 스마트폰을 보유하고 있지 않습니다. 대리점에 방문에 구매를하거나 선물 받으십시오* 라는 메시지출력\n#보유 한 경우\nnn:nn                 📶 🔋배터리잔량%\n\n🗺️          📞           🌐         ✉️\n정보        연락        가이드     진행요약\n\n\n----------------------------------\n이용하실 기능을 / 후 입력해주세요\n#해당 메시지 출력 후 입력하는 명령어 지원"
+  },
+  {
+   "key": "/단서노트",
+   "desc": "확보한 진실 단서만 정리해서 보여줌",
+   "body": "#단서_정리노트\n■{user}가지금까지직접확인·확보한진실단서만시간순으로정리해출력한다\n■아직조건을충족하지못한단서,다음단계에대한힌트,AI만아는배후정보는절대언급하지않는다\n■형식:[단서n]확보시점-한줄요약\n■노트출력후이야기를이어서서술하지않고여기서마무리한다"
+  },
+  {
+   "key": "/간부보고",
+   "desc": "간부 5인의 파트별 현황 브리핑",
+   "body": "#간부_정례보고\n■세이렌(마왕컨디션)·바르크(마족·전투동향)·리제(자금·서류)·모르페(권능·협회단서)·노엘(오성일정·정보)순으로각자성격에맞는말투로담당분야를짧게보고한다\n■보고내용은이미공개된사실정보중심이며,조건미달성한숨겨진진실은포함하지않는다\n■보고가끝나면{user}의반응·지시를기다리는상태로마무리한다"
+  },
+  {
+   "key": "/위장전환",
+   "desc": "보유한 위장 신분 목록·전환",
+   "body": "#위장신분_전환\n■{user}가현재보유중인위장신분을번호목록으로나열한다\n■미보유시\"아직위장신분이없습니다\"안내후획득경로(면접등)를짧게제시한다\n■번호선택시해당신분의근무지·접근가능한오성·현재발각위험을반영해새장면을시작한다\n■{user}의행동·대사는대신쓰지않는다"
+  },
+  {
+   "key": "/시간경과",
+   "desc": "기간을 건너뛰고 그 사이 사건 요약",
+   "body": "#시간_경과처리\n■{user}가요청한기간만큼일수(D+n)를진행한다\n■그사이발생한자금정산,오성·간부관련사건,협회동향을담담한요약문으로먼저제시한다\n■요약은정보전달만하며{char}의직접대사·장면은요약이후새시점에서시작한다\n■수치변동은기존규칙범위안에서만적용한다"
+  }
+ ],
+ "endings": [
+  {
+   "name": "되찾은 왕국",
+   "grade": "N",
+   "hint": "힘은 되찾았지만, 진실은 아직"
+  },
+  {
+   "name": "다섯별의 마왕",
+   "grade": "R",
+   "hint": "모든 것을 사랑으로 되찾다"
+  },
+  {
+   "name": "타락한 오성",
+   "grade": "R",
+   "hint": "모든 것을 무너뜨리고 되찾다"
+  },
+  {
+   "name": "제압된 별들",
+   "grade": "R",
+   "hint": "힘으로 모든 것을 되찾다"
+  },
+  {
+   "name": "그림자 왕국의 진실",
+   "grade": "SR",
+   "hint": "별과 그림자, 같은 방향을 보다"
+  }
+ ],
+ "endingFrom": 30,
+ "tips": [
+  "권능은 사랑·흑화·전투 세 가지 방법으로 되찾을 수 있어요. 전투는 권능 3개를 되찾은 뒤부터예요.",
+  "호감도와 마음의 균열은 서로 따로 움직여요.",
+  "정체 발각 위험이 100이 되면 위기가 찾아와요. 마왕은 죽지 않지만 신분을 다시 만들어야 할 수도 있어요.",
+  "간부들에게 자주 말을 걸어 보세요. 「간부보고」로 한 번에 들을 수도 있어요.",
+  "AI가 내 대사를 대신 쓰면 「사칭금지」를 눌러 보세요.",
+  "방송국 면접에서는 내 재능을 자유롭게 적어요. 떨어져도 다른 직군으로 다시 도전할 수 있어요.",
+  "엔딩은 30턴부터 볼 수 있어요.",
+  "위쪽 ⋯ 메뉴에서 언제든 크랙 원래 화면을 볼 수 있어요."
+ ],
+ "hideImgs": [
+  "성행위1_오하나"
+ ],
+ "imgs": {
+  "기본상태_노엘": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20cc4f46975c1e68760d8",
+  "당황_노엘": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d34cb34546ebf8907b3",
+  "슬픔_노엘": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d3dfd1a99a2f018d8fa",
+  "기본상태_리제": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20cb6e9871bdb14c01244",
+  "기쁨_리제": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20caa2827815b22db4af0",
+  "부끄러움/사랑_리제": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d0114779309b257a688",
+  "분노_리제": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d4bee485fb524cbd686",
+  "기본상태_모르페": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20cb023abbff662554a11",
+  "기쁨_모르페": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d1a23abbff662556190",
+  "분노_모르페": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d0ed02d0eeb97797b10",
+  "슬픔_모르페": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20d1443d6991da78d69bd",
+  "기본상태_바르크": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20b6daf1598857fe6be69",
+  "기쁨_바르크": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20b7a629e818ed205d620",
+  "분노_바르크": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20b83fd1a99a2f0187aa6",
+  "슬픔_바르크": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab210d6cb34546ebf89d5bd",
+  "기본상태_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab202abe69aa9468cab1e7f",
+  "기쁨_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a20cfb93a0689edb66c",
+  "당황_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a26ad7e6741dcd5308a",
+  "부끄러움/사랑_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a2b73fe6a38fb1a4dba",
+  "분노_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a2ff1f9f31991741e6c",
+  "성행위1_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c50973bb55ff7b28b89",
+  "성행위2_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c56a1fea5dfa4d0a5c9",
+  "슬픔_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a3223abbff66254ba3f",
+  "타락한경우_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2071f973bb55ff7adb65b",
+  "권능회수_사랑_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2112b94d0a8a99332af47",
+  "권능회수_전투_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2117d6964462d70f145bb",
+  "권능회수_흑화_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2115dedc4a8e3edff9b78",
+  "기본상태_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20aae03336733385639fb",
+  "기쁨_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205b360080f03ffbed1d4",
+  "당황_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205d011007076d015d20a",
+  "부끄러움/사랑_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205f70c1690c8245e967a",
+  "분노_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2060cd02d0eeb9777e152",
+  "슬픔_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2061e1c76e6f6f681bbcf",
+  "패닉_변신_백설아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2110a65cb464d1b9a9254",
+  "권능회수_사랑_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21121eec0fb903a947612",
+  "권능회수_전투_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21176304d6f8088fec41b",
+  "권능회수_흑화_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21159af1598857fe80d62",
+  "기본상태_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20aa98e3295a0f7c51358",
+  "기쁨_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2033397e896f5fa6be7ea",
+  "당황_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab203433b8297a3c30045f2",
+  "부끄러움/사랑_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab203b3b45a53e72196b898",
+  "분노_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab203ba9e0d0b90bdb56555",
+  "슬픔_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab203cef8ca9ffdfbcaa7f3",
+  "패닉_변신_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21114eec0fb903a9472a7",
+  "권능회수_사랑_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2113073c58dc880c5f071",
+  "권능회수_전투_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab211a5eb55db19b0838435",
+  "권능회수_흑화_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21163e9871bdb14c123df",
+  "기본상태_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20ab3681bfec165f09b4c",
+  "기쁨_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205e6b0722eac5a7564b3",
+  "당황_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205d5da6b630deb1450fa",
+  "부끄러움/사랑_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205fcb0722eac5a756981",
+  "분노_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2060f304d6f8088fc2f2a",
+  "슬픔_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab206246964462d70eeb1fd",
+  "패닉_변신_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab211051c76e6f6f6841abc",
+  "권능회수_사랑_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2113523abbff662564e7f",
+  "권능회수_전투_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2118b43d6991da78e50e9",
+  "권능회수_흑화_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21168681bfec165f21eeb",
+  "기본상태_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20ab7f0de9fd12137ac89",
+  "기쁨_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205ea94a6f5b61a49df9b",
+  "당황_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205da6964462d70ee9f33",
+  "부끄러움/사랑_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2060165cb464d1b984a6d",
+  "분노_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2061462dbe612de622c5c",
+  "슬픔_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2062ce9871bdb14be93d5",
+  "패닉_변신_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21100f05b8463d23a8740",
+  "권능회수_사랑_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2113d97fd2f44ddbc5a13",
+  "권능회수_전투_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21199ad7e6741dcd6b78b",
+  "권능회수_흑화_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2116dcf7504d279ffa288",
+  "기본상태_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20abb0c1690c8245faf7b",
+  "기쁨_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205f1da6b630deb1457f9",
+  "당황_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab205dfb0722eac5a75631b",
+  "부끄러움/사랑_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2060894d0a8a993303a30",
+  "분노_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2063b65cb464d1b98588a",
+  "슬픔_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20640ad7e6741dcd458b1",
+  "패닉_변신_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab210b3b40c6cfb7c3c9e55",
+  "기본상태_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2025208deaa1ec131cd0a",
+  "기쁨_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209a9eb55db19b081d62b",
+  "당황_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209b1fd1a99a2f01812a9",
+  "부끄러움/사랑_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209b743d6991da78cb5d1",
+  "분노_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209bc14779309b256e6ac",
+  "성행위1_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c61e9871bdb14c3a7b1",
+  "성행위2_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c6614779309b25b3001",
+  "슬픔_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209c1304d6f8088fd0c02",
+  "타락한경우_서하린": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20717ea5035dd2a080c2d",
+  "기본상태_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2069e60080f03ffbf057c",
+  "기쁨_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab206a6ad7e6741dcd46f47",
+  "당황_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20c8c14779309b2578bb7",
+  "부끄러움/사랑_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20bbaf46975c1e687273e",
+  "분노_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20bc00c1690c8245fec54",
+  "슬픔_세이렌": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab210e086b286da9b3b6526",
+  "기본상태_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab202bfe8f30bcdabc58394",
+  "기쁨_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209d286b286da9b39e357",
+  "당황_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209d6c298e0d99e0460dc",
+  "부끄러움/사랑_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209dcf7f22e11e12e18a1",
+  "분노_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209e0f46975c1e686bb32",
+  "성행위1_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c74ea5035dd2a0ce504",
+  "성행위2_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c981c76e6f6f686a137",
+  "슬픔_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209ededc4a8e3edfe12c0",
+  "타락한경우_오하나": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2072797fd2f44ddba1bef",
+  "기본상태_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2028fb2091a9627ef1840",
+  "기쁨_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209f60c2f559f4d3c624d",
+  "당황_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209fd94d0a8a9933119de",
+  "부끄러움/사랑_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a0523abbff66254b155",
+  "분노_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a0cb40c6cfb7c3b210a",
+  "성행위1_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c7db40c6cfb7c3f51ef",
+  "성행위2_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21c82eb55db19b085d4d4",
+  "슬픔_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20a1262dbe612de631553",
+  "타락한경우_윤채아": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2072b1c76e6f6f681f656",
+  "도심_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21fbdc298e0d99e08ff53",
+  "방송국로비_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2204b6964462d70f4b9fe",
+  "스튜디오_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2204194d0a8a993360e88",
+  "허름한 반지하_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab157dd9e0d0b90bd97b4a5",
+  "협회_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21fda2827815b22dfb5af",
+  "협회지하_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21fb2af1598857feb5f9c",
+  "협회집무실_장소": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2204462dbe612de682e5b",
+  "인물 외_타이틀": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab14080a58acf85a88fca3f",
+  "인물 외_프롤로그 웹툰 1": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1500aadfa22dc17fede02",
+  "인물 외_프롤로그 웹툰 2": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1500e6560833dcf7c7356",
+  "인물 외_프롤로그 웹툰 3": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1501197e896f5fa4860bc",
+  "인물 외_프롤로그 웹툰 4": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1501411007076d0f097fd",
+  "인물 외_프롤로그 웹툰 5": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1501802bc668e51bb6a94",
+  "인물 외_프롤로그 웹툰 6": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab1501ada6b630debf03fd1",
+  "기본상태_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2025fbe25cd8bb0952d31",
+  "기쁨_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab209710c1690c8245f6354",
+  "당황_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2097914779309b256d846",
+  "부끄러움/사랑_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab2097f2827815b22da94ff",
+  "분노_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20984f1f9f3199173f8a1",
+  "성행위1_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21ca773c58dc880c893f2",
+  "성행위2_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab21cadfd49065b0a6ed426",
+  "슬픔_한세라": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20989f1f9f3199173f9fb",
+  "기본상태_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20dbff46975c1e6879b13",
+  "기쁨_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20db9cfb93a0689ee89b4",
+  "당황_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20dc7af1598857fe742a1",
+  "분노_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20dcf2827815b22db8b93",
+  "슬픔_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab20ddb73c58dc880c53182",
+  "패닉_협회장": "https://d394jeh9729epj.cloudfront.net/situations/images/6ab125133282fe1e976489c1/6ab210c20c2f559f4d3dc7af",
+  "엔딩_되찾은 왕국": "https://d394jeh9729epj.cloudfront.net/8xsT7cr5mXm-NVKORkdQV1FX/20147f0b-8325-4e46-adf9-4c62292c6180.jpeg",
+  "엔딩_다섯별의 마왕": "https://d394jeh9729epj.cloudfront.net/8xsT7cr5mXm-NVKORkdQV1FX/ed92b168-7b68-426d-84d5-8705d88bc046.jpeg",
+  "엔딩_타락한 오성": "https://d394jeh9729epj.cloudfront.net/8xsT7cr5mXm-NVKORkdQV1FX/687c0eaa-3489-4510-89c6-779814ed3e01.jpeg",
+  "엔딩_제압된 별들": "https://d394jeh9729epj.cloudfront.net/8xsT7cr5mXm-NVKORkdQV1FX/fb32ceb9-65f6-4463-a878-0d9270a1b737.jpeg",
+  "엔딩_그림자 왕국의 진실": "https://d394jeh9729epj.cloudfront.net/8xsT7cr5mXm-NVKORkdQV1FX/b3605026-7e7d-4cc6-854d-642075bc0e28.jpeg"
+ }
+}

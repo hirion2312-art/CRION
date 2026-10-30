@@ -9,7 +9,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test/store.test.js && node test/packs.test.js && node test/dev.test.js && node test/community.test.js && node test/updater.test.js && node test/academy.test.js && node test/safehouse.test.js && node test/cloud.test.js && node test/home.test.js && node test/sync.test.js && node test/univ.test.js",
+    "test": "node test/store.test.js && node test/packs.test.js && node test/dev.test.js && node test/community.test.js && node test/updater.test.js && node test/academy.test.js && node test/safehouse.test.js && node test/cloud.test.js && node test/home.test.js && node test/sync.test.js && node test/univ.test.js && node test/maou.test.js",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "dist": "electron-builder",

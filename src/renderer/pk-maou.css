@@ -1,0 +1,336 @@
+/* 플레이팩 「마법소녀의 최종보스」 — 마왕의 작전실. 모든 선택자는 .mq 아래로 가둔다 */
+.pview .pk > .mq{position:absolute;inset:0}
+.mq{--night:#07061a;--ink:#100d2a;--ink2:#17133a;--silver:#e4e8ff;--star:#9fb7ff;--shadow:#8b5cf6;--crown:#e8cf8f;--fg:#eef0fb;--sub:#a7a9c9;--line:rgba(190,195,255,.16);
+  --love:#ff8fb3;--dark:#a56bff;--fight:#ff6b5a;--ok:#5fd0a0;--warn:#f2b84b;--bad:#ff5d6c;
+  --sans:"Pretendard","IBM Plex Sans KR","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --serif:"Gowun Batang","Noto Serif KR",serif;
+  display:flex;flex-direction:column;background:var(--night);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;user-select:none;word-break:keep-all;overflow-wrap:anywhere;color-scheme:dark}
+.mq [hidden]{display:none!important}
+.mq button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+.mq button:focus-visible{outline:2px solid var(--star);outline-offset:2px}
+.mq input,.mq textarea{font:inherit;color:inherit}
+.mq svg.ic{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mq .mq-more .ic circle{fill:currentColor}
+.mq .mq-dim{color:var(--sub);font-size:12px}
+.mq.nofx *{animation:none!important;transition:none!important}
+
+/* ---------- 무대 ---------- */
+.mq .mq-main{flex:1;min-height:0;position:relative;display:flex}
+.mq .mq-stage{position:relative;flex:1;min-width:0;overflow:hidden;background:#05040f}
+.mq .mq-bg,.mq .mq-bgl{position:absolute;inset:0}
+.mq .mq-bgl{background-size:cover;background-position:center;opacity:0;transition:opacity 1s ease;transform:scale(1.03)}
+.mq .mq-bgl.on{opacity:1}
+.mq .mq-tint{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(7,6,26,.5) 0%,rgba(7,6,26,0) 30%,rgba(7,6,26,.15) 60%,rgba(7,6,26,.8) 100%);transition:background .8s}
+.mq .mq-tint.under{background:linear-gradient(180deg,rgba(10,6,20,.65),rgba(25,10,40,.25) 40%,rgba(7,6,26,.85))}
+.mq .mq-tint.cold{background:linear-gradient(180deg,rgba(10,20,50,.5),rgba(20,40,90,.12) 40%,rgba(7,6,26,.82))}
+.mq .mq-stars{position:absolute;inset:0;pointer-events:none}
+.mq .mq-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 6px 1px rgba(170,190,255,.8);opacity:0;animation:mqTw 4.2s infinite}
+@keyframes mqTw{0%,100%{opacity:0}50%{opacity:.7}}
+.mq .mq-pt{position:absolute;inset:0;opacity:0;transition:opacity .45s;pointer-events:none;overflow:hidden}
+.mq .mq-pt.on{opacity:1}
+.mq .mq-pt img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center top;display:block;filter:drop-shadow(0 0 30px color-mix(in srgb,var(--glow,#9fb7ff) 35%,transparent))}
+.mq .mq-pt.wide img{object-fit:cover;object-position:center 25%;filter:none}
+.mq .mq-pt::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,6,26,.45),transparent 22%,transparent 55%,rgba(7,6,26,.85))}
+
+/* HUD */
+.mq .mq-hud{position:absolute;left:16px;top:14px;right:70px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;z-index:5;pointer-events:none}
+.mq .mq-hud > *{pointer-events:auto}
+.mq .mq-when{display:flex;align-items:baseline;gap:10px;text-shadow:0 2px 10px #000}
+.mq .mq-when b{font-family:var(--serif);font-size:22px;color:var(--silver);letter-spacing:.02em}
+.mq .mq-when span{display:inline-flex;align-items:center;gap:4px;color:var(--sub);font-size:13px}
+.mq .mq-orbs{display:flex;align-items:center;gap:5px;background:rgba(10,8,30,.62);border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 6px;backdrop-filter:blur(6px)}
+.mq .mq-orbs em{font-style:normal;font-size:12px;color:var(--sub);margin-left:3px}
+.mq .mq-orb{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:rgba(255,255,255,.35)}
+.mq .mq-orb b{font-size:11px;font-weight:700}
+.mq .mq-orb.on{--oc:var(--crown);background:radial-gradient(circle at 35% 30%,#fff 0,var(--oc) 45%,color-mix(in srgb,var(--oc) 40%,#000) 100%);color:#1a1030;border-color:transparent;box-shadow:0 0 10px var(--oc)}
+.mq .mq-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mq .mq-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:rgba(10,8,30,.62);border:1px solid var(--line);border-radius:14px;padding:3px 9px;backdrop-filter:blur(6px)}
+.mq .mq-chip i{font-style:normal}
+.mq .mq-chip.mana u{width:46px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;display:block}
+.mq .mq-chip.mana s{display:block;height:100%;background:linear-gradient(90deg,#6f7bff,#b78bff)}
+.mq .mq-chip.risk.ok{border-color:rgba(95,208,160,.4)} .mq .mq-chip.risk.warn{border-color:var(--warn);color:#ffe2a8} .mq .mq-chip.risk.bad{border-color:var(--bad);color:#ffc2c8;animation:mqPulse 1.6s infinite}
+@keyframes mqPulse{50%{box-shadow:0 0 0 4px rgba(255,93,108,.18)}}
+.mq .mq-tr{position:absolute;top:12px;right:12px;z-index:6}
+.mq .mq-more{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(10,8,30,.62);border:1px solid var(--line);backdrop-filter:blur(6px)}
+.mq .mq-more .ic{width:21px;height:21px}
+
+/* 알림 */
+.mq .mq-pops{position:absolute;right:16px;top:64px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:7;pointer-events:none}
+.mq .mq-pop{display:flex;align-items:center;gap:9px;background:rgba(16,13,42,.88);border:1px solid var(--line);border-radius:14px;padding:8px 13px;font-size:13px;backdrop-filter:blur(8px);animation:mqIn .35s ease;max-width:320px}
+.mq .mq-pop > i{font-style:normal;font-size:16px}
+.mq .mq-pop b{white-space:nowrap}
+.mq .mq-pop span{color:var(--sub)}
+.mq .mq-pop .up{color:var(--love)} .mq .mq-pop .dn{color:#9fb7ff} .mq .mq-pop .crk{color:var(--dark)}
+.mq .mq-pop.big{border-color:rgba(232,207,143,.55);background:linear-gradient(135deg,rgba(40,26,70,.95),rgba(16,13,42,.95));box-shadow:0 0 30px rgba(232,207,143,.25)}
+.mq .mq-pop.big > i.big{font-size:22px;color:var(--crown)}
+.mq .mq-pop.out{opacity:0;transform:translateY(-6px);transition:.45s}
+@keyframes mqIn{from{opacity:0;transform:translateY(-8px)}}
+
+/* 대사창 */
+.mq .mq-dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;width:min(860px,calc(100% - 32px));min-height:132px;z-index:4;
+  background:linear-gradient(180deg,rgba(20,16,50,.86),rgba(9,7,26,.93));border:1px solid rgba(190,195,255,.22);border-radius:18px;padding:24px 22px 16px;
+  box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);cursor:pointer;backdrop-filter:blur(10px)}
+.mq .mq-dlg:empty{display:none}
+.mq .mq-dlg::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(159,183,255,.7),transparent)}
+.mq .mq-name{position:absolute;top:-15px;left:18px;display:flex;align-items:baseline;gap:6px;background:var(--ink2);border:1px solid color-mix(in srgb,var(--nc) 60%,transparent);color:var(--nc);border-radius:10px;padding:4px 13px;font-weight:700;font-size:14px;box-shadow:0 0 16px color-mix(in srgb,var(--nc) 30%,transparent)}
+.mq .mq-name small{color:var(--sub);font-weight:500;font-size:11.5px}
+.mq .mq-act{color:var(--sub);font-size:13px;font-style:italic;margin-bottom:4px}
+.mq .mq-dline{font-size:15.5px;line-height:1.75;white-space:pre-wrap;min-height:1.75em}
+.mq .k-narr .mq-dline{font-family:var(--serif);color:#dfe1f5}
+.mq .k-sys .mq-dline{color:var(--star);font-size:14px}
+.mq .mq-next{position:absolute;right:16px;bottom:8px;font-size:11px;color:var(--sub);animation:mqBob 1.6s infinite}
+@keyframes mqBob{50%{transform:translateY(2px);opacity:.6}}
+.mq .mq-endq{margin-top:8px;color:var(--crown);font-family:var(--serif);font-size:14px}
+.mq .k-end{min-height:0;padding:16px 22px}
+.mq .k-title{text-align:center;padding:26px 22px}
+.mq .mq-ep small{display:block;color:var(--star);letter-spacing:.3em;font-size:11px}
+.mq .mq-ep b{font-family:var(--serif);font-size:22px;color:var(--silver)}
+.mq .k-wait{cursor:default}
+.mq .mq-typing{display:flex;align-items:center;gap:10px}
+.mq .mq-typing span,.mq .mq-dots3{display:inline-flex;gap:4px}
+.mq .mq-typing span i,.mq .mq-dots3 i{width:6px;height:6px;border-radius:50%;background:var(--star);animation:mqDot 1s infinite}
+.mq .mq-typing span i:nth-child(2),.mq .mq-dots3 i:nth-child(2){animation-delay:.15s}
+.mq .mq-typing span i:nth-child(3),.mq .mq-dots3 i:nth-child(3){animation-delay:.3s}
+@keyframes mqDot{50%{opacity:.25;transform:translateY(-3px)}}
+.mq .mq-tip{margin-top:8px;color:var(--sub);font-size:12.5px}
+.mq .mq-stream{display:block;margin-top:6px;color:rgba(167,169,201,.6);font-size:11.5px;max-height:3em;overflow:hidden}
+
+/* ---------- 작전실 (옆 패널) ---------- */
+.mq .mq-side{width:360px;flex:none;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--ink),var(--night));border-left:1px solid var(--line);min-height:0}
+.mq .mq-stabs{display:flex;padding:8px 8px 0;gap:2px;border-bottom:1px solid var(--line)}
+.mq .mq-stabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 9px;color:var(--sub);font-size:12px;border-bottom:2px solid transparent;position:relative}
+.mq .mq-stabs button .ic{width:19px;height:19px}
+.mq .mq-stabs button.on{color:var(--silver);border-bottom-color:var(--star)}
+.mq .mq-stabs em,.mq .mq-tabs em{position:absolute;top:6px;left:calc(50% + 7px);width:7px;height:7px;border-radius:50%;background:var(--crown)}
+.mq .mq-panel{flex:1;min-height:0;overflow-y:auto;padding:14px 14px 24px;user-select:text;scrollbar-width:thin}
+.mq .mq-ph{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.mq .mq-ph h3{flex:1;margin:0;font-family:var(--serif);font-size:18px;color:var(--silver);font-weight:700}
+.mq .mq-ph h3 small{display:block;font-family:var(--sans);font-size:11.5px;color:var(--sub);font-weight:400}
+.mq .mq-back{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.05)}
+.mq .mq-h4{margin:18px 0 8px;font-size:13px;color:var(--silver);font-weight:700}
+.mq .mq-h4 small{color:var(--sub);font-weight:400;margin-left:4px}
+.mq .mq-note{color:var(--sub);font-size:12px;margin:10px 2px 0}
+.mq .mq-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:11px;padding:9px 14px;font-size:13px;font-weight:600}
+.mq .mq-btn.sm{padding:5px 10px;font-size:12px;border-radius:9px;flex:none}
+.mq .mq-btn.primary{background:linear-gradient(135deg,#6f7bff,#9b6bff);border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(120,100,255,.35)}
+.mq .mq-btn.danger{border-color:rgba(255,93,108,.5);color:#ffb3bb}
+.mq .mq-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.mq .mq-btns > .mq-btn{flex:1}
+.mq .mq-btns.left > .mq-btn{flex:none}
+
+/* 오성 카드 */
+.mq .mq-cards{display:flex;flex-direction:column;gap:10px}
+.mq .mq-card{display:flex;gap:12px;text-align:left;padding:10px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 14%,transparent),rgba(255,255,255,.02));border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
+.mq .mq-card:hover{border-color:color-mix(in srgb,var(--c) 60%,transparent)}
+.mq .mq-cimg{position:relative;width:78px;height:96px;flex:none;border-radius:12px;overflow:hidden;background:#141030}
+.mq .mq-cimg img{width:100%;height:100%;object-fit:cover;object-position:center 15%}
+.mq .mq-meth{position:absolute;left:4px;bottom:4px;font-style:normal;font-size:10.5px;font-weight:700;background:var(--m);color:#1a1030;border-radius:6px;padding:0 6px}
+.mq .mq-cmeta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mq .mq-cmeta > b{font-size:15px;color:var(--c)} .mq .mq-cmeta > b small{color:var(--sub);font-weight:400;font-size:12px}
+.mq .mq-pw{font-size:12px;color:var(--sub)}
+.mq .mq-stat{display:flex;align-items:center;gap:6px;font-size:12px}
+.mq .mq-stat > i{font-style:normal;width:18px}
+.mq .mq-bar{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;display:block}
+.mq .mq-bar s{display:block;height:100%;background:linear-gradient(90deg,#ff9cc0,var(--love))}
+.mq .mq-bar.crk s{background:linear-gradient(90deg,#7c4dff,var(--dark))}
+.mq .mq-n{font-size:12px;min-width:26px;text-align:right}
+.mq .mq-lock{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--sub)}
+.mq .mq-lock .ic{width:13px;height:13px}
+.mq .mq-stage-l{font-size:11.5px;color:var(--crown)}
+.mq .mq-person{display:flex;flex-direction:column;gap:12px}
+.mq .mq-person > img{width:100%;max-height:340px;object-fit:cover;object-position:center 12%;border-radius:16px;border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.mq .mq-pinfo p{margin:0 0 10px;color:#d8daf0;font-size:13px}
+.mq .mq-kv{display:grid;grid-template-columns:70px 1fr;gap:6px 10px;font-size:12.5px}
+.mq .mq-kv > span{color:var(--sub)}
+.mq .mq-kv > b{font-weight:500}
+.mq .mq-kvb{display:flex;align-items:center;gap:6px}
+.mq .mq-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mq .mq-grid.wide{grid-template-columns:repeat(2,1fr)}
+.mq .mq-grid > button,.mq .mq-grid > .mq-locked{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#141030;border:1px solid var(--line)}
+.mq .mq-grid.wide > *{aspect-ratio:16/10}
+.mq .mq-grid img{width:100%;height:100%;object-fit:cover;object-position:center 15%}
+.mq .mq-grid small{position:absolute;left:0;right:0;bottom:0;padding:10px 5px 4px;font-size:10px;line-height:1.25;background:linear-gradient(transparent,rgba(0,0,0,.85));text-align:left}
+.mq .mq-locked{display:grid;place-items:center;color:rgba(255,255,255,.2)}
+
+/* 마왕군 */
+.mq .mq-klist{display:flex;flex-direction:column;gap:10px}
+.mq .mq-kcard{display:flex;align-items:center;gap:11px;padding:10px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-left:3px solid var(--c)}
+.mq .mq-kcard > img{width:58px;height:58px;border-radius:12px;object-fit:cover;object-position:center 15%;flex:none;background:#141030}
+.mq .mq-kcard > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;font-size:12px}
+.mq .mq-kcard b{font-size:14.5px;color:var(--c)} .mq .mq-kcard b small{color:var(--sub);font-weight:400;font-size:11.5px}
+.mq .mq-kcard .mq-dim{font-size:11.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mq .mq-part{color:var(--crown)} .mq .mq-part u{text-decoration:none;color:var(--silver);margin-left:4px}
+
+/* 단서 */
+.mq .mq-clues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mq .mq-clues li{padding:10px 12px;border-radius:12px;background:rgba(159,183,255,.06);border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.mq .mq-clues em{font-style:normal;font-size:11px;color:var(--star);letter-spacing:.05em}
+.mq .mq-clues b{font-weight:500;font-size:13.5px}
+.mq .mq-clues small{color:var(--sub);font-size:11.5px}
+.mq .mq-empty{padding:22px 16px;border:1px dashed var(--line);border-radius:14px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.mq .mq-empty span{color:var(--sub);font-size:12.5px}
+.mq .mq-assoc{margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(232,207,143,.07);border:1px solid rgba(232,207,143,.25);display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+
+/* 명령 */
+.mq .mq-cmds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mq .mq-cmd{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.mq .mq-cmd:hover{border-color:rgba(159,183,255,.5)}
+.mq .mq-cmd i{font-style:normal;font-size:19px}
+.mq .mq-cmd b{font-size:13.5px}
+.mq .mq-cmd span{font-size:11.5px;color:var(--sub);line-height:1.4}
+.mq .mq-days{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;color:var(--sub)}
+.mq .mq-days span{flex:1}
+.mq .mq-ends{display:flex;flex-direction:column;gap:7px}
+.mq .mq-end{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.mq .mq-end em{grid-row:span 2;font-style:normal;font-size:11px;font-weight:800;border-radius:7px;padding:3px 7px;background:rgba(255,255,255,.08)}
+.mq .mq-end b{font-size:13.5px} .mq .mq-end span{font-size:11.5px;color:var(--sub);grid-column:2}
+.mq .mq-end button{grid-row:span 2;grid-column:3;font-size:12px;color:var(--star)}
+.mq .mq-end.got{border-color:rgba(232,207,143,.4)}
+.mq [class*="g-"]{color:var(--silver)}
+.mq .g-N{color:var(--silver)} .mq .g-R{color:var(--star)} .mq .g-SR{color:var(--crown)}
+
+/* ---------- 입력 ---------- */
+.mq .mq-foot{flex:none;display:flex;align-items:flex-end;gap:8px;padding:10px 14px;background:var(--ink);border-top:1px solid var(--line)}
+.mq .mq-foot textarea{flex:1;resize:none;min-height:42px;max-height:120px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);outline:none;line-height:1.5;user-select:text}
+.mq .mq-foot textarea:focus{border-color:rgba(159,183,255,.6)}
+.mq .mq-foot textarea.flash{animation:mqFlash .8s}
+@keyframes mqFlash{30%{border-color:var(--crown);box-shadow:0 0 0 3px rgba(232,207,143,.2)}}
+.mq .mq-fb{height:42px;padding:0 15px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:13px;font-weight:600;flex:none}
+.mq .mq-fb.primary{background:linear-gradient(135deg,#6f7bff,#9b6bff);border-color:transparent;color:#fff}
+.mq .mq-fb.danger{border-color:var(--bad);color:#ffb3bb}
+.mq .mq-tabs{display:none}
+
+/* ---------- 겹창 · 띠 ---------- */
+.mq .mq-layer{position:absolute;inset:0;z-index:30;background:var(--night)}
+.mq .mq-over{position:absolute;inset:0;z-index:40;background:rgba(3,2,12,.7);display:grid;place-items:center;padding:16px;backdrop-filter:blur(4px)}
+.mq .mq-box{position:relative;width:min(460px,100%);max-height:calc(100% - 20px);overflow-y:auto;background:linear-gradient(180deg,var(--ink2),var(--ink));border:1px solid var(--line);border-radius:18px;padding:20px;user-select:text}
+.mq .mq-box.wide{width:min(640px,100%)}
+.mq .mq-box.photo{width:min(720px,100%);padding:12px;text-align:center}
+.mq .mq-box.photo img{max-width:100%;max-height:72vh;border-radius:12px;display:block;margin:0 auto 8px}
+.mq .mq-box h3{margin:0 0 14px;font-family:var(--serif);font-size:18px;color:var(--silver)}
+.mq .mq-box h3 small{font-family:var(--sans);font-size:12px;color:var(--sub);font-weight:400;margin-left:6px}
+.mq .mq-x{position:absolute;right:10px;top:10px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;z-index:2;background:rgba(0,0,0,.3)}
+.mq .mq-lines{max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.mq .mq-lines p{margin:0;font-size:13.5px}
+.mq .mq-lines p b{color:var(--star);margin-right:8px}
+.mq .mq-lines p.me{color:var(--crown)} .mq .mq-lines p.sys{color:var(--sub)}
+.mq .mq-setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13.5px}
+.mq .mq-seg{display:flex;background:rgba(255,255,255,.05);border-radius:10px;padding:3px}
+.mq .mq-seg button{padding:6px 11px;border-radius:8px;font-size:12.5px;color:var(--sub)}
+.mq .mq-seg button.on{background:rgba(159,183,255,.2);color:var(--silver)}
+.mq .mq-pws{display:flex;flex-direction:column;gap:8px}
+.mq .mq-pwr{display:flex;align-items:center;gap:11px;padding:10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.mq .mq-pwr > i{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;border:1px solid var(--line);color:var(--sub)}
+.mq .mq-pwr.on > i{background:radial-gradient(circle at 35% 30%,#fff,var(--c) 50%,#000);color:#1a1030;border-color:transparent;box-shadow:0 0 12px var(--c)}
+.mq .mq-pwr > div{flex:1;display:flex;flex-direction:column;font-size:12px;color:var(--sub)}
+.mq .mq-pwr b{color:var(--fg);font-size:14px} .mq .mq-pwr b small{color:var(--c);font-weight:500;margin-left:4px}
+.mq .mq-pwr em{font-style:normal;font-size:12px;color:var(--sub);flex:none}
+.mq .mq-banner{position:absolute;left:50%;top:70px;transform:translateX(-50%);z-index:35;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:rgba(16,13,42,.95);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:13px;max-width:calc(100% - 24px)}
+.mq .mq-banner.center{top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 24px));padding:22px 20px}
+.mq .mq-gate{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.mq .mq-gate > b{font-size:16px;color:var(--silver)}
+.mq .mq-gate > span{color:var(--sub);font-size:13px}
+.mq .mq-brow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px}
+.mq .mq-brow .mq-fb{height:38px}
+.mq .mq-modes{display:flex;flex-direction:column;gap:6px;width:100%}
+.mq .mq-mode{padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.mq .mq-mode.on{border-color:var(--star);background:rgba(159,183,255,.12)}
+
+/* ---------- 타이틀 ---------- */
+.mq #mq-title{overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:0 18px 20px}
+.mq .mq-tbg{position:absolute;inset:0;background-size:cover;background-position:center 20%;filter:saturate(1.05);animation:mqZoom 30s ease-in-out infinite alternate}
+@keyframes mqZoom{to{transform:scale(1.07)}}
+.mq .mq-tvig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(7,6,26,.1),rgba(7,6,26,.75) 70%),linear-gradient(180deg,rgba(7,6,26,.25),rgba(7,6,26,.15) 35%,var(--night) 82%)}
+.mq .mq-tbg.blur{filter:blur(22px) brightness(.55) saturate(1.2);transform:scale(1.15);animation:none}
+.mq .mq-thero{position:relative;z-index:1;width:min(760px,100%);margin-top:max(24px,5vh);aspect-ratio:16/9;border-radius:20px;overflow:hidden;box-shadow:0 0 0 1px rgba(190,195,255,.25),0 24px 60px rgba(0,0,0,.6),0 0 60px rgba(130,110,255,.25);animation:mqIn .8s ease}
+.mq .mq-thero img{width:100%;height:100%;object-fit:cover;display:block}
+.mq .mq-tcopy.small{margin-top:18px}
+.mq .mq-tcopy,.mq .mq-tmenu,.mq .mq-saves,.mq .mq-tfoot{position:relative;z-index:1;width:min(520px,100%)}
+.mq .mq-tcopy{margin-top:max(40px,14vh);text-align:center;text-shadow:0 4px 30px rgba(0,0,0,.8)}
+.mq .mq-teye{font-size:12px;letter-spacing:.25em;color:var(--star)}
+.mq .mq-tcopy h1{margin:10px 0 8px;font-family:var(--serif);font-weight:700;font-size:clamp(38px,7vw,62px);line-height:1.05;color:#fff;letter-spacing:-.01em;
+  background:linear-gradient(180deg,#fff 20%,#c9d4ff 70%,#9f8bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 22px rgba(159,140,255,.45))}
+.mq .mq-tcopy h1 span{display:block;font-size:.5em;letter-spacing:.2em;-webkit-text-fill-color:var(--silver);margin-bottom:6px}
+.mq .mq-tsub{color:#cfd2ee;font-size:14px}
+.mq .mq-tmenu{display:flex;flex-direction:column;gap:9px;margin-top:max(26px,5vh)}
+.mq .mq-pl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 20px;border-radius:15px;font-size:16px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,rgba(111,123,255,.92),rgba(155,107,255,.92));box-shadow:0 10px 30px rgba(110,90,255,.35);border:1px solid rgba(255,255,255,.2)}
+.mq .mq-pl small{font-size:12px;font-weight:500;opacity:.8}
+.mq .mq-pl.ghost{background:rgba(16,13,42,.7);box-shadow:none;border-color:var(--line);font-weight:600;backdrop-filter:blur(6px)}
+.mq .mq-saves{margin-top:22px}
+.mq .mq-saves h4{margin:0 0 8px;font-size:13px;color:var(--sub);font-weight:600}
+.mq .mq-saves h4 em{font-style:normal;color:var(--silver);margin-left:4px}
+.mq .mq-save{display:flex;align-items:center;gap:11px;padding:9px;border-radius:14px;background:rgba(16,13,42,.75);border:1px solid var(--line);margin-bottom:7px;backdrop-filter:blur(6px)}
+.mq .mq-simg{width:62px;height:46px;flex:none;border-radius:9px;background-size:cover;background-position:center;background-color:#141030}
+.mq .mq-smeta{flex:1;min-width:0;display:flex;flex-direction:column;font-size:11.5px;color:var(--sub)}
+.mq .mq-smeta b{font-size:13.5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mq .mq-smeta em{font-style:normal}
+.mq .mq-sbtns{display:flex;gap:5px;flex:none}
+.mq .mq-sbtns .mq-fb{height:34px;padding:0 11px;font-size:12px}
+.mq .mq-tfoot{margin-top:auto;padding-top:24px;text-align:center;font-size:11px;color:rgba(167,169,201,.6);letter-spacing:.05em}
+
+/* 프롤로그 웹툰 */
+.mq #mq-cine{background:#000}
+.mq .mq-webtoon{position:absolute;inset:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;scroll-behavior:smooth}
+.mq .mq-webtoon img{width:min(720px,100%);display:block}
+.mq .mq-wend{padding:60px 20px 90px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.mq .mq-wend small{color:var(--star);letter-spacing:.3em;font-size:11px}
+.mq .mq-wend b{font-family:var(--serif);font-size:26px;color:var(--silver);margin-bottom:12px}
+.mq .mq-skip{position:absolute;right:14px;top:14px;z-index:2;padding:8px 14px;border-radius:20px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);font-size:13px}
+
+/* 엔딩 */
+.mq #mq-end{display:grid;place-items:end center;z-index:38}
+.mq .mq-endbg{position:absolute;inset:0;background-size:cover;background-position:center;animation:mqZoom 20s ease-in-out infinite alternate}
+.mq #mq-end::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(7,6,26,.92))}
+.mq .mq-endc{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 20px 50px;text-align:center}
+.mq .mq-endc em{font-style:normal;letter-spacing:.3em;font-size:12px}
+.mq .mq-endc b{font-family:var(--serif);font-size:32px;color:#fff;text-shadow:0 0 30px rgba(159,140,255,.6)}
+.mq .mq-endc span{color:#d7d9ef;font-size:14px;margin-bottom:10px}
+
+/* ---------- 좁은 PC 창 ---------- */
+@media (max-width:1100px) and (min-width:761px){ .mq .mq-side{width:300px} }
+
+/* ---------- 폰 세로 ---------- */
+@media (max-width:760px){
+  .mq{font-size:15px}
+  .mq .mq-side{position:absolute;inset:0;width:auto;z-index:15;border-left:0;display:none}
+  .mq.sheet-on .mq-side{display:flex}
+  .mq .mq-stabs{display:none}
+  .mq .mq-panel{padding:16px 14px 24px}
+  .mq .mq-ph h3{font-size:20px}
+  .mq .mq-hud{left:12px;top:10px;right:62px;gap:6px 8px}
+  .mq .mq-when b{font-size:20px}
+  .mq .mq-when span{font-size:13px}
+  .mq .mq-orb{width:20px;height:20px}
+  .mq .mq-chip{font-size:12px;padding:3px 8px}
+  .mq .mq-chip.mana u{width:34px}
+  .mq .mq-tr{top:8px;right:8px}
+  .mq .mq-more{width:42px;height:42px}
+  .mq .mq-pops{top:112px;left:12px;right:12px;align-items:stretch}
+  .mq .mq-pop{max-width:none;font-size:13.5px}
+  .mq .mq-pops > .mq-pop:nth-last-child(n+3){display:none}
+  .mq .mq-dlg{left:8px;right:8px;width:auto;transform:none;bottom:8px;padding:22px 16px 14px;min-height:120px}
+  .mq .mq-dline{font-size:16px;line-height:1.7}
+  .mq .mq-cimg{width:84px;height:104px}
+  .mq .mq-cmeta > b{font-size:16px}
+  .mq .mq-cmd b{font-size:14.5px}
+  .mq .mq-grid small{font-size:10.5px}
+  .mq .mq-foot{padding:6px 8px;gap:6px;padding-bottom:max(6px,var(--kb,0px))}
+  .mq .mq-foot textarea{font-size:16px;min-height:44px;padding:10px 12px}
+  .mq .mq-foot .mq-fb[data-mq="regen"]{display:none}
+  .mq .mq-fb{height:44px}
+  .mq .mq-tabs{display:flex;flex:none;background:#08071a;border-top:1px solid var(--line);padding:2px 4px calc(2px + env(safe-area-inset-bottom));z-index:20}
+  .mq .mq-tabs button{flex:1;min-width:0;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--sub);font-size:11.5px;font-weight:600;position:relative;border-radius:12px}
+  .mq .mq-tabs button .ic{width:23px;height:23px}
+  .mq .mq-tabs button.on{color:var(--silver)}
+  .mq .mq-tabs button.on .ic{color:var(--star)}
+  .mq.typing .mq-tabs{display:none}
+  .mq .mq-banner.center{padding:20px 16px}
+  .mq .mq-tcopy{margin-top:max(30px,12vh)}
+  .mq .mq-tcopy.small{margin-top:14px}
+  .mq .mq-thero{margin-top:16px;border-radius:14px}
+  .mq .mq-tsub{font-size:13px}
+  .mq .mq-pl{padding:16px 18px}
+  .mq .mq-box{padding:18px 16px}
+}
