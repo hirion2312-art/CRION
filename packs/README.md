@@ -52,7 +52,7 @@
 - `startModes` (manifest, 엔진 0.8.1~): 크랙 '시작 설정' 이름 목록(안전지대 = 기본모드·하드모드). 크랙 도우미가 '새로하기' 뒤 고르는 창의 그 버튼을 `mode`로 알아보고, 팩은 그 버튼들을 게임 화면에 띄워 **플레이어가 고른 것만** 한 번 누른 뒤 시작 버튼을 한 번 누른다. 못 찾으면 「크랙 화면에서 직접 고르기」 → 대화가 열리면 게임 화면으로 자동 복귀. 시험 `python3 test/ui/run_startmode.py`.
   - 0.8.2: 고르기 창은 '글자'로 찾고(설명이 붙거나 역할 없는 상자여도), 작품 화면 탭과 겹치면 떠 있는 창(모달·화면 고정) 안의 것을 고른다. 대화 화면에선 떠 있는 창 안의 것만(머리줄의 '하드모드' 글자는 무시). 크랙이 대화를 먼저 열고 그 위에 창을 띄워도 첫 응답 전까지는 팝업. 흐름 시험 `python3 test/ui/run_safehouse_new.py`(A 작품 화면 위 / B 대화 위 / C 크랙에서 직접).
 - 안전지대 BGM (엔진 0.8.3, 팩 1.0.3): `assets/bgm/` 5곡(title·morning·day·evening·night, 히리온 Suno 제작, 128kbps로 다시 인코딩). 고르기는 `pk-safehouse.js`의 `pickBgm` — 우선순위 함락·사망(`bgmFall`) > 응답 그림 이름(`bgmByImg`) > 장소(`bgmByLoc`, 밤엔 무시) > 바깥 지역(`bgmOutside`) > 입주(`bgmHope`) > 시간대(`bgmByTime`). 타이틀·프롤로그·등록증 = `bgmTitle`, 아침점호 = `bgmRollcall`, D100 = `bgmEnding`. 곡이 늘면 manifest 맵만 고치면 된다(프롬프트: `docs/안전지대_BGM_프롬프트.md`).
-- `hirion.magical-boss` = 「마법소녀의 최종보스」(개발자 전용 · 성인). `runner: "maou"` → `src/renderer/pk-maou-run.js`(마왕의 작전실 화면) + `pk-maou.js`(응답 해석, 시험 `node test/maou.test.js`) + `pk-maou.css`(모든 선택자 `.mq` 아래).
+- `hirion.magical-boss` = 「마법소녀의 최종보스」(공개 · 성인). `runner: "maou"` → `src/renderer/pk-maou-run.js`(마왕의 작전실 화면) + `pk-maou.js`(응답 해석, 시험 `node test/maou.test.js`) + `pk-maou.css`(모든 선택자 `.mq` 아래).
   - 그림은 팩에 넣지 않고 크랙 CDN 주소(`data.json` `imgs`: 빌더 등록명 → 주소)를 그대로 쓴다. 응답 속 그림 주소의 마지막 칸(24자리 id)으로 등록명을 찾아 장소·인물·표정·권능 회수(사랑/흑화/전투)·엔딩을 알아낸다.
   - 숫자는 계산하지 않고 크랙 상태창 그대로. 호감도·균열도는 '잠김'이면 잠김으로 둔다. 숨은 진실·간부 사정·사랑/흑화 열쇠는 팩에 넣지 않는다. `hideImgs`(성행위1_오하나)는 앨범에 안 보임.
   - 자료: `materials/magical-girl-final-boss/`. 시험: `python3 test/ui/run_maou.py` → `test/out/mq_*.png`(CDN은 자리 그림으로 대신).
