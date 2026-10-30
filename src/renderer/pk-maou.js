@@ -179,7 +179,9 @@
     lines.forEach((l, i) => {
       if (drop.has(i) || l.s == null) return;
       const s = l.s.trim();
-      if (/^\d{1,2}:\d{2}\s+.*(📶|🔋)/u.test(s) || /^🗺️?\s+📞/u.test(s) || /^정보\s+연락\s+가이드/.test(s) || /^이용하실 기능을/.test(s) || /^-{10,}$/.test(s)) { drop.add(i); phone = phone || { at: Date.now() }; }
+      const hm = s.match(/^(\d{1,2}:\d{2})\s+.*(?:📶|🔋)\s*(?:🔋\s*)?(\d{1,3})?\s*%?/u);
+      if (hm) { phone = Object.assign(phone || {}, { at: Date.now(), time: hm[1], batt: hm[2] ? +hm[2] : null }); }
+      if (hm || /^🗺️?\s+📞/u.test(s) || /^정보\s+연락\s+가이드/.test(s) || /^이용하실 기능을/.test(s) || /^-{10,}$/.test(s)) { drop.add(i); phone = phone || { at: Date.now() }; }
       if (/스마트폰을 보유하고 있지 않습니다/.test(s)) { phone = { none: true }; }
     });
 

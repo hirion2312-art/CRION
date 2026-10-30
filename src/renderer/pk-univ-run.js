@@ -124,6 +124,17 @@
     uvRoot.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) uvRoot.classList.add('typing'); });
     uvRoot.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !uvRoot.contains(a) || !a.matches('textarea, input')) uvRoot.classList.remove('typing'); }, 60); });
     const toast = (t) => o.toast(t);
+    const colorOf = (n) => (RO[n] && RO[n].color) || '';
+    const K = root.CrionKit ? root.CrionKit.create({
+      el, accent: '#e6c883', packId: PK_ID, packName: '리온대학교 x스학과', toast: o.toast,
+      fontTargets: ['.uv-dlg'], unit: (l) => (l.w ? l.w + '주차' : '입학'),
+      coach: [
+        { sel: '#uv-dlg', title: '대사창', text: '누르면 다음 대사로 넘어가요. 글자가 써지는 중에 누르면 문장이 바로 다 보여요.' },
+        { sel: '.uv-phbtn', title: '신입생 폰', text: '가가오톡 · 뤼브리타임 · 시간표 · 인연 · 앨범이 들어 있어요. 앱 버튼은 입력칸에 글만 채워요.' },
+        { sel: '#uv-tabs', title: '아래 탭', text: '무대와 폰 앱을 오가요.' },
+        { sel: '.uv-more', title: '⋯ 메뉴', text: '지난 대사 찾기, 장면 카드 만들기, 글자 크기·자동 넘김이 여기 있어요.' }
+      ]
+    }) : null;
 
     // ---------- 벚꽃 ----------
     function petals(canvas) {
@@ -600,9 +611,14 @@
         ${b.act ? `<div class="uv-act">${esc(b.act)}</div>` : ''}<div class="uv-dline"></div>
         <span class="uv-next">${last ? '' : '탭해서 계속 ▼'}</span>${last ? `<div class="uv-endq" hidden>${esc(endPhrase())}</div>` : ''}`;
       const text = b.kind === 'say' ? `“${b.text}”` : b.kind === 'sys' ? `( ${b.text} )` : b.text;
-      typeTo(d.querySelector('.uv-dline'), text, () => { if (last) { const q = d.querySelector('.uv-endq'); if (q) q.hidden = false; } });
+      typeTo(d.querySelector('.uv-dline'), text, () => {
+        if (last) { const q = d.querySelector('.uv-endq'); if (q) q.hidden = false; return; }
+        if (K) K.autoNext(text, () => { if (R.i === i && !R.modal && !R.waiting && !K.isOpen()) next(); });
+      });
     }
+    const curScene = () => { const b = R.beats[R.i] || R.beats[R.beats.length - 1]; const who = b && b.kind === 'say' ? b.who : ''; return { bg: R.bgKey || M.lastBg, face: (b && b.face) || '', who, text: b ? b.text : '', color: colorOf(who), place: (M.status || {}).place }; };
     function next() {
+      if (K) K.stopAuto();
       if (R.typing) { R.typing.finish(); return; }
       if (R.waiting) return;
       if (R.i < R.beats.length - 1) { R.i++; showBeat(R.i); }
@@ -612,6 +628,8 @@
     function handle(segs) {
       if (R.sm) R.sm.done = true;
       const P = U.parse(segs, roster, data, { me: me() });
+      const plain = segs.filter(x => x.t === 'text').map(x => x.s).join('\n');
+      if (K && plain.length > 300 && M.prologue) K.checkParse(!!P.status, '상태창을 찾지 못함', plain);
       const ev = U.absorb(M, P, data);
       P.beats.forEach(b => { if (b.text) M.lines.push({ w: (M.status && M.status.week) || 0, who: b.kind === 'say' ? b.who : '', t: b.text, sys: b.kind === 'sys' }); });
       save();
@@ -635,7 +653,10 @@
       if (ev.newKakao) { const rooms = Object.entries(M.kakao); const [room, ms] = rooms.sort((a, b) => (b[1][b[1].length - 1] || {}).at - (a[1][a[1].length - 1] || {}).at)[0] || []; const last = ms && ms[ms.length - 1]; if (last) pop(`<i class="kk">${ic('kakao')}</i><b>${esc(room)}</b><span>${esc((last.who && last.who !== room ? last.who + ': ' : '') + last.t).slice(0, 60)}</span>`, 'kakao'); }
       if (ev.newRiv) pop(`<i class="rv">${ic('riv')}</i><b>뤼브리타임</b><span>새 글 ${ev.newRiv}개</span>`, 'riv');
     }
-    function startBeats() { R.i = R.beats.length ? 0 : -1; showBeat(R.i); }
+    function startBeats() {
+      R.i = R.beats.length ? 0 : -1; showBeat(R.i);
+      if (K && !R.coached && R.beats.length) { R.coached = true; setTimeout(() => { if (!R.modal && !K.isOpen()) K.coach(); }, 900); }
+    }
 
     // ---------- 프롤로그 (영화식) ----------
     function playCine(beats, needExam) {
@@ -1074,8 +1095,8 @@
         case 'exam-paste': exOpen(); setTimeout(() => { const p = xq('[data-x=paste]'); if (p) p.click(); }, 30); break;
         case 'ex-close': exClose(); break;
         case 'open-exam-site': if (o.openExternal && data.examUrl) o.openExternal(data.examUrl); break;
-        case 'lines': openModal('lines'); break;
-        case 'more': if (o.menu) o.menu([{ label: '지난 대사', fn: () => openModal('lines') }, { label: '플레이팩 설정', fn: () => openModal('set') }]); else openModal('set'); break;
+        case 'lines': if (K) K.log(M.lines, colorOf); else openModal('lines'); break;
+        case 'more': if (o.menu) o.menu((K ? K.menu(curScene, () => M.lines, colorOf) : [{ label: '지난 대사', fn: () => openModal('lines') }]).concat([{ label: '플레이팩 설정', fn: () => openModal('set') }])); else openModal('set'); break;
         case 'tab': { const id = t.dataset.k; if (id === 'stage') { R.phone = 'closed'; renderPhone(); } else { R.app = id === 'home' ? '' : id; R.sub = null; R.phone = 'open'; renderPhone(); } break; }
         case 'set': openModal('set'); break;
         case 'mclose': closeModal(); break;
@@ -1103,7 +1124,7 @@
     });
     el.addEventListener('keydown', (e) => { if (e.target.id === 'uv-kin' && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); const b = el.querySelector('[data-uv=kfill]'); if (b) b.click(); } });
     const onKey = (e) => {
-      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
+      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim') || (K && K.isOpen())) return;
       if (e.target.id === 'uv-in' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
       if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName)) return;
       if (!$('#uv-exam').hidden) { if (e.code === 'Space' && X.hook) { e.preventDefault(); X.hook(); return; } if ((e.key === ' ' || e.key === 'Enter') && X.adv && !e.target.closest('button')) { e.preventDefault(); X.adv(); } return; }
@@ -1185,6 +1206,7 @@
       resetScene();
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
+      if (K) { const r = K.recapFromLines(M.lines, colorOf), st = M.status || {}; K.recap(Object.assign(r, { title: '지난 캠퍼스 이야기', when: sumText(sv), bg: M.lastBg, rows: [M.exam && M.exam.grade ? ['등급', M.exam.grade] : null].filter(Boolean) })); }
       o.load(sv.url);
     }
     // 새로하기 뒤 크랙이 띄우는 '시작 설정' 고르기 창 (안전지대 팩과 같은 흐름)
@@ -1284,9 +1306,9 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); showBeat(R.i); toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); root.removeEventListener('resize', onResize); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); stopPetals.forEach(f => f()); X.run++; save(); },
+      destroy() { if (K) K.destroy(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); root.removeEventListener('resize', onResize); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); stopPetals.forEach(f => f()); X.run++; save(); },
       demo(segs) { handle(segs); },
-      openApp, state: R, memory: M, saves: () => saves
+      openApp, kit: K, state: R, memory: M, saves: () => saves
     };
   }
 

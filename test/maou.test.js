@@ -86,6 +86,13 @@ test('일지·관계 추이: 하루 기록(장소·만난 사람·바뀐 것) ·
   U.absorb(M, U.parse(LATER, roster, idx), data);
   assert.strictEqual(M.hist['서하린'].length, 1, '값이 같으면 점을 더하지 않음');
 });
+test('스마트폰 화면: 시각·배터리 읽기 · 장면에서 빼기', () => {
+  const P = U.parse([{ t: 'text', s: '14:32                 📶 🔋78%\n\n🗺️          📞           🌐         ✉️\n정보        연락        가이드     진행요약\n\n\n----------------------------------\n이용하실 기능을 / 후 입력해주세요\n' }], roster, idx);
+  assert.strictEqual(P.phone.time, '14:32'); assert.strictEqual(P.phone.batt, 78);
+  assert.ok(!P.beats.some(b => /정보|이용하실/.test(b.text)));
+  const N = U.parse([{ t: 'text', s: '*아직 스마트폰을 보유하고 있지 않습니다. 대리점에 방문에 구매를하거나 선물 받으십시오*' }], roster, idx);
+  assert.ok(N.phone && N.phone.none);
+});
 test('그림 이름 풀기: 변신·장소·엔딩', () => {
   assert.deepStrictEqual(U.ImgIndex.info('기본상태_변신_백설아'), { name: '기본상태_변신_백설아', kind: 'person', who: '백설아', situ: '기본상태', form: '변신', method: '' });
   assert.strictEqual(U.ImgIndex.info('협회지하_장소').place, '협회지하');

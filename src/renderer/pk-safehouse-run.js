@@ -127,6 +127,17 @@
     shRoot.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) shRoot.classList.add('typing'); });
     shRoot.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !shRoot.contains(a) || !a.matches('textarea, input')) shRoot.classList.remove('typing'); }, 60); });
     const toast = (t) => o.toast(t);
+    const colorOf = (n) => (RO[n] && RO[n].color) || '';
+    const K = root.CrionKit ? root.CrionKit.create({
+      el, accent: '#e5322a', packId: PK_ID, packName: '아포칼립스 안전지대의 관리자', toast: o.toast,
+      fontTargets: ['#sh-dlg'], unit: (l) => 'D+' + (l.d || 0),
+      coach: [
+        { sel: '#sh-dlg', title: '대사창', text: '누르면 다음 대사로 넘어가요. 글자가 써지는 중에 누르면 문장이 바로 다 보여요.' },
+        { sel: '.sh-tabs', title: '아래 탭', text: '로비 · 관리인 폰 · 빌라 도면 · 파견 지도 · 생존자 도감을 오가요.' },
+        { sel: '.sh-more', title: '⋯ 메뉴', text: '지난 대사 찾기, 장면 카드 만들기, 글자 크기·자동 넘김이 여기 있어요.' }
+      ]
+    }) : null;
+    const curScene = () => { const b = R.beats[R.i] || R.beats[R.beats.length - 1]; const who = b && b.kind === 'say' ? b.who : ''; return { bg: R.bgKey || M.lastBg, face: '', who, text: b ? b.text : '', color: colorOf(who), place: (M.status || {}).place }; };
 
     // ---------- 음악 (팩 manifest의 bgm 맵 · 장면 고르기는 CrionSafehouse.pickBgm) ----------
     const bgm = root.CrionBgm ? new root.CrionBgm() : null;
@@ -256,9 +267,13 @@
         <div class="dline">${b.kind === 'sys' ? '' : ''}</div>
         <span class="dnext">${last ? '' : '탭해서 계속 ▼'}</span>${last ? `<div class="sh-endq" hidden>${esc(endPhrase())}</div>` : ''}`;
       const text = b.kind === 'say' ? `“${b.text}”` : b.kind === 'sys' ? `( ${b.text} )` : b.text;
-      typeTo(d.querySelector('.dline'), text, () => { if (last) { const q = d.querySelector('.sh-endq'); if (q) q.hidden = false; } });
+      typeTo(d.querySelector('.dline'), text, () => {
+        if (last) { const q = d.querySelector('.sh-endq'); if (q) q.hidden = false; return; }
+        if (K) K.autoNext(text, () => { if (R.i === i && !R.modal && !R.waiting && !R.cen && !K.isOpen()) next(); });
+      });
     }
     function next() {
+      if (K) K.stopAuto();
       if (R.typing) { R.typing.finish(); return; }
       if (R.cen || R.view !== 'lobby' || R.waiting) return;
       if (R.i < R.beats.length - 1) { R.i++; showBeat(R.i); }
@@ -268,6 +283,8 @@
     function handle(segs) {
       if (R.sm) R.sm.done = true;
       const P = SH.parse(segs, roster);
+      const plain = segs.filter(x => x.t === 'text').map(x => x.s).join('\n');
+      if (K && plain.length > 300 && M.prologue) K.checkParse(!!P.status, '상태창을 찾지 못함', plain);
       const ev = SH.absorb(M, P, data);
       P.beats.forEach(b => M.lines.push({ d: (M.status && M.status.day) || 0, who: b.kind === 'say' ? b.who : '', act: b.act || '', t: b.text, sys: b.kind === 'sys' }));
       save();
@@ -287,6 +304,7 @@
       if (R.i < 0) { showBeat(-1); return; }
       // 대사 앞의 그림이 첫 조각에 없으면 앞 그림 유지
       showBeat(0);
+      if (K && !R.coached) { R.coached = true; setTimeout(() => { if (!R.modal && !R.cen && !K.isOpen()) K.coach(); }, 900); }
     }
 
     // ---------- 아침점호 카드 ----------
@@ -774,10 +792,10 @@
         case 'xfill2': fill(t.dataset.k); break;
         case 'xclear': R.team = []; R.region = null; R.withMe = false; R.keeper = ''; render(); break;
         case 'dexf': R.dexf = t.dataset.k; render(); break;
-        case 'lines': openModal('lines'); break;
+        case 'lines': if (K) K.log(M.lines, colorOf); else openModal('lines'); break;
         case 'more': {
           const gv = (v) => () => { if (R.waiting && v !== 'log') { toast('응답이 오면 열 수 있어요'); return; } go(v); };
-          if (o.menu) o.menu([{ label: '연구소', fn: gv('lab') }, { label: '생존자 도감', fn: gv('dex') }, { label: '운영일지', fn: gv('log') }, { label: '지난 대사', fn: () => openModal('lines') }, { label: '플레이팩 설정', fn: () => openModal('set') }]);
+          if (o.menu) o.menu([{ label: '연구소', fn: gv('lab') }, { label: '생존자 도감', fn: gv('dex') }, { label: '운영일지', fn: gv('log') }].concat(K ? K.menu(curScene, () => M.lines, colorOf) : [{ label: '지난 대사', fn: () => openModal('lines') }]).concat([{ label: '플레이팩 설정', fn: () => openModal('set') }]));
           else openModal('set');
           break;
         }
@@ -817,7 +835,7 @@
       if (e.target.id === 'sh-vol') { M.prefs.vol = Number(e.target.value); const v = el.querySelector('#sh-volv'); if (v) v.textContent = M.prefs.vol; if (bgm) bgm.setVolume(M.prefs.vol / 100); save(); }
     });
     const onKey = (e) => {
-      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
+      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim') || (K && K.isOpen())) return;
       if (e.target.id === 'sh-in' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
       if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName)) return;
       if (e.key === 'Escape') { if (R.modal) closeModal(); else if (R.note) { R.note = null; render(); } else if (R.view !== 'lobby') go('lobby'); }
@@ -903,6 +921,7 @@
       resetScene();
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
+      if (K) { const r = K.recapFromLines(M.lines, colorOf), st = M.status || {}; K.recap(Object.assign(r, { title: '석벽빌라 지난 기록', when: st.day ? 'D+' + st.day : '', place: st.place || '', bg: M.lastBg, rows: [st.ppl != null ? ['입주민', st.ppl + (st.cap ? ' / ' + st.cap : '') + '명'] : null].filter(Boolean) })); }
       sceneBgm({});
       o.load(sv.url);
     }
@@ -1007,9 +1026,9 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); if (R.i >= 0) showBeat(R.i); toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { if (bgm) bgm.stop(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
+      destroy() { if (K) K.destroy(); if (bgm) bgm.stop(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
       demo(segs) { handle(segs); },
-      go, state: R, memory: M, saves: () => saves, bgmNow: () => bgmId
+      go, kit: K, state: R, memory: M, saves: () => saves, bgmNow: () => bgmId
     };
   }
 

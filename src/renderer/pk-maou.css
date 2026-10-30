@@ -597,3 +597,36 @@
   .mq .mq-box{padding:22px 16px 18px}
   .mq .mq-banner.center{padding:22px 16px}
 }
+
+/* ---------- 단축어 결과 화면: 스마트폰 · 위장 신분 · 어전 회의 기록 ---------- */
+.mq .mq-box.phone{width:min(360px,100%);padding:14px;background:#0b0910;border-radius:28px;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.7),inset 0 0 0 6px #17131c}
+.mq .mq-phone{border-radius:20px;overflow:hidden;background:linear-gradient(170deg,#1d1730,#0e0c14 60%);min-height:520px;display:flex;flex-direction:column}
+.mq .mq-phbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px 8px;font-size:12.5px;color:#d8d2e0}
+.mq .mq-phbar b{font-weight:700;font-variant-numeric:tabular-nums}
+.mq .mq-phhome{flex:1;display:flex;flex-direction:column;align-items:center;padding:30px 18px 20px;text-align:center}
+.mq .mq-phhome small{color:var(--mute);font-size:12px;letter-spacing:.04em}
+.mq .mq-phapps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 auto;width:100%}
+.mq .mq-phapps button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--ivory)}
+.mq .mq-phapps i{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-style:normal;font-size:26px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.mq .mq-phapps button:hover i{background:rgba(200,162,90,.2)}
+.mq .mq-phhome p{color:var(--mute);font-size:12px;line-height:1.6;margin:0}
+.mq .mq-phnone{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:24px;text-align:center}
+.mq .mq-phnone b{font-size:16px} .mq .mq-phnone span{color:var(--mute);font-size:13px}
+.mq .mq-phcontent{flex:1;overflow-y:auto;padding:8px 18px 16px;user-select:text}
+.mq .mq-phcontent p{margin:0 0 10px;font-size:14px;line-height:1.7;color:#e8e2ee}
+.mq .mq-phcontent p.say b{display:block;font-size:12px;color:var(--gold-hi)}
+.mq .mq-phnav{display:flex;justify-content:center;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+.mq .mq-phnav button{padding:7px 18px;border-radius:999px;background:rgba(255,255,255,.08);font-size:13px}
+.mq .mq-disg{display:flex;flex-direction:column;gap:8px}
+.mq .mq-disg button{display:flex;align-items:flex-start;gap:12px;text-align:left;padding:12px 14px;border-radius:6px;border:1px solid var(--line)}
+.mq .mq-disg button:hover{border-color:var(--gold-hi);background:rgba(200,162,90,.06)}
+.mq .mq-disg em{font-style:normal;font-family:var(--disp);font-weight:800;font-size:18px;color:var(--gold-hi);min-width:20px}
+.mq .mq-disg span{font-size:14px;line-height:1.6}
+.mq .mq-brief-l{display:flex;flex-direction:column;gap:10px}
+.mq .mq-brief-c{display:flex;gap:12px;padding:12px;border-radius:6px;border:1px solid var(--line2);border-left:3px solid var(--c)}
+.mq .mq-brief-c img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 12%;flex:none;background:#1a1320}
+.mq .mq-brief-c b{display:block;font-family:var(--disp);font-size:15px;color:color-mix(in srgb,var(--c) 45%,#fff)}
+.mq .mq-brief-c b small{font-family:var(--sans);font-size:11.5px;color:var(--mute);font-weight:400;margin-left:4px}
+.mq .mq-brief-c p{margin:4px 0 0;font-size:13.5px;line-height:1.65}
+.mq .mq-brief-c .mq-link{margin-top:6px;display:inline-block}
+@media (max-width:760px){ .mq .mq-box.phone{width:100%;height:100%;max-height:none;border-radius:0;padding:10px} .mq .mq-phone{min-height:100%} }

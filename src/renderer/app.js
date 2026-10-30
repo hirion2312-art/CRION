@@ -477,7 +477,7 @@
       body = `${workSel(false)}
         <label class="f"><span>무슨 문제가 있었나요?</span><textarea id="fBody" class="field" rows="4" placeholder="예) 작품이 안 열려요 / 이어하기가 다른 대화로 가요"></textarea></label>
         <label class="f"><span>어떻게 하다가 생겼나요? (선택)</span><input id="fSteps" class="field" placeholder="예) 작품 열고 바로"></label>
-        ${opt.diag ? '<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (주소·화면 구조·플레이팩 상태 · 대화 내용은 마지막 몇 줄만)</label>' : ''}
+        ${opt.diag ? '<label class="chk"><input type="checkbox" id="fDiag" checked> 지금 화면 정보 첨부 (주소·화면 구조·플레이팩 상태 · 대화 내용은 마지막 몇 줄과 화면이 못 읽은 응답 최대 3개만)</label>' : ''}
         <p class="muted" style="font-size:12px;margin:0">앱 버전·최근 오류 기록이 함께 보내져 원인을 찾는 데 쓰여요.</p>`;
     } else if (kind === 'idea') {
       body = `<label class="f"><span>한 줄 요약</span><input id="fTitle" class="field" maxlength="80" placeholder="예) 이런 플레이팩이 있으면 좋겠어요"></label>
@@ -543,6 +543,7 @@
     if (withDiag && S.diagText) parts.push(S.diagText);
     const pk = packSnapshot(); if (pk) parts.push(pk);
     const er = errLog(); if (er) parts.push('[최근 오류]\n' + er);
+    const kf = withDiag && window.CrionKit ? window.CrionKit.failsText(3) : ''; if (kf) parts.push(kf);
     return parts.join('\n\n');
   }
   async function sendForm(kind) {
@@ -1579,6 +1580,16 @@
     else if (ev.type === 'shell-old') { S.update = { type: 'shell', url: ev.url || '' }; refresh(); }
   });
 
+  // 「이번에 바뀐 것」: 엔진이 새 버전으로 처음 켜질 때 한 번 (처음 설치한 사람에겐 안 보임)
+  function whatsNew() {
+    const W = window.CrionWhatsNew;
+    if (!W || !W.version) return;
+    const seen = lsGet('crion.seenEngine');
+    lsSet('crion.seenEngine', W.version);
+    if (!seen || seen === W.version || !lsGet('crion.tut4') || document.querySelector('#layer .scrim') || S.view === 'play') return;
+    modal(`<header><h3>이번에 바뀐 것 <small class="muted">화면 ${esc(W.version)}</small></h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
+      <div class="body"><ul class="wn-list">${(W.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul><div class="row end"><button class="btn primary" data-act="close-modal">확인</button></div></div>`);
+  }
   (async function boot() {
     S.info = await api.info();
     S.settings = await api.getSettings();
@@ -1592,6 +1603,7 @@
     setTimeout(pingToday, 4000);
     api.engineReady();
     hideSplash();
+    setTimeout(whatsNew, 1600);
     setInterval(() => { loadCatalog().then(refresh); pingToday(); }, 30 * 60 * 1000);
   })().catch((err) => { console.error(err); hideSplash(); });
 

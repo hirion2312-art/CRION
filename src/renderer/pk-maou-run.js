@@ -159,6 +159,20 @@
     mqRoot.addEventListener('focusin', (e) => { if (e.target.matches('textarea, input[type=text], input:not([type])')) mqRoot.classList.add('typing'); });
     mqRoot.addEventListener('focusout', () => { setTimeout(() => { const a = document.activeElement; if (!a || !mqRoot.contains(a) || !a.matches('textarea, input')) mqRoot.classList.remove('typing'); }, 60); });
     const toast = (t) => o.toast(t);
+    // 공통 키트: 지난 줄거리 · 읽기 설정(글자 크기·자동 넘김) · 장면 카드 · 대사 찾기 · 첫 사용법 · 해석 실패 기록
+    const K = root.CrionKit ? root.CrionKit.create({
+      el, accent: '#c8a25a', packId: PK_ID, packName: data.title || '마법소녀의 최종보스', toast: o.toast,
+      fontTargets: ['.mq-dlg'], unit: (l) => 'D+' + (l.d || 0),
+      coach: [
+        { sel: '#mq-dlg', title: '대사창', text: '누르면 다음 대사로 넘어가요. 글자가 써지는 중에 누르면 문장이 바로 다 보여요.' },
+        { sel: '.mq-crownbtn', title: '그림자 왕관', text: '권능 다섯 개가 보석으로 박혀요. 사랑·흑화·전투, 되찾은 방식마다 색이 달라요. 누르면 권능 목록이에요.' },
+        { sel: '.mq-risk', title: '발각의 눈', text: '정체가 드러날 위험만큼 눈이 뜨여요. 위기가 되면 화면 가장자리가 붉어져요.' },
+        { sel: '#mq-sugg', title: '행동 칩', text: '지금 장면에 맞는 행동을 입력칸에 채워요. 보내기는 직접 눌러요.' },
+        { sel: '#mq-stabs', title: '어전 패널', text: '오성 · 마왕군 · 작전(지금 할 일·단서·명령) · 일지를 여기서 봐요.' },
+        { sel: '#mq-tabs', title: '아래 탭', text: '오성 · 마왕군 · 작전(지금 할 일·단서·명령) · 일지를 여기서 봐요.' },
+        { sel: '.mq-more', title: '⋯ 메뉴', text: '지난 대사 찾기, 장면 카드 만들기, 글자 크기·자동 넘김, 크랙 원래 화면이 여기 있어요.' }
+      ]
+    }) : null;
 
     // ---------- 배경 · 인물 ----------
     let bgFlip = 0;
@@ -399,6 +413,7 @@
     function showBeat(i) {
       const d = $('#mq-dlg');
       const b = R.beats[i];
+      if (R.briefPending && (i >= R.beats.length - 1)) { const bp = R.briefPending; R.briefPending = null; setTimeout(() => openModal('brief', bp), 400); }
       if (!b) { d.className = 'mq-dlg k-end'; d.innerHTML = `<div class="mq-endq">${esc(me())}의 차례 — 말이나 행동을 적어 보세요.</div>`; return; }
       if (b.bgSrc) setBg(b.bgSrc);
       setPortrait(b.face || '', b.who);
@@ -417,9 +432,13 @@
         ${b.act ? `<div class="mq-act">${esc(b.act)}</div>` : ''}<div class="mq-dline"></div>${prog}
         ${last ? `<div class="mq-endq" hidden>${esc(me())}의 차례 — 아래에 말이나 행동을 적어요.</div>` : '<span class="mq-next" aria-hidden="true"></span>'}`;
       const text = b.kind === 'say' ? `“${b.text}”` : b.kind === 'sys' ? b.text : b.text;
-      typeTo(d.querySelector('.mq-dline'), text, () => { if (last) { const q = d.querySelector('.mq-endq'); if (q) q.hidden = false; } });
+      typeTo(d.querySelector('.mq-dline'), text, () => {
+        if (last) { const q = d.querySelector('.mq-endq'); if (q) q.hidden = false; return; }
+        if (K) K.autoNext(text, () => { if (R.i === i && !R.modal && !R.cine && !R.waiting && !K.isOpen() && $('#mq-rite').hidden) next(); });
+      });
     }
     function next() {
+      if (K) K.stopAuto();
       if (R.typing) { R.typing.finish(); return; }
       if (R.waiting) return;
       if (R.i < R.beats.length - 1) { R.i++; showBeat(R.i); }
@@ -466,6 +485,9 @@
       if (ev.newClues) R.newClue = true;
       if (ev.day || prevDay == null) R.newDay = true;
       R.present = Array.from(new Set(P.beats.filter(b => b.kind === 'say' && b.known).map(b => b.who)));
+      const plain = segs.filter(x => x.t === 'text').map(x => x.s).join('\n');
+      if (K && plain.length > 300) K.checkParse(!!(P.status || P.prologue || P.phone || P.clues.length || R.expect), '상태창을 찾지 못함', plain);
+      const expect = R.expect; R.expect = '';
       save();
       R.beats = P.beats.filter(b => b.text || b.kind === 'title');
       // 그림만 있는 마디(권능 회수 그림 등)의 정보는 다음 마디로 넘긴다
@@ -477,10 +499,25 @@
       renderHud(); setMood(); R.keepScroll = true; renderPanel(); renderSugg();
       notifyEvents(ev);
       if (P.prologue && (P.webtoon.length || P.title)) { playCine(P); return; }
+      // 단축어 결과를 화면으로 (A1): 스마트폰 · 위장 신분 고르기 · 간부 보고
+      if (P.phone && P.phone.time) R.phoneTime = P.phone.time;
+      if (P.phone) setTimeout(() => openModal('phone', P.phone.none ? { none: true } : { home: true, time: P.phone.time, batt: P.phone.batt }), 150);
+      else if (expect === 'phone') setTimeout(() => openModal('phone', { content: R.beats.filter(b => b.kind !== 'say').map(b => b.text), says: R.beats.filter(b => b.kind === 'say'), time: R.phoneTime }), 150);
+      else if (expect === 'disguise') {
+        const items = []; R.beats.forEach(b => String(b.text || '').split(/\n/).forEach(l => { const m = l.match(/^\s*(\d{1,2})\s*[.)·:]\s*(.{2,})$/); if (m) items.push({ n: +m[1], t: m[2].trim() }); }));
+        if (items.length) setTimeout(() => openModal('disguise', items), 150);
+        else if (/위장\s*신분이\s*없/.test(plain)) toast('아직 위장 신분이 없어요. 방송국 면접 같은 길로 얻을 수 있어요');
+      } else if (expect === 'brief') {
+        const rep2 = {}; R.beats.filter(b => b.kind === 'say' && KB.some(k => k.name === b.who)).forEach(b => { (rep2[b.who] = rep2[b.who] || []).push(b.text); });
+        if (Object.keys(rep2).length >= 2) R.briefPending = rep2;
+      }
       if (ev.ending) showEnding(ev.ending);
       startBeats();
     }
-    function startBeats() { R.i = R.beats.length ? 0 : -1; showBeat(R.i); }
+    function startBeats() {
+      R.i = R.beats.length ? 0 : -1; showBeat(R.i);
+      if (K && !R.coached && R.beats.length) { R.coached = true; setTimeout(() => { if (!R.modal && !K.isOpen() && $('#mq-title').hidden) K.coach(); }, 900); }
+    }
     // ---------- 프롤로그: 히리온 웹툰 컷을 잘라 다시 짠 장면 — 한 번 누를 때마다 다음 ----------
     //  장면 종류: card(글자 한 장) · img(그림 + 천천히 움직임 + 자막) · cast(다섯 소녀 몽타주) · seal(왕관이 다섯으로 갈라짐)
     let pro = null;
@@ -599,6 +636,8 @@
       if (!text || R.waiting) return;
       if (R.mode !== 'play' || R.away || R.page !== 'chat') { toast(R.away ? '이 세이브의 대화로 돌아온 뒤에 보낼 수 있어요' : '대화 화면이 열린 뒤에 보낼 수 있어요'); return; }
       R.waiting = true; R.sentAt = Date.now();
+      R.expect = /^#스마트폰|^\/(스마트폰|정보|연락|가이드|진행요약)\b/.test(text) ? 'phone' : /^#위장신분_전환|^\/위장전환/.test(text) ? 'disguise' : /^#간부_정례보고|^\/간부보고/.test(text) ? 'brief' : '';
+      if (K) K.stopAuto();
       if (!/^#/.test(text)) M.lines.push({ d: st0().day || 0, who: me(), t: text, me: true });
       save();
       o.send(text);
@@ -673,6 +712,19 @@
         box.innerHTML = `${X}${crownSvg(gems(), true)}<h3>그림자 왕관 <small>권능 ${(st.power && st.power.n) || 0}/5 · 마력 ${st.mana ? st.mana.n + '/' + st.mana.of : '–'}</small></h3>
           <div class="mq-pws">${POW.map(([pk, who, desc]) => { const m = M.powers[who]; return `<div class="mq-pwr ${m ? 'on' : ''}" style="--c:${(RO[who] || {}).color}">${seal(who, true)}<div><b>${esc(pk)}</b><span>${esc(desc)}</span></div><em>${esc(who)}<br><u style="${m ? 'color:' + (METHOD[m] || {}).c : ''}">${m ? esc(m) + '으로 되찾음' : '봉인 중'}</u></em></div>`; }).join('')}</div>
           <div class="mq-ways">${Object.entries(METHOD).map(([k, v]) => `<span style="--c:${v.c}"><i></i><b>${k}</b>${esc(v.d)}${k === '전투' ? ' · 권능 3개를 되찾은 뒤부터' : ''}</span>`).join('')}</div>`;
+      } else if (k === 'phone') {
+        const a = arg || {};
+        box.classList.add('phone');
+        const bar = `<div class="mq-phbar"><b>${esc(a.time || R.phoneTime || '')}</b><span>📶 ${a.batt != null ? '🔋' + a.batt + '%' : ''}</span></div>`;
+        const apps = [['🗺️', '정보', '/정보'], ['📞', '연락', '/연락'], ['🌐', '가이드', '/가이드'], ['✉️', '진행요약', '/진행요약']];
+        box.innerHTML = `${X}<div class="mq-phone">${bar}${a.none ? `<div class="mq-phnone"><b>스마트폰이 아직 없어요</b><span>대리점에서 사거나 선물을 받으면 쓸 수 있어요.</span></div>`
+          : a.home ? `<div class="mq-phhome"><small>마왕의 스마트폰</small><div class="mq-phapps">${apps.map(([i, n, c]) => `<button data-mq="fill" data-v="${c}"><i>${i}</i><span>${n}</span></button>`).join('')}</div><p>앱을 누르면 입력칸에 채워져요. 보내기를 누르면 크랙이 화면을 보여 줘요.</p></div>`
+          : `<div class="mq-phcontent">${(a.content || []).map(t => `<p>${esc(t)}</p>`).join('')}${(a.says || []).map(b => `<p class="say"><b>${esc(b.who)}</b>${esc(b.text)}</p>`).join('')}</div><div class="mq-phnav"><button data-mq="sc" data-k="/스마트폰">홈 화면</button></div>`}</div>`;
+      } else if (k === 'disguise') {
+        box.innerHTML = `${X}<h3>위장 신분 <small>하나를 고르면 입력칸에 번호가 채워져요</small></h3><div class="mq-disg">${(arg || []).map(d => `<button data-mq="fill" data-v="${d.n}"><em>${d.n}</em><span>${esc(d.t)}</span></button>`).join('')}</div>`;
+      } else if (k === 'brief') {
+        box.classList.add('wide');
+        box.innerHTML = `${X}<h3>어전 회의 기록 <small>간부들이 보고한 내용을 한 장에</small></h3><div class="mq-brief-l">${KB.filter(kk => (arg || {})[kk.name]).map(kk => `<div class="mq-brief-c" style="--c:${kk.color}"><img src="${esc(IMG('기본상태_' + kk.name))}" alt=""><div><b>${esc(kk.name)} <small>${esc(kk.role)} · ${esc(kk.part)}</small></b>${arg[kk.name].map(t => `<p>${esc(t)}</p>`).join('')}<button class="mq-link" data-mq="fill" data-v="${esc(kk.name)}에게 더 자세히 묻는다.">더 묻기</button></div></div>`).join('')}</div>`;
       } else if (k === 'view') {
         const src = IMG(String(arg)); if (!src) return;
         box.classList.add('photo');
@@ -681,7 +733,10 @@
       $('#mq-modal').hidden = false;
     }
     function closeModal() { R.modal = null; $('#mq-modal').hidden = true; $('#mq-box').innerHTML = ''; }
-    const menuExtra = () => [{ label: '그림자 왕관 (권능)', fn: () => openModal('powers') }, { label: '본 그림', fn: () => openModal('album') }, { label: '지난 대사', fn: () => openModal('lines') }, { label: '플레이팩 설정', fn: () => openModal('set') }];
+    const curScene = () => { const b = R.beats[R.i] || R.beats[R.beats.length - 1]; const who = b && b.kind === 'say' ? b.who : ''; return { bg: R.bgKey || M.lastBg, face: (b && b.face) || '', who, text: b ? b.text : '', color: (RO[who] || {}).color, place: st0().place }; };
+    const colorOf = (n) => (RO[n] || {}).color || '';
+    const menuExtra = () => [{ label: '그림자 왕관 (권능)', fn: () => openModal('powers') }, { label: '본 그림', fn: () => openModal('album') }, { label: '스마트폰 (/스마트폰)', fn: () => fillShortcut('/스마트폰') }]
+      .concat(K ? K.menu(curScene, () => M.lines, colorOf) : [{ label: '지난 대사', fn: () => openModal('lines') }]).concat([{ label: '플레이팩 설정', fn: () => openModal('set') }]);
 
     // ---------- 입력 ----------
     el.addEventListener('click', (e) => {
@@ -697,15 +752,15 @@
         case 'tab': { const v = t.dataset.k; R.sub = null; if (v === 'ops') R.newClue = false; if (v === 'log') R.newDay = false; if (t.closest('#mq-stabs')) { R.sideTab = v; if (R.tab !== 'stage') R.tab = v; } else { R.tab = v; if (v !== 'stage') R.sideTab = v; } renderPanel(); break; }
         case 'who': R.sub = t.dataset.k; renderPanel(); break;
         case 'sub-back': R.sub = null; renderPanel(); break;
-        case 'fill': fill(t.dataset.v); break;
+        case 'fill': if (R.modal) closeModal(); fill(t.dataset.v); break;
         case 'add': fill(t.dataset.v, true); break;
-        case 'sc': fillShortcut(t.dataset.k); break;
+        case 'sc': if (R.modal) closeModal(); fillShortcut(t.dataset.k); break;
         case 'skip': fillShortcut('/시간경과', `요청 기간: ${t.dataset.k}일`); break;
         case 'view': openModal('view', t.dataset.k); break;
         case 'album': openModal('album'); break;
         case 'powers': openModal('powers'); break;
         case 'more': if (o.menu) o.menu(menuExtra()); else openModal('set'); break;
-        case 'lines': openModal('lines'); break;
+        case 'lines': if (K) K.log(M.lines, colorOf); else openModal('lines'); break;
         case 'set': case 't-set': openModal('set'); break;
         case 't-saves': R.showSaves = !R.showSaves; renderTitle(); break;
         case 'mclose': closeModal(); break;
@@ -731,7 +786,7 @@
     });
     el.addEventListener('input', (e) => { if (e.target.id === 'mq-in') autosize(); });
     const onKey = (e) => {
-      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
+      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim') || (K && K.isOpen())) return;
       if (e.target.id === 'mq-in' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
       if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName)) return;
       if (e.key === 'Escape') { if (R.modal) closeModal(); else if (R.sub) { R.sub = null; renderPanel(); } }
@@ -814,6 +869,11 @@
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
       o.load(sv.url);
+      if (K) {
+        const r = K.recapFromLines(M.lines, colorOf), st = st0();
+        K.recap(Object.assign(r, { title: '마왕의 지난 이야기', when: st.day != null ? 'D+' + st.day : '', place: st.place || '', bg: M.lastBg,
+          rows: [['권능', ((st.power && st.power.n) || 0) + ' / 5'], st.risk != null ? ['발각 위험', st.risk + (st.riskLabel ? ' · ' + st.riskLabel : '')] : null, (M.clues || []).length ? ['단서', M.clues.length + '개'] : null].filter(Boolean) }));
+      }
     }
     function startModeStep(st) {
       const sm = R.sm;
@@ -907,9 +967,9 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); showBeat(R.i); toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
+      destroy() { if (K) K.destroy(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearInterval(playT); clearInterval(tipT); clearInterval(typeT); save(); },
       demo(segs) { handle(segs); },
-      state: R, memory: M, saves: () => saves,
+      kit: K, state: R, memory: M, saves: () => saves,
       proState: () => pro && { i: pro.i, typing: !!pro.typing, n: pro.shots.length }
     };
   }

@@ -29,7 +29,7 @@ async def main():
             if os.path.isfile(f): return await route.fulfill(path=f)
             return await route.fulfill(status=404, body='')
         await page.route('https://reg.test/**', reg)
-        await page.goto(BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(2000)
+        await page.goto(BASE); await page.evaluate("localStorage.setItem('crion.tut4','1'); localStorage.setItem('crion.kit.coach.hirion.summoner-academy','1')"); await page.reload(); await page.wait_for_timeout(2000)
         await page.click('.nav [data-v=store]'); await page.wait_for_timeout(700)
         await page.screenshot(path=OUT + 'ma_0_store.png')
         await page.click('.pcard [data-act=pack]'); await page.wait_for_timeout(400)

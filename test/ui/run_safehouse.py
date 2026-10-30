@@ -52,6 +52,8 @@ async def setup(page):
         return await route.fulfill(path=f)
     await page.route('https://reg.test/**', reg)
     await page.route('https://img.test/**', img)
+    # 플레이팩 첫 사용법(공통 키트)은 시험에서 기본으로 끔 — 화면을 덮어 클릭을 막는다. 보고 싶으면 window.__pk.kit.coach(true)
+    await page.add_init_script("['hirion.summoner-academy','hirion.summoner-academy-adult','hirion.safehouse','hirion.rion-univ','hirion.magical-boss'].forEach(k => { try { localStorage.setItem('crion.kit.coach.' + k, '1'); } catch (e) {} })")
 
 
 async def ipc(page, ch, data):

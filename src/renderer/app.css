@@ -724,3 +724,6 @@ select.field { height: 42px; }
 .pkm-it svg { width: 20px; height: 20px; color: var(--ink2); flex: none; }
 .pkm-it:active { background: #ececef; }
 .pkm-it[data-act=leave] { color: var(--bad); } .pkm-it[data-act=leave] svg { color: var(--bad); }
+/* 이번에 바뀐 것 */
+.wn-list{margin:0 0 16px;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14.5px;line-height:1.6}
+.wn-list li::marker{color:var(--accent,#6c5ce7)}

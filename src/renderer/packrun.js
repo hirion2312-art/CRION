@@ -223,6 +223,18 @@
       for (const t of tries) if (has(t)) return url(t);
       return '';
     }
+    // 공통 키트: 지난 줄거리 · 읽기 설정 · 장면 카드 · 대사 찾기 · 첫 사용법 · 해석 실패 기록 (자동 넘김은 이 팩의 '자동' 버튼과 같은 설정)
+    const K = root.CrionKit ? root.CrionKit.create({
+      el, accent: '#e0b65a', packId: PK_ID, packName: (o.manifest && o.manifest.workName) || '소환수 아카데미', toast: o.toast,
+      fontTargets: ['.ak-dlg'],
+      onPrefs: (P) => { if (M.prefs.auto !== P.auto) { M.prefs.auto = P.auto; save(); const ab = el.querySelector('[data-ak=auto]'); if (ab) ab.classList.toggle('on', M.prefs.auto); } },
+      coach: [
+        { sel: '.ak-dlg', title: '대사창', text: '누르면 다음 대사로 넘어가요. 기록 · 자동 · 넘기기 버튼도 여기 있어요.' },
+        { sel: '.ak-nav', title: '아래 탭', text: '학생 수첩의 파트너 · 도감 · 지도 · 배지를 오가요.' },
+        { sel: '.ak-more', title: '⋯ 메뉴', text: '지난 대사 찾기, 장면 카드 만들기, 글자 크기가 여기 있어요.' }
+      ]
+    }) : null;
+    const curScene = () => { const b = R.beats[R.i] || R.beats[R.beats.length - 1]; const sp = R.speaker; const who = b && b.kind === 'say' ? b.who : ''; const fimg = stage.querySelector('.ak-sp.on img, .ak-slot.on img, .ak-cg img'); return { bg: R.bgKey, face: (sp && sp.img) || (fimg && fimg.src) || '', who, text: b ? String(b.text || '').replace(/\{user\}/g, (R.status && R.status.student) || '나') : '', place: R.place }; };
     function showSpeaker(sp) {
       const prev = R.speaker;
       R.speaker = sp;
@@ -662,6 +674,7 @@
     function handle(segs) {
       const names = ((R.status && R.status.partners) || []).map(p => p.nick);
       const r = A.parse(segs, dex, { names });
+      if (K && M.registered) { const plain = segs.filter(x => x.t === 'text').map(x => x.s).join('\n'); if (plain.length > 300) K.checkParse(!!r.status, '상태창을 찾지 못함', plain); }
       const prev = R.status;
       R.placeChanged = false;
       if (r.status) {
@@ -742,6 +755,7 @@
       if (R.choices.length) queue(choiceOverlay(R.choices, R.choiceAsk), 'end');
       R.beats = r.beats.filter(b => b.text);
       if (!R.beats.length) R.beats = [{ kind: 'narr', text: '…' }];
+      if (K && !R.coached) { R.coached = true; setTimeout(() => { if (!R.overlayOn && !K.isOpen()) K.coach(); }, 1200); }
       // 끝 문구: 「{이름}은(는) 어떻게 할까?」
       { const nm = (R.status && R.status.student && !/\{user\}/.test(R.status.student) ? R.status.student : (M.regName || '신입생')).split(/[\s(]/)[0];
         const c = nm.charCodeAt(nm.length - 1), jong = c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 !== 0;
@@ -1017,6 +1031,7 @@
       }
       else if (k === 'm-bag') modal('🎒 주머니', bagHtml());
       else if (k === 'm-badge') modal('🏅 배지 회랑', badgeHtml(), 'wide');
+      else if (k === 'log' && K) { K.log(M.log, null); return; }
       else if (k === 'log') modal('📜 지난 대사', logHtml());
       else if (k === 'm-set') modal('⚙️ 플레이팩 설정', setHtml());
       if (k === 'log') { const lg = el.querySelector('.ak-log'); if (lg) lg.scrollTop = 1e9; }
@@ -1032,7 +1047,7 @@
       switch (k) {
         case 'next': if (!e.target.closest('.ak-dlg-tools')) next(); break;
         case 'skip': clearTimeout(autoT); finishType(); R.i = R.beats.length - 1; showBeat(R.i); break;
-        case 'auto': M.prefs.auto = !M.prefs.auto; t.classList.toggle('on', M.prefs.auto); save(); if (M.prefs.auto && !R.typing) next(); break;
+        case 'auto': M.prefs.auto = !M.prefs.auto; if (K) { K.prefs.auto = M.prefs.auto; try { localStorage.setItem('crion.kit.prefs', JSON.stringify(K.prefs)); } catch (err) { /* 저장 안 됨 */ } } t.classList.toggle('on', M.prefs.auto); save(); if (M.prefs.auto && !R.typing) next(); break;
         case 'send': doSend(); break;
         case 'regen': o.action('regen'); R.waiting = true; R.sentAt = Date.now(); waitingUi(true); break;
         case 'fill': fill(t.dataset.fill); if (R.modal) $('#akLayer').innerHTML = ''; R.modal = null; break;
@@ -1051,7 +1066,7 @@
           else { akr.classList.remove('hud-on'); if (R.modal === tk) { $('#akLayer').innerHTML = ''; R.modal = null; } else { openModal(tk); R.modal = tk; } }
           tabsOn(); break;
         }
-        case 'more': if (o.menu) o.menu([{ label: '배지 회랑', fn: () => openModal('m-badge') }, { label: '지난 대사', fn: () => openModal('log') }, { label: '플레이팩 설정', fn: () => openModal('m-set') }]); else openModal('m-set'); break;
+        case 'more': if (o.menu) o.menu([{ label: '배지 회랑', fn: () => openModal('m-badge') }].concat(K ? K.menu(curScene, () => M.log, null) : [{ label: '지난 대사', fn: () => openModal('log') }]).concat([{ label: '플레이팩 설정', fn: () => openModal('m-set') }])); else openModal('m-set'); break;
         case 'diag': o.diag(); break;
         case 'retry-new': if (R.newFlow) { R.newFlow = { clicked: false, fromUrl: '', at: Date.now() }; banner('new'); o.load(startUrl()); } break;
         case 'unwait': banner(null); R.waiting = false; waitingUi(false); break;
@@ -1091,7 +1106,7 @@
       if (e.target.id === 'akVol') { M.prefs.vol = Number(e.target.value); const v = el.querySelector('#akVolV'); if (v) v.textContent = M.prefs.vol; if (bgm) bgm.setVolume(M.prefs.vol / 100); save(); }
     });
     const onKey = (e) => {
-      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim')) return;
+      if (!el.isConnected || el.classList.contains('off') || document.querySelector('#layer .scrim') || (K && K.isOpen())) return;
       if (e.target.id === 'akIn' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); return; }
       if (/^(TEXTAREA|INPUT|SELECT|WEBVIEW)$/.test(e.target.tagName) || e.target.closest('.akr')) return;
       if (e.key === 'Escape') { if (R.overlayOn) closeOverlay(); else if (R.modal) { $('#akLayer').innerHTML = ''; R.modal = null; } }
@@ -1182,6 +1197,7 @@
       stage.querySelector('.ak-text').innerHTML = loaderHtml('지난 대화를 불러오는 중이에요');
       bgmId = ''; playBgm(placeBgm(R.place));
       o.load(sv.url);
+      if (K) { const r = K.recapFromLines(M.log, null), st = M.status || {}; K.recap(Object.assign(r, { title: '지난 아카데미 이야기', when: st.dateText || '', place: st.place || '', bg: R.bgKey, rows: (st.partners || []).length ? [['파트너', st.partners.map(p => p.nick + ' Lv' + (p.lv || 1)).join(' · ')]] : [] })); }
     }
     // 새 대화 연결: CRION이 '새 대화'를 누른 뒤 열린 대화, 또는 글이 거의 없는(프롤로그뿐인) 대화만 새 세이브로 잡는다
     function bindNew(st) {
@@ -1258,9 +1274,9 @@
           if (!d.ok) { R.waiting = false; waitingUi(false); o.toast(d.why === 'no-input' ? '크랙 입력창을 찾지 못했어요. 크랙 화면을 확인해 주세요' : '보내지 못했어요'); }
         }
       },
-      destroy() { document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearTimeout(autoT); clearInterval(R.typing && R.typing.t); if (bgm) bgm.stop(); save(); },
+      destroy() { if (K) K.destroy(); document.removeEventListener('keydown', onKey); document.removeEventListener('crion-back', onBack); clearInterval(waitT); clearTimeout(autoT); clearInterval(R.typing && R.typing.t); if (bgm) bgm.stop(); save(); },
       demo(segsList) { handle(segsList); },
-      state: R, memory: M, saves: () => saves
+      kit: K, state: R, memory: M, saves: () => saves
     };
   }
 
