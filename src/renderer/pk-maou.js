@@ -270,7 +270,7 @@
 
   // ---------- 기억에 합치기 (계산은 하지 않는다: 숫자는 크랙 상태창 그대로) ----------
   function blank() {
-    return { status: {}, aff: {}, crack: {}, rel: {}, powers: {}, clues: [], seen: {}, lines: [], log: [], prologue: false, endings: [], phone: false, lastBg: '', turns: 0 };
+    return { status: {}, aff: {}, crack: {}, rel: {}, powers: {}, clues: [], seen: {}, lines: [], log: [], prologue: false, endings: [], phone: false, lastBg: '', turns: 0, hist: {}, days: {} };
   }
   const STAGES = [[0, '적대·경계'], [20, '무관심·거리두기'], [40, '호의·친근'], [60, '신뢰'], [80, '깊은 유대']];
   const stageOf = (v) => { if (v == null) return ''; let s = STAGES[0][1]; STAGES.forEach(([a, l]) => { if (v >= a) s = l; }); return s; };
@@ -290,6 +290,19 @@
       // 잠김이 풀리기 전엔 이전 값을 그대로 둔다
       M.status = Object.assign({}, prev, st, { aff: st.aff || prev.aff || null, crack: st.crack || prev.crack || null });
     }
+    // 관계 추이(턴마다 한 점) · 하루 기록(일지)
+    M.hist = M.hist || {}; M.days = M.days || {};
+    const names = new Set([].concat(Object.keys(M.aff || {}), Object.keys(M.crack || {})));
+    names.forEach(n => { const h = M.hist[n] = M.hist[n] || []; const pt = [M.turns, M.aff[n] == null ? null : M.aff[n], M.crack[n] == null ? null : M.crack[n]]; const last = h[h.length - 1]; if (!last || last[1] !== pt[1] || last[2] !== pt[2]) h.push(pt); if (h.length > 60) h.splice(0, h.length - 60); });
+    const dk = String((M.status && M.status.day) || 0);
+    const day = M.days[dk] = M.days[dk] || { places: [], met: [], notes: [] };
+    const pl = M.status && M.status.place; if (pl && !day.places.includes(pl)) day.places.push(pl);
+    (P.beats || []).forEach(b => { if (b.kind === 'say' && b.known && !day.met.includes(b.who)) day.met.push(b.who); });
+    const note = (t) => { if (day.notes.length < 30) day.notes.push(t); };
+    ev.affUp.forEach(a => { if (a.stageChanged) note(`${a.n} — ${a.stage}`); });
+    (P.recovered || []).forEach(r => { if (!M.powers[r.who]) note(`${r.who}의 권능을 ${r.method}으로 되찾음`); });
+    (P.clues || []).forEach(c => { if (!M.clues.find(x => x.n === c.n)) note(`단서 ${c.n}: ${c.text}`); });
+    if (!day.first) { const nb = (P.beats || []).find(b => b.kind === 'narr' && b.text && b.text.length > 12); if (nb) day.first = nb.text.slice(0, 90); }
     (P.recovered || []).forEach(r => { if (!M.powers[r.who]) { M.powers[r.who] = r.method; ev.recovered.push(r); } });
     (P.clues || []).forEach(c => { const have = M.clues.find(x => x.n === c.n); if (!have) { M.clues.push(c); ev.newClues++; } else Object.assign(have, c); });
     M.clues.sort((a, b) => a.n - b.n);

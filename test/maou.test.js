@@ -73,6 +73,19 @@ test('기억에 합치기: 변화 알림 · 회수 방식 · 단서 쌓기 · �
   assert.strictEqual(U.stageOf(82), '깊은 유대'); assert.strictEqual(U.stageOf(30), '무관심·거리두기');
   assert.strictEqual(ev3.recovered.length, 0);
 });
+test('일지·관계 추이: 하루 기록(장소·만난 사람·바뀐 것) · 호감도/균열 점', () => {
+  const M = U.blank();
+  U.absorb(M, U.parse(EX1, roster, idx), data);
+  U.absorb(M, U.parse(LATER, roster, idx), data);
+  assert.deepStrictEqual(Object.keys(M.days).sort(), ['1', '14']);
+  assert.ok(M.days['1'].places.includes('방송국 예능국'));
+  assert.ok(M.days['14'].met.includes('서하린'));
+  assert.ok(M.days['14'].notes.some(t => /서하린의 권능을 사랑으로/.test(t)));
+  assert.ok(M.days['14'].notes.some(t => /단서 1/.test(t)));
+  assert.deepStrictEqual(M.hist['서하린'][0].slice(1), [82, 5]);
+  U.absorb(M, U.parse(LATER, roster, idx), data);
+  assert.strictEqual(M.hist['서하린'].length, 1, '값이 같으면 점을 더하지 않음');
+});
 test('그림 이름 풀기: 변신·장소·엔딩', () => {
   assert.deepStrictEqual(U.ImgIndex.info('기본상태_변신_백설아'), { name: '기본상태_변신_백설아', kind: 'person', who: '백설아', situ: '기본상태', form: '변신', method: '' });
   assert.strictEqual(U.ImgIndex.info('협회지하_장소').place, '협회지하');
