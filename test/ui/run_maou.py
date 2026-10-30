@@ -193,7 +193,7 @@ async def run(b, name, vp, mobile):
         await page.evaluate("document.querySelector('.mq-more').click()"); await page.wait_for_timeout(400)
         menu = await page.evaluate("[...document.querySelectorAll('.pkm-it span')].map(x=>x.textContent)")
         print(name, '⋯ 메뉴:', menu)
-        if '나가기' not in menu or '지난 대사' not in menu: errs.append('menu ' + str(menu))
+        if '나가기' not in menu or '지난 대사 찾기' not in menu: errs.append('menu ' + str(menu))
         await page.evaluate("document.querySelector('#layer [data-act=close-modal]').click()"); await page.wait_for_timeout(200)
     # 발각 위기 연출
     await page.evaluate("window.__pk.state.waiting=false")
