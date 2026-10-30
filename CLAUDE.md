@@ -19,6 +19,7 @@
   - `cloud.js` 서버(Supabase) 연결(익명 로그인·신고, 하루 한 번 사용 기록 ping · 관리자 통계 stats, CRION 계정 가입·로그인·닉네임, 게시판·좋아요·글 신고, 관리자 로그인) 시험 `test/cloud.test.js` / `sync.js` 계정 기록 동기화(crion.w.*·crion.pk.*·prefs·nick + 이어하기 주소, 칸 단위·합치기) 시험 `test/sync.test.js`. 서버 권한 시험 `python3 test/sql/schema_test.py`(로컬 Postgres). 서버 연결은 관리 페이지 '서버 연결' 카드, 비밀번호 바꾸기 `site/reset.html` / `board.js` 게시판·보낸 것·관리자 신고함 화면(시험 `test/ui/run_cloud.py`). 서버 설계도 `supabase/schema.sql`, 만드는 순서 `supabase/README.md`. 주소·키는 `config/app.json`의 `cloud`(비어 있으면 기능 꺼짐 → 디스코드 웹후크로만 전송)
   - `home.js` 홈 계산: '오늘의 추천작' 슬라이드(works.json `banners`, 없으면 추천+플레이팩 작품 자동) · 카테고리(`categories` + 작품 `cats`, 기본 '전체'(플레이팩 작품 위)·'플레이팩') (시험 `test/home.test.js`, 화면 `python3 test/ui/run_home.py`). 관리 페이지에서 슬라이드 사진·카테고리·끌어서 순서
   - `catalog-extract.js` 빈 결과만 돌려줌(작가 프로필 자동 수집 중단 — 남의 작품을 섞어 와서). 작품 목록은 관리 페이지만
+- **플레이팩 제작 노하우·함정·절차 총정리: `docs/플레이팩_제작_노하우_인계서_2026-10-30.md`** (새 팩·디자인 작업 전에 먼저 읽기). 그림 재구성·프롤로그 컷 자르기 스크립트 `tools/maou/`
 - `packs/<id>/` 플레이팩 (형식: `packs/README.md`). 첫 팩 `hirion.summoner-academy` (화면 시험: `python3 test/ui/run_pack.py`). 두 번째 `hirion.safehouse`(「아포칼립스 안전지대의 관리자」, 전체 공개)
 - `config/works.json` 작품 목록·공지 (히리온은 관리 페이지 `site/admin.html`로 고친다)
 - `site/` 다운로드 페이지·관리 페이지
