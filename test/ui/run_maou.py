@@ -69,7 +69,7 @@ async def run(b, name, vp, mobile):
     ctx = await b.new_context(viewport=vp, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.add_init_script("window.__engineVersion='0.10.3'")
+    await page.add_init_script("window.__engineVersion='0.10.4'")
     await T.setup(page)
     async def img(route):
         n = BYURL.get(route.request.url.split('?')[0])
@@ -186,6 +186,13 @@ async def run(b, name, vp, mobile):
     await page.screenshot(path=OUT + f'mq_{name}_b_alarm.png')
     alarm = await page.evaluate("document.querySelector('#mq-stage').classList.contains('alarm')")
     if not alarm: errs.append('alarm off')
+    # 세이브가 있는 타이틀 + 세이브 서랍
+    await page.evaluate("window.__pk.state.waiting=false")
+    await page.evaluate("document.querySelector('.mq').querySelector('[data-mq=more]') && 0")
+    await page.evaluate("(()=>{const b=document.createElement('button');b.dataset.mq='title';document.querySelector('.mq').appendChild(b);b.click();b.remove();})()"); await page.wait_for_timeout(1800)
+    await page.screenshot(path=OUT + f'mq_{name}_c_title2.png')
+    await page.evaluate("document.querySelector('[data-mq=t-saves]').click()"); await page.wait_for_timeout(600)
+    await page.screenshot(path=OUT + f'mq_{name}_c_saves.png')
     over = await page.evaluate("document.documentElement.scrollWidth > innerWidth")
     if over: errs.append('horizontal overflow')
     M = await page.evaluate("JSON.stringify({st: window.__pk.memory.status.day, pw: window.__pk.memory.powers, aff: window.__pk.memory.aff, clues: window.__pk.memory.clues.length, seen: Object.keys(window.__pk.memory.seen).length})")

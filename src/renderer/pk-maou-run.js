@@ -636,6 +636,7 @@
         case 'more': if (o.menu) o.menu(menuExtra()); else openModal('set'); break;
         case 'lines': openModal('lines'); break;
         case 'set': case 't-set': openModal('set'); break;
+        case 't-saves': R.showSaves = !R.showSaves; renderTitle(); break;
         case 'mclose': closeModal(); break;
         case 'pref': { const v = t.dataset.v; M.prefs[t.dataset.key] = v === 'true' ? true : v === 'false' ? false : v; save(); mqRoot.classList.toggle('nofx', !M.prefs.fx); openModal('set'); break; }
         case 'cine-end': cineEnd(); break;
@@ -681,24 +682,33 @@
     // ---------- 타이틀 ----------
     const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
     const fmtMs = (ms) => { const m = Math.round((ms || 0) / 60000); return m < 60 ? m + '분' : Math.floor(m / 60) + '시간 ' + (m % 60) + '분'; };
+    // 타이틀: 작품 그림을 화면 가득(폰은 위쪽 가득) + 아래 '어전 바닥' 띠. 금줄 위에 왕관 문장, 가운데 시작 버튼
     function renderTitle() {
       const box = $('#mq-title');
       const list = saves.slice().sort((a, b) => (b.last || 0) - (a.last || 0));
       const cont = list.find(x => x.url);
       const hero = IMG('인물 외_타이틀');
-      box.innerHTML = `<div class="mq-tbg" style="background-image:${cssUrl(hero || PLACE_IMG('도심'))}"></div><div class="mq-tvig"></div>
-        <div class="mq-tin">
-          <div class="mq-thero">${hero ? `<img src="${esc(hero)}" alt="마법소녀의 최종보스">` : '<h1>마법소녀의 최종보스</h1>'}</div>
-          <p class="mq-tsub">전쟁이 끝나고 8년. 마법소녀는 스타가 되었고, 마왕은 반지하에서 눈을 뜬다.</p>
-          <div class="mq-tmenu">
-            <button class="mq-pl main" data-mq="t-new"><b>마왕, 다시 일어나다</b><small>새 대화로 처음부터</small></button>
-            ${cont ? `<button class="mq-pl" data-mq="t-cont" data-id="${esc(cont.id)}"><b>이어하기</b><small>${esc(sumText(cont))}</small></button>` : ''}
+      const pw = cont && cont.sum ? (cont.sum.power || 0) : 0;
+      const crestGems = POW.map((_, i) => ({ on: i < pw }));
+      const saveRow = (sv) => `<div class="mq-save"><div class="mq-simg" style="background-image:${cssUrl((sv.sum && sv.sum.bg) || PLACE_IMG('허름한 반지하'))}"></div>
+          <div class="mq-smeta"><b>${esc(sumText(sv))}</b><span>${fmtMs(sv.playMs)} 플레이 · ${sv.url ? '마지막 ' + ago(sv.last || sv.created) : '대화 연결 전'}</span></div>
+          <div class="mq-sbtns">${sv.url ? `<button class="mq-fb primary" data-mq="t-cont" data-id="${esc(sv.id)}">이어하기</button>` : ''}<button class="mq-fb ${R.delAsk === sv.id ? 'danger' : ''}" data-mq="t-del" data-id="${esc(sv.id)}">${R.delAsk === sv.id ? '한 번 더 누르면 삭제' : '지우기'}</button></div></div>`;
+      box.innerHTML = `<div class="mq-tart">${hero ? `<i class="mq-tblur" style="background-image:${cssUrl(hero)}"></i><img src="${esc(hero)}" alt="마법소녀의 최종보스">` : '<b>마법소녀의 최종보스</b>'}</div>
+        <div class="mq-tshade"></div>
+        <div class="mq-tfloor">
+          <div class="mq-tcrest">${crownSvg(crestGems)}</div>
+          <p class="mq-tline">8년의 잠에서 깨어난 왕.<br>권능 다섯 조각은 지금, 별이 된 소녀들의 손에 있다.</p>
+          <div class="mq-tacts">
+            <button class="mq-tgo" data-mq="t-new"><b>마왕, 다시 일어나다</b><small>새 대화로 처음부터</small></button>
+            ${cont ? `<button class="mq-tcont" data-mq="t-cont" data-id="${esc(cont.id)}"><b>이어하기</b><small>${esc(sumText(cont))}</small></button>` : ''}
           </div>
-          ${list.length ? `<div class="mq-saves"><h4>세이브 ${list.length}</h4>${list.map(sv => `<div class="mq-save"><div class="mq-simg" style="background-image:${cssUrl((sv.sum && sv.sum.bg) || PLACE_IMG('허름한 반지하'))}"></div>
-              <div class="mq-smeta"><b>${esc(sumText(sv))}</b><span>${fmtMs(sv.playMs)} 플레이 · ${sv.url ? '마지막 ' + ago(sv.last || sv.created) : '대화 연결 전'}</span></div>
-              <div class="mq-sbtns">${sv.url ? `<button class="mq-fb primary" data-mq="t-cont" data-id="${esc(sv.id)}">이어하기</button>` : ''}<button class="mq-fb ${R.delAsk === sv.id ? 'danger' : ''}" data-mq="t-del" data-id="${esc(sv.id)}">${R.delAsk === sv.id ? '한 번 더 누르면 삭제' : '지우기'}</button></div></div>`).join('')}</div>` : ''}
-          <div class="mq-tfoot"><button class="mq-link" data-mq="t-set">플레이팩 설정</button><span>크랙 AI가 진행해요 · 19세 이상 · 히리온</span></div>
-        </div>`;
+          <div class="mq-tside">
+            ${list.length ? `<button class="mq-tsm ${R.showSaves ? 'on' : ''}" data-mq="t-saves">세이브 ${list.length}</button>` : ''}
+            <button class="mq-tsm" data-mq="t-set">설정</button>
+            <span>19세 이상 · 크랙 AI가 진행해요 · 히리온</span>
+          </div>
+        </div>
+        ${list.length ? `<div class="mq-tdrawer ${R.showSaves ? 'on' : ''}"><header><b>세이브</b><button class="mq-x" data-mq="t-saves" aria-label="닫기">${ic('x')}</button></header>${list.map(saveRow).join('')}<p>크랙 대화는 지워지지 않고 그대로 남아요.</p></div>` : ''}`;
       box.hidden = false;
     }
     const sumText = (sv) => { const s = (sv && sv.sum) || {}; return s.day ? `D+${s.day}${s.place ? ' · ' + s.place : ''} · 권능 ${s.power || 0}/5` : '반지하에서 눈뜬 날'; };
