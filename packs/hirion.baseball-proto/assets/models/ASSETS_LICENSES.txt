@@ -1,0 +1,16 @@
+CRION 야구 게임 애셋 목록 및 라이선스 표기 (2026-10-31 수집, 출처 Poly Pizza)
+CC BY 모델은 사용 시 아래 표기 의무가 있다. CC0 모델은 표기 의무 없음.
+
+- stadium_ballpark.glb : "Ballpark" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/45Ez39JSdz6 — OK 1,346,884B mesh 1/node 1
+- field_baseball.glb : "baseball field" by Robert Coomber [CC BY] via Poly Pizza — https://poly.pizza/m/elK3dFLK9Q5 — OK 39,252B mesh 11/node 11
+- crowd.glb : "crowd" by apelab [CC BY] via Poly Pizza — https://poly.pizza/m/2-i2ZDps78- — OK 523,708B mesh 26/node 26
+- character_man.glb : "Man" by Quaternius [CC0] via Poly Pizza — https://poly.pizza/m/fjHyMd5Wxw — OK 498,160B mesh 1/node 45
+- ball_baseball.glb : "Baseball" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/689iUPvWl4y — OK 256,160B mesh 1/node 1
+- bat_baseball.glb : "Baseball bat" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/4K5Z_WN8DBA — OK 24,996B mesh 1/node 1
+- glove.glb : "Glove" by Quaternius [CC0] via Poly Pizza — https://poly.pizza/m/l1zv4LaA4I — OK 40,796B mesh 1/node 2
+- cap_baseball.glb : "Baseball cap" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/aaC5GgcWEhM — OK 10,176B mesh 1/node 1
+- light_post.glb : "Light Post" by Zsky [CC BY] via Poly Pizza — https://poly.pizza/m/7JUgLfLeEU — OK 14,944B mesh 1/node 1
+- fence_metal.glb : "Metal Fence" by Quaternius [CC0] via Poly Pizza — https://poly.pizza/m/qWKhREFj7H — OK 89,540B mesh 1/node 2
+- bench.glb : "Bench" by Quaternius [CC0] via Poly Pizza — https://poly.pizza/m/jLxjFxFRpw — OK 21,952B mesh 1/node 2
+- billboard.glb : "Billboard" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/e5jmUgocmaT — OK 108,956B mesh 3/node 3
+- whistle.glb : "Whistle" by Poly by Google [CC BY] via Poly Pizza — https://poly.pizza/m/2rytrpGfSz1 — OK 18,296B mesh 1/node 1

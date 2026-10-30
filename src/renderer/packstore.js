@@ -49,7 +49,7 @@
     const h = await crypto.subtle.digest('SHA-256', buf);
     return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  const TYPES = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', json: 'application/json', mp3: 'audio/mpeg', ogg: 'audio/ogg', webm: 'video/webm', html: 'text/html', css: 'text/css', txt: 'text/plain' };
+  const TYPES = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', json: 'application/json', mp3: 'audio/mpeg', ogg: 'audio/ogg', webm: 'video/webm', html: 'text/html', css: 'text/css', txt: 'text/plain', glb: 'model/gltf-binary' };
   const typeOf = (p) => TYPES[String(p).split('.').pop().toLowerCase()] || 'application/octet-stream';
 
   // pack = { id, version, rev, base, files:[{path, sha256, size}] }
