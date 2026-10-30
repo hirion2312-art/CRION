@@ -69,7 +69,7 @@ async def run(b, name, vp, mobile):
     ctx = await b.new_context(viewport=vp, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.add_init_script("window.__engineVersion='0.11.0'")
+    await page.add_init_script("window.__engineVersion='0.11.1'")
     await T.setup(page)
     async def img(route):
         n = BYURL.get(route.request.url.split('?')[0])
