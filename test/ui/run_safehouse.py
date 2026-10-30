@@ -224,6 +224,8 @@ async def main():
         await page.screenshot(path=OUT + 'sh_i2_title_saves.png')
         await page.evaluate("window.__loads = []")
         await page.click('.sh-save [data-sh=t-cont]'); await page.wait_for_timeout(300)
+        print('지난 줄거리 창:', await page.evaluate("!!document.querySelector('.pkk-box.pkk-recap')")); await page.screenshot(path=OUT + 'sh_i3_recap.png')
+        if await page.query_selector('.pkk .pkk-go'): await page.click('.pkk .pkk-go'); await page.wait_for_timeout(300)
         print('이어하기 → 연 주소:', await page.evaluate('window.__loads'), '/ 상태 복원:', await page.evaluate("(window.__pk.memory.status||{}).day"))
         # 작은 화면
         await page.set_viewport_size({'width': 1100, 'height': 680}); await page.wait_for_timeout(300)

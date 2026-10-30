@@ -111,7 +111,7 @@ async def run(b, name, vp, mobile):
         await page.screenshot(path=OUT + f'uv_{name}_d_menu.png')
         menu = await page.evaluate("[...document.querySelectorAll('.pkm-it span')].map(x=>x.textContent)")
         print(name, '⋯ 메뉴:', menu)
-        if '나가기' not in menu or '지난 대사' not in menu: errs.append('menu ' + str(menu))
+        if '나가기' not in menu or '지난 대사 찾기' not in menu: errs.append('menu ' + str(menu))
         await page.evaluate("document.querySelector('#layer [data-act=close-modal]').click()"); await page.wait_for_timeout(200)
         await page.evaluate("document.querySelector('#uv-in').focus()"); await page.wait_for_timeout(200)
         tabs_hidden = await page.evaluate("getComputedStyle(document.querySelector('#uv-tabs')).display === 'none'")

@@ -130,7 +130,7 @@
     const colorOf = (n) => (RO[n] && RO[n].color) || '';
     const K = root.CrionKit ? root.CrionKit.create({
       el, accent: '#e5322a', packId: PK_ID, packName: '아포칼립스 안전지대의 관리자', toast: o.toast,
-      fontTargets: ['#sh-dlg'], unit: (l) => 'D+' + (l.d || 0),
+      fontTargets: ['#sh-dlg'], unit: (l) => (l.d || 0) + '일차',
       coach: [
         { sel: '#sh-dlg', title: '대사창', text: '누르면 다음 대사로 넘어가요. 글자가 써지는 중에 누르면 문장이 바로 다 보여요.' },
         { sel: '.sh-tabs', title: '아래 탭', text: '로비 · 관리인 폰 · 빌라 도면 · 파견 지도 · 생존자 도감을 오가요.' },
@@ -921,7 +921,7 @@
       resetScene();
       R.mode = 'play'; R.boundUrl = normUrl(sv.url); R.newFlow = null; R.sm = null;
       hideTitle(); banner(null); loading('지난 대화를 불러오는 중이에요');
-      if (K) { const r = K.recapFromLines(M.lines, colorOf), st = M.status || {}; K.recap(Object.assign(r, { title: '석벽빌라 지난 기록', when: st.day ? 'D+' + st.day : '', place: st.place || '', bg: M.lastBg, rows: [st.ppl != null ? ['입주민', st.ppl + (st.cap ? ' / ' + st.cap : '') + '명'] : null].filter(Boolean) })); }
+      if (K) { const r = K.recapFromLines(M.lines, colorOf), st = M.status || {}; K.recap(Object.assign(r, { title: '석벽빌라 지난 기록', when: st.day ? st.day + '일차' : '', place: st.place || '', bg: M.lastBg, rows: [st.ppl != null ? ['입주민', st.ppl + (st.cap ? ' / ' + st.cap : '') + '명'] : null].filter(Boolean) })); }
       sceneBgm({});
       o.load(sv.url);
     }
