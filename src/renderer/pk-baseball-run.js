@@ -265,8 +265,43 @@
       W.meter = new T.Mesh(new T.RingGeometry(0.94, 1, 48), new T.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.95, side: T.DoubleSide, depthTest: false }));
       W.meter.renderOrder = 7; W.meter.visible = false; scene.add(W.meter);
       W.raycaster = new T.Raycaster(); W.plane = new T.Plane(new T.Vector3(0, 0, 1), 0);
+      if (opt.pitcherSprite) Promise.resolve(opt.pitcherSprite).then(sp => { if (sp && !dead) buildSprite(sp); }).catch(e => console.error(e));
       teamColors();
       drawBoard();
+    }
+    // 2D 투수 (그림 프레임 묶음 = 아틀라스). 정면 그림이라 '내가 칠 때'(투수를 앞에서 볼 때)만 쓴다
+    const SPR_SPD = 1.15;
+    function buildSprite(sp) {
+      const m = sp.meta, tex = new T.TextureLoader().load(sp.url);
+      tex.encoding = T.sRGBEncoding; tex.repeat.set(1 / m.cols, 1 / m.rows); tex.anisotropy = 4;
+      const h = m.height / (m.bodyPx || 0.96), w = h * m.fw / m.fh;
+      const geo = new T.PlaneGeometry(w, h); geo.translate(0, h / 2 - (1 - m.ground) * h, 0);
+      const mesh = new T.Mesh(geo, new T.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: T.DoubleSide, color: 0xeeeef4 }));
+      mesh.position.set(0, 0.25, -18.44); mesh.renderOrder = 2;
+      const sh = new T.Mesh(new T.CircleGeometry(0.55, 24), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }));
+      sh.rotation.x = -Math.PI / 2; sh.scale.set(1, 0.45, 1); sh.position.set(0, 0.262, -18.44);
+      scene.add(mesh, sh);
+      W.spr = { mesh, sh, tex, m, ws: 0, rel: -1, frame: -1, windDur: (m.windup[1] - m.windup[0]) / (m.fps * SPR_SPD) };
+      sprFrame(m.idle[0]);
+    }
+    function sprFrame(i) {
+      const S = W.spr; if (!S || S.frame === i) return;
+      S.frame = i; const c = i % S.m.cols, r = Math.floor(i / S.m.cols);
+      S.tex.offset.set(c / S.m.cols, 1 - (r + 1) / S.m.rows);
+    }
+    function tickSprite() {
+      const S = W.spr; if (!S) return false;
+      const pf = W.fielders[0];
+      const chasing = phase === 'play' && pf.target;
+      const on = (mode === 'title' || userBats()) && !chasing;
+      S.mesh.visible = S.sh.visible = on; pf.g.visible = !on;
+      if (!on) return false;
+      S.mesh.rotation.y = Math.atan2(cam.position.x - S.mesh.position.x, cam.position.z - S.mesh.position.z);
+      const m = S.m, n = (a) => a[1] - a[0];
+      if ((phase === 'pitch' || phase === 'play' || phase === 'after') && S.rel >= 0) sprFrame(m.follow[0] + Math.min(n(m.follow) - 1, Math.floor((now - S.rel) * m.fps)));
+      else if (phase === 'wait' && S.ws && now >= S.ws) sprFrame(m.windup[0] + Math.min(n(m.windup) - 1, Math.floor((now - S.ws) * m.fps * SPR_SPD)));
+      else { const k = Math.floor(now * 7) % (n(m.idle) * 2 - 2); sprFrame(m.idle[0] + (k < n(m.idle) ? k : n(m.idle) * 2 - 2 - k)); }
+      return true;
     }
     function wallGeom(pts, y0, y1, uLen) {
       const pos = [], uv = [], idx = []; let acc = 0;
@@ -503,6 +538,7 @@
       resetField(); setCam(false);
       if (userBats()) {
         phase = 'wait'; pendingNext = now + (delay == null ? 1.1 + Math.random() * 0.7 : delay);
+        if (W.spr) { pendingNext = Math.max(pendingNext, now + W.spr.windDur + 0.6); W.spr.ws = pendingNext - W.spr.windDur; W.spr.rel = -1; }
         W.fielders[0].wind = pendingNext - 0.9;
       } else { phase = 'p_aim'; if (!pitchType) pitchType = 'FB'; }
       sb(); help(); pbar();
@@ -510,6 +546,7 @@
     function throwPitch(type, target, kmh) {
       const path = SIM.pitchPath(type, target, kmh, userBats() ? D().scale : 1);
       P = { path, t0: now, swung: false, contact: null, cAt: 0, done: false };
+      if (W.spr) W.spr.rel = now;
       phase = 'pitch';
       W.ball.visible = true; W.trail.visible = true; trailReset(SIM.RELEASE);
       info(`${SIM.PITCHES[type].name} ${Math.round(kmh)}km/h`); help();
@@ -641,6 +678,7 @@
         const r = 92, a = orbit;
         cam.position.set(Math.sin(a) * r * 0.75, 34 + Math.sin(a * 0.7) * 6, 30 + Math.cos(a) * r * 0.35);
         camLookCur.set(0, 4, -55); cam.lookAt(camLookCur); cam.fov = portrait() ? 62 : 46; cam.updateProjectionMatrix();
+        tickSprite();
         animFielders(dt);
         return;
       }
@@ -669,7 +707,8 @@
         if (phase === 'p_meter' && meter) { meter.t += dt; const r = meterR(); W.meter.visible = true; W.meter.scale.setScalar(r); W.meter.position.set(aim.x, aim.y, 0.03); W.meter.material.color.set(r < 0.06 ? 0x5fd38a : r < 0.14 ? 0xffd36b : 0xff6a4a); }
         else W.meter.visible = false;
       }
-      // 투수 와인드업
+      // 투수 와인드업 (2D 투수 그림이 있으면 그것으로)
+      tickSprite();
       const pit = W.fielders[0];
       if (phase === 'wait' && pit.wind && now > pit.wind) { const k = clamp((now - pit.wind) / 0.9, 0, 1); pit.armR.rotation.x = -Math.sin(k * Math.PI) * 2.6; pit.legL.rotation.x = -Math.sin(k * Math.PI) * 1.1; pit.body.rotation.x = Math.sin(k * Math.PI * 0.5) * 0.2; }
       else if (phase === 'pitch' && P && now - P.t0 < 0.4) { const k = (now - P.t0) / 0.4; pit.armR.rotation.x = lerp(1.6, 0, k); pit.body.rotation.x = lerp(0.35, 0, k); pit.legL.rotation.x = 0; }
@@ -960,7 +999,10 @@
   root.CrionBaseballRun = {
     start(o) {
       o.el.innerHTML = '';
+      const spr = o.data && o.data.sprites && o.data.sprites.pitcher;
+      const pitcherSprite = spr && o.files && o.files.has(spr.atlas) ? o.files.json(spr.meta).then(meta => ({ url: o.files.url(spr.atlas), meta })) : null;
       const bb = create(o.el, {
+        pitcherSprite,
         menu: o.menu ? (items) => o.menu(items) : null,
         copy: (t) => { if (o.copy) o.copy(t); else try { navigator.clipboard.writeText(t); } catch (e) { /* 못 함 */ } }
       });

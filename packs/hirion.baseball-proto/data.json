@@ -1,1 +1,5 @@
-{}
+{
+  "sprites": {
+    "pitcher": { "atlas": "assets/pitcher/atlas.webp", "meta": "assets/pitcher/atlas.json", "note": "정면 2D 투수(히리온 그림 → Kling 영상 → 배경 지움). 내가 칠 때 상대 투수로 보인다" }
+  }
+}

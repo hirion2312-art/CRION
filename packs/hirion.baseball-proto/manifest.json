@@ -2,15 +2,24 @@
   "schemaVersion": 2,
   "id": "hirion.baseball-proto",
   "name": "CRION 베이스볼 · 3D 야구 프로토타입",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "runner": "baseball",
   "standalone": true,
   "devOnly": true,
   "summary": "플레이팩 경기 장면에 넣을 3D 야구 — 작품 연결 없이 바로 플레이 (개발자 시험판)",
   "desc": "# 들어 있는 것\n- **3D 야간 구장**: 조명탑·관중석·전광판·담장, 9명 수비\n- **타격**: 겨냥 원을 공이 지나갈 곳에 두고 제때 누르기. 위를 치면 땅볼, 아래를 치면 뜬공, 빠르면 당겨 치기\n- **투구**: 직구·슬라이더·커브·체인지업·포크 중 고르고 → 존 겨냥 → 줄어드는 원으로 정확도\n- **타구 물리**: 공기 저항·회전·담장·땅볼 구름, 수비수가 달려가 잡고 던지는 판정(병살·희생플라이·내야 안타)\n- **모드**: 빠른 경기(1·3·5·9이닝) · 타격 연습 · 투구 연습 · 홈런 더비\n- **결과 글 복사**: 나중에 플레이팩이 크랙으로 보낼 경기 결과 모양\n\n# 알아 두기\n- 개발자 시험판(프로토타입)이에요. 크랙 작품과 연결되지 않고, 크랙에 아무것도 보내지 않아요.\n- PC는 마우스, 폰은 화면을 톡.",
   "author": "히리온",
-  "tags": ["야구", "스포츠", "3D", "프로토타입"],
+  "tags": [
+    "야구",
+    "스포츠",
+    "3D",
+    "프로토타입"
+  ],
   "cover": "store/cover.webp",
-  "previews": ["store/shot1.webp", "store/shot2.webp", "store/shot3.webp"],
+  "previews": [
+    "store/shot1.webp",
+    "store/shot2.webp",
+    "store/shot3.webp"
+  ],
   "minEngine": "0.12.0"
 }

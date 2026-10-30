@@ -90,6 +90,14 @@ async def run(p, name, vw, vh, mobile):
     s = await wait_phase(page, ['wait'])
     print(name, '타격 연습:', s['mode'], s['phase'])
     await page.screenshot(path=OUT + f'bb_{name}_c1_bat_ready.png')
+    # 2D 투수 와인드업 → 공 놓기 (그림 투수가 있으면)
+    spr = await page.evaluate("(() => { const s = window.__pk.bb.state; return s.phase; })()")
+    for k, sec in enumerate([0.0, 0.9, 0.6]):
+        await page.evaluate(f"window.__pk.bb.debug.run({sec})"); await page.wait_for_timeout(700)
+        await page.screenshot(path=OUT + f'bb_{name}_c1{"abc"[k]}_windup.png')
+    await page.evaluate("window.__pk.bb.debug.run(6, s => s.phase === 'pitch')"); await page.evaluate("window.__pk.bb.debug.run(0.12)"); await page.wait_for_timeout(700)
+    await page.screenshot(path=OUT + f'bb_{name}_c1d_release.png')
+    await page.evaluate("window.__pk.bb.debug.run(8, s => s.phase === 'wait')")
     # 공이 날아오는 중
     await page.evaluate("window.__pk.bb.debug.pitchNow('SL', {x:0.12, y:0.62}, 134)")
     await page.wait_for_timeout(280)
