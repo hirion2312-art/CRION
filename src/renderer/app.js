@@ -104,7 +104,9 @@
 
   // ---------- 성인 작품 구분: 설정에서 '성인 작품 보기'를 켠 경우에만 보인다 (만 19세 이상 본인 확인) ----------
   function applyAge() { S.works = (S.worksAll || []).filter(w => P.adult || !w.adult); }
-  const isAdultPack = (p) => !!(p && (p.adult || (p.workName && (S.worksAll || []).some(w => w.adult && w.name && w.name.includes(p.workName)))));
+  // 성인 팩 = 팩이 성인이라고 적혀 있거나, 이 팩이 실제로 붙는 작품(가장 잘 맞는 작품)이 성인일 때만.
+  //  (예전엔 이름이 들어가기만 해도 성인으로 봐서, 전연령 「소환수 아카데미」 팩이 「소환수 아카데미 PLUS」(성인) 때문에 숨었다)
+  const isAdultPack = (p) => !!(p && (p.adult || (S.worksAll || []).some(w => w.adult && PK.forWork(S.packs, w) === p)));
   const ageTag = (w) => w && w.adult ? '<span class="tag adult" title="성인 작품">19</span>' : '';
   function askAdult() {
     modal(`<header><h3>성인 작품 보기</h3><button class="icon-btn" data-act="close-modal">${I.x}</button></header>
