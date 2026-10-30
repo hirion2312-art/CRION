@@ -95,7 +95,7 @@
   const regBase = () => { const u = S.info && S.info.registryUrl; return u ? u.replace(/[^/]*$/, '') : ''; };
   const packFor = (w) => PK.forWork(S.packs, w);
   // 팩 실행기: academy = 소환수 아카데미 학생 수첩 / safehouse = 안전지대 관리자(프로젝트 A 화면)
-  const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : pk.runner === 'univ' ? window.CrionUnivRun : pk.runner === 'maou' ? window.CrionMaouRun : null;
+  const runnerOf = (pk) => !pk ? null : pk.runner === 'academy' ? window.CrionPackRun : pk.runner === 'safehouse' ? window.CrionSafehouseRun : pk.runner === 'univ' ? window.CrionUnivRun : pk.runner === 'maou' ? window.CrionMaouRun : pk.runner === 'baseball' ? window.CrionBaseballRun : null;
   const packViewLabel = (pk) => pk && pk.runner === 'safehouse' ? '게임 화면' : pk && pk.runner === 'univ' ? '폰 화면' : pk && pk.runner === 'maou' ? '작전실 화면' : '수첩 화면';
   const hasCont = (w) => !!(S.settings.workUrls || {})[w.id];
   // 출시 전 팩(manifest soon): 작품은 보이되 플레이는 막고, 팩은 미리 받아 둘 수 있다(사전 다운로드)
@@ -375,7 +375,7 @@
       <div class="pmeta"><button class="name" data-act="pack" data-id="${esc(p.id)}">${esc(p.name)}</button>
         <span>${esc(w ? w.name : p.summary)}</span>
         <div class="ptags">${p.soon ? `<i class="soon">${esc(p.soon)}</i>` : ''}${p.devOnly ? '<i class="dev">개발자 전용</i>' : ''}${p.tags.map(t => `<i>${esc(t)}</i>`).join('')}</div></div>
-      <button class="btn sm ${st[0] === 'on' ? '' : 'primary'}" data-act="${st[0] === 'on' ? 'pack' : 'pack-install'}" data-id="${esc(p.id)}">${st[0] === 'on' ? I.check : I.down}${st[1]}</button>
+      ${p.standalone && st[0] === 'on' ? `<button class="btn sm primary" data-act="pack-solo" data-id="${esc(p.id)}">${I.play}플레이</button>` : `<button class="btn sm ${st[0] === 'on' ? '' : 'primary'}" data-act="${st[0] === 'on' ? 'pack' : 'pack-install'}" data-id="${esc(p.id)}">${st[0] === 'on' ? I.check : I.down}${st[1]}</button>`}
     </div>`;
   }
   function storeHtml() {
@@ -423,6 +423,7 @@
         ${p.summary ? `<p class="lead">${esc(p.summary)}</p>` : ''}
         ${p.desc ? `<div class="guide">${mdLite(p.desc)}</div>` : ''}
         ${p.soon ? `<div class="soon-box"><b>${esc(p.soon)}</b><span>${esc(p.soonNote || (inst ? '미리 받아 뒀어요. 출시되면 바로 플레이할 수 있어요.' : '출시 전이라 아직 플레이할 수 없어요. 지금 받아 두면 출시되는 날 바로 시작할 수 있어요.'))}</span></div>`
+          : p.standalone ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-solo" data-id="${esc(p.id)}">${I.play}바로 플레이</button></div>${inst ? '' : '<p class="muted">받은 뒤 바로 플레이할 수 있어요. 크랙 작품 없이 CRION 안에서 돌아가요.</p>'}`
           : (w && w.url) || p.workUrl ? `<div class="row end"><button class="btn ${inst ? 'primary' : ''}" data-act="pack-play" data-id="${esc(p.id)}">${I.play}이 작품 플레이</button></div>` : '<p class="muted">연결된 크랙 작품 주소가 아직 없어요. 작품이 등록되면 바로 플레이할 수 있어요.</p>'}
       </div>`, true);
   }
@@ -988,11 +989,11 @@
         <button class="btn ghost" data-act="leave">${I.back}나가기</button>
         <div class="pwork"><div class="mini">${thumbInner(w)}</div><b>${esc(w.name)}</b><span class="badge ${p.pack ? 'pk' : ''}">${p.pack ? '플레이팩' : '크랙 화면'}</span></div>
         <div class="ptools">
-          ${p.pack ? `<button class="btn sm ${p.crack ? 'on' : ''}" data-act="pk-crack" title="크랙 원본 화면과 바꿔 보기">${p.crack ? `${I.book}${packViewLabel(p.pack)}` : `${I.page}크랙 화면`}</button><span class="sep"></span>` : ''}
+          ${p.solo ? '' : `${p.pack ? `<button class="btn sm ${p.crack ? 'on' : ''}" data-act="pk-crack" title="크랙 원본 화면과 바꿔 보기">${p.crack ? `${I.book}${packViewLabel(p.pack)}` : `${I.page}크랙 화면`}</button><span class="sep"></span>` : ''}
           <button class="icon-btn" data-act="wv-back" title="뒤로">${I.back}</button>
           <button class="icon-btn" data-act="wv-reload" title="새로고침">${I.reload}</button>
           <button class="icon-btn" data-act="wv-page" title="작품 페이지로">${I.page}</button>
-          <span class="sep"></span>
+          <span class="sep"></span>`}
           ${w.guide ? `<button class="icon-btn ${p.guide ? 'on' : ''}" data-act="guide" title="공략">${I.book}</button>` : ''}
           ${w.bgm && bgm && !p.pack ? `<button class="icon-btn" data-act="music" id="musicBtn" title="배경 음악">${bgm.paused || !bgm.src ? I.mute : I.music}</button>` : ''}
           <button class="icon-btn" data-act="report" title="문제 신고">${I.flag}</button>
@@ -1002,9 +1003,9 @@
       </header>
       <div class="pbody">
         <div class="pview">
-          <webview id="crack" src="${esc(p.url)}" partition="persist:crack" allowpopups></webview>
+          ${p.solo ? '' : `<webview id="crack" src="${esc(p.url)}" partition="persist:crack" allowpopups></webview>`}
           ${p.pack ? `<div class="pk ${p.crack ? 'off' : ''}" id="pk"></div>` : ''}
-          <div class="pwait" id="pwait"><img src="icon.png" alt=""><b>크랙 화면을 여는 중이에요</b><span>${esc(w.name)}</span></div>
+          ${p.solo ? '' : `<div class="pwait" id="pwait"><img src="icon.png" alt=""><b>크랙 화면을 여는 중이에요</b><span>${esc(w.name)}</span></div>`}
         </div>
         ${w.guide ? `<aside class="pguide ${p.guide ? '' : 'hidden'}" id="pguide"><div class="pguide-h"><b>공략</b><button class="icon-btn sm" data-act="guide">${I.x}</button></div><div class="guide">${mdLite(w.guide)}</div></aside>` : ''}
       </div>
@@ -1054,6 +1055,19 @@
     if (usePack) { startPack(); return; }
     if (w.bgm && bgm && P.bgmAuto) { bgm.setVolume((S.settings.volume == null ? 60 : S.settings.volume) / 100); bgm.play(w.bgm); setTimeout(updMusicBtn, 50); }
   }
+  // 작품 연결 없이 CRION 안에서만 도는 팩 (manifest standalone: 예 3D 야구) — 크랙 화면을 열지 않는다
+  function openSolo(id) {
+    const p = S.packs.find(x => x.id === id);
+    if (!p || !p.standalone) return;
+    if (!installed.has(p.id)) { toast('먼저 받아 주세요'); return; }
+    if (!runnerOf(p) || !PK.compatible(p, S.info.engineVersion)) { toast('앱을 다시 켜서 최신 화면을 받은 뒤 플레이할 수 있어요', 3500); return; }
+    closeModal();
+    const w = { id: 'pack:' + p.id, name: p.name, url: '', thumb: p.cover };
+    S.play = { work: w, url: '', guide: false, startedAt: Date.now(), pack: p, crack: false, gate: false, solo: true };
+    S.view = 'play';
+    render();
+    startPack();
+  }
   // 작품 화면(크랙 detail) 주소: 공유 링크를 연 뒤 처음 나온 작품 화면만 이 작품 것으로 기억한다 (이 기기에만, 동기화 안 함)
   //  예전엔 팩이 작품 화면이면 아무 주소나 기억해서, 앞 작품(소환수 아카데미) 화면이 섞이면 '처음 시작'이 엉뚱한 작품을 열었다
   const isShare = (u) => /^https:\/\/share\./.test(String(u || ''));
@@ -1087,9 +1101,7 @@
       <div class="pkm-h"><div class="mini">${thumbInner(p.work)}</div><b>${esc(p.work.name)}</b><button class="icon-btn" data-act="close-modal">${I.x}</button></div>
       ${ex.length ? `<div class="pkm-g">${ex.map((x, i) => `<button class="pkm-it" data-act="pkm-x" data-i="${i}">${x.icon || ''}<span>${esc(x.label)}</span></button>`).join('')}</div>` : ''}
       <div class="pkm-g">
-        ${row('pk-crack', I.page, '크랙 원래 화면 보기')}
-        ${row('wv-reload', I.reload, '크랙 화면 새로고침')}
-        ${row('wv-page', I.page, '작품 페이지로')}
+        ${p.solo ? '' : row('pk-crack', I.page, '크랙 원래 화면 보기') + row('wv-reload', I.reload, '크랙 화면 새로고침') + row('wv-page', I.page, '작품 페이지로')}
         ${row('report', I.flag, '문제 신고')}
       </div>
       <div class="pkm-g">${row('leave', I.back, '나가기')}</div>
@@ -1485,6 +1497,7 @@
       case 'hint-skip': { const no = $('#hintNo'); const w = workById(id); const pk = w && (packFor(w) || S.packs.find(x => w.id === 'pack:' + x.id)); if (no && no.checked && pk) lsSet('crion.nohint.' + pk.id, '1'); openWork(id, !!el.dataset.fresh, true); break; }
       case 'pack-remove': { try { await PS.remove(id); } catch (err) { /* 저장소 없음 */ } installed.remove(id); toast('지웠어요. 이 작품은 크랙 화면으로 열려요'); openPack(id); refresh(); break; }
       case 'pack-on': installed.setOn(id, el.dataset.v === 'true'); toast(el.dataset.v === 'true' ? '플레이팩을 켰어요' : '플레이팩을 껐어요. 크랙 화면으로 열려요'); openPack(id); refresh(); break;
+      case 'pack-solo': openSolo(id); break;
       case 'pack-play': { const p = S.packs.find(x => x.id === id); if (p && p.soon) { toast(SOON_NOTE); break; } const w = p && packWork(p); if (w) openWork(w.id); else toast('연결된 크랙 작품 주소가 아직 없어요'); break; }
       case 'pk-crack': if (S.play) { S.play.crack = !S.play.crack; const pk = $('#pk'); if (pk) pk.classList.toggle('off', S.play.crack); syncPkv(); const cb = $('.pbar [data-act=pk-crack]'); if (cb) { cb.classList.toggle('on', S.play.crack); cb.innerHTML = S.play.crack ? `${I.book}${packViewLabel(S.play.pack)}` : `${I.page}크랙 화면`; } } break;
       // 커뮤니티

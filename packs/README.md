@@ -56,3 +56,10 @@
   - 그림은 팩에 넣지 않고 크랙 CDN 주소(`data.json` `imgs`: 빌더 등록명 → 주소)를 그대로 쓴다. 응답 속 그림 주소의 마지막 칸(24자리 id)으로 등록명을 찾아 장소·인물·표정·권능 회수(사랑/흑화/전투)·엔딩을 알아낸다.
   - 숫자는 계산하지 않고 크랙 상태창 그대로. 호감도·균열도는 '잠김'이면 잠김으로 둔다. 숨은 진실·간부 사정·사랑/흑화 열쇠는 팩에 넣지 않는다. `hideImgs`(성행위1_오하나)는 앨범에 안 보임.
   - 자료: `materials/magical-girl-final-boss/`. 시험: `python3 test/ui/run_maou.py` → `test/out/mq_*.png`(CDN은 자리 그림으로 대신).
+
+## 혼자 실행 팩 · 3D 야구 프로토타입 (엔진 0.12.0~)
+- manifest `"standalone": true` → 작품 연결 없이 스토어에서 **바로 플레이**. 크랙 화면을 열지 않고 팩 화면만 띄운다(`S.play.solo`). `make-registry.js`가 이 칸도 index.json에 싣는다.
+- `hirion.baseball-proto` = 「CRION 베이스볼 · 3D 야구 프로토타입」(개발자 전용). `runner: "baseball"` → `src/renderer/pk-baseball-run.js`(3D 화면, three.js r149 `vendor/three.min.js`) + `pk-baseball-sim.js`(규칙·물리, 시험 `node test/baseball.test.js`) + `pk-baseball.css`.
+  - 모드: 빠른 경기(1·3·5·9이닝, 초 = 타격 · 말 = 투구) · 타격 연습 · 투구 연습 · 홈런 더비. 난이도(공 속도·판정 크기)·존 표시·화질·소리.
+  - 팩 파일은 manifest·data.json·store 그림뿐(코드는 엔진). 다른 팩의 경기 장면에 쓸 때는 `CrionBaseball.create(el, { mode, onPlay, onEnd, menu, copy })`로 열고, 결과 글을 입력칸에 채운다(자동 전송 금지 원칙 그대로).
+  - 시험: `python3 test/ui/run_baseball.py` → `test/out/bb_*.png` (`BB_ONLY=pc|m`, `BB_COVER=1` 표지 다시 만들기).
