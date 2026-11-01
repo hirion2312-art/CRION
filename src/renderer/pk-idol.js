@@ -407,42 +407,71 @@
     return out;
   }
 
-  // ---------- 앨범 커버(SVG 문자열) ----------
+  // ---------- 앨범 커버(SVG 문자열) — 장르가 판형(템플릿), 테마가 색, 센터 멤버 색이 포인트 ----------
   const escX = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  function motif(kind, r, accent) {
-    const a = accent;
-    if (kind === 'moon') return `<circle cx="${62 + r() * 20}" cy="${30 + r() * 10}" r="16" fill="${a}" opacity=".9"/><circle cx="${68 + r() * 20}" cy="${26 + r() * 10}" r="14" fill="var(--cv-bg2)"/>`;
-    if (kind === 'heart') return `<path d="M50 70 C20 50 25 25 42 28 C48 29 50 34 50 36 C50 34 52 29 58 28 C75 25 80 50 50 70Z" fill="${a}" opacity=".85" transform="rotate(${(r() - .5) * 20} 50 50)"/>`;
-    if (kind === 'sun') return `<circle cx="50" cy="${48 + r() * 8}" r="20" fill="${a}" opacity=".9"/>` + Array.from({ length: 12 }, (_, i) => { const t = i / 12 * Math.PI * 2; return `<line x1="${50 + Math.cos(t) * 26}" y1="${50 + Math.sin(t) * 26}" x2="${50 + Math.cos(t) * 34}" y2="${50 + Math.sin(t) * 34}" stroke="${a}" stroke-width="2" opacity=".7"/>`; }).join('');
-    if (kind === 'bolt') return `<path d="M56 14 L34 54 H50 L42 86 L70 40 H54 Z" fill="${a}"/>`;
-    if (kind === 'wave') return Array.from({ length: 4 }, (_, i) => `<path d="M0 ${58 + i * 9} Q 12 ${52 + i * 9} 25 ${58 + i * 9} T 50 ${58 + i * 9} T 75 ${58 + i * 9} T 100 ${58 + i * 9}" stroke="${a}" stroke-width="2.4" fill="none" opacity="${.9 - i * .18}"/>`).join('');
-    if (kind === 'circle') return `<circle cx="42" cy="50" r="18" fill="none" stroke="${a}" stroke-width="3"/><circle cx="58" cy="50" r="18" fill="none" stroke="#fff" stroke-width="3" opacity=".8"/>`;
-    return Array.from({ length: 14 }, () => { const x = r() * 100, y = r() * 70, s = 1 + r() * 2.6; return `<path d="M${x} ${y - s * 2} L${x + s * .6} ${y - s * .6} L${x + s * 2} ${y} L${x + s * .6} ${y + s * .6} L${x} ${y + s * 2} L${x - s * .6} ${y + s * .6} L${x - s * 2} ${y} L${x - s * .6} ${y - s * .6}Z" fill="${a}" opacity="${.5 + r() * .5}"/>`; }).join('');
+  // 테마별 팔레트 [바탕, 중간, 잉크]
+  const PAL = {
+    이별: ['#1d2340', '#5b6aa8', '#f2efe9'], 첫사랑: ['#ffd9df', '#ff6f8e', '#3b1520'], 청춘: ['#cdeffd', '#2f95f0', '#0f2340'], 위로: ['#ffe6c2', '#ef9a4a', '#3a2410'],
+    자신감: ['#2a0d14', '#e8344e', '#fff1f3'], 여름: ['#d4fbef', '#13bfa6', '#063a33'], 밤: ['#160f2e', '#7b5cff', '#ece6ff'], 꿈: ['#eee4ff', '#a97eff', '#2a1748'],
+    우정: ['#fff1bf', '#f2a900', '#3a2a00'], 도전: ['#e3e9ec', '#2f4858', '#ff5a36']
+  };
+  const THEMES = Object.keys(PAL);
+  const LAYOUT = { 발라드: 'orb', 댄스: 'stack', 힙합: 'block', 'R&B': 'orb', 록: 'block', 시티팝: 'sun', 일렉트로닉: 'grid', 어쿠스틱: 'frame' };
+  const KR = '"Gasoek One","Black Han Sans","Pretendard Variable","Noto Sans KR",sans-serif', EN = '"Unbounded","Pretendard Variable",sans-serif';
+  const glyphW = (t) => Array.from(String(t)).reduce((a, c) => a + (/[가-힣]/.test(c) ? 1 : /[A-Z0-9]/.test(c) ? .74 : /\s/.test(c) ? .35 : .62), 0);
+  function lines(title, max) {
+    const w = String(title).split(/\s+/).filter(Boolean);
+    if (w.length <= 1) { const t = w[0] || ''; if (glyphW(t) <= max) return [t]; const ch = Array.from(t); const h = Math.ceil(ch.length / 2); return [ch.slice(0, h).join(''), ch.slice(h).join('')]; }
+    const out = []; let cur = '';
+    w.forEach(x => { if (cur && glyphW(cur + ' ' + x) > max) { out.push(cur); cur = x; } else cur = cur ? cur + ' ' + x : x; });
+    if (cur) out.push(cur);
+    return out.slice(0, 3);
   }
   function coverSvg(s, data, opt) {
     opt = opt || {};
-    const G = (data && data.genres) || {};
-    const g = G[s.genre] || null;
     const r = rng(hash((s.title || '') + '|' + (s.artist || '')));
-    const pal = g ? g.c : [`hsl(${Math.floor(r() * 360)} 45% 22%)`, `hsl(${Math.floor(r() * 360)} 70% 62%)`];
+    const theme = PAL[s.theme] ? s.theme : THEMES[Math.floor(r() * THEMES.length)];
+    const [bg, mid, ink] = PAL[theme];
     const center = ((data && data.members) || []).find(m => m.name === s.center || m.key === s.center);
     const rv = ((data && data.rivals) || []).find(x => x.group === s.artist);
-    const accent = center ? center.color : rv ? rv.color : pal[1];
-    const th = (data && data.themes && data.themes[s.theme]) || ['moon', 'heart', 'star', 'sun', 'bolt', 'wave', 'circle'][Math.floor(r() * 7)];
-    const id = 'cv' + hash(s.title + s.artist).toString(36);
-    const title = String(s.title || '').slice(0, 18);
-    const fs = title.length > 10 ? 9 : title.length > 6 ? 11 : 13;
-    const tag = s.ours ? ((data && data.groupEn) || 'REMINA') : String(s.artist || '').toUpperCase().slice(0, 14);
-    const stripes = Math.floor(r() * 3);
-    return `<svg class="${opt.cls || 'id-cover'}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escX(s.title)} 커버" style="--cv-bg2:${pal[0]}">
-      <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${pal[0]}"/><stop offset="1" stop-color="${pal[1]}"/></linearGradient></defs>
-      <rect width="100" height="100" fill="url(#${id})"/>
-      ${stripes === 1 ? `<rect x="0" y="${60 + r() * 10}" width="100" height="3" fill="#fff" opacity=".25"/>` : stripes === 2 ? `<circle cx="${r() * 100}" cy="${r() * 100}" r="${30 + r() * 20}" fill="#fff" opacity=".07"/>` : ''}
-      ${motif(th, r, accent)}
-      <rect x="0" y="74" width="100" height="26" fill="#000" opacity=".28"/>
-      <text x="7" y="88" font-family="Pretendard Variable, Pretendard, Noto Sans KR, sans-serif" font-weight="800" font-size="${fs}" fill="#fff">${escX(title)}</text>
-      <text x="7" y="96" font-family="Pretendard Variable, Pretendard, sans-serif" font-weight="700" font-size="4.6" letter-spacing=".8" fill="#fff" opacity=".8">${escX(tag)}</text>
-      ${s.ours ? `<circle cx="91" cy="9" r="4" fill="${accent}"/>` : ''}
+    const acc = center ? center.color : rv ? rv.color : mid;
+    const lay = LAYOUT[s.genre] || ['orb', 'stack', 'block', 'sun', 'grid', 'frame'][Math.floor(r() * 6)];
+    const id = 'cv' + hash(s.title + '|' + s.artist + '|' + (s.genre || '') + (s.theme || '')).toString(36);
+    const title = String(s.title || '').slice(0, 20);
+    const tag = s.ours ? ((data && data.groupEn) || 'REMINA') : String(s.artist || '').toUpperCase().slice(0, 12);
+    const T = (x, y, size, fill, txt, extra) => `<text x="${x}" y="${y}" font-family='${KR}' font-size="${size}" fill="${fill}" ${extra || ''}>${escX(txt)}</text>`;
+    const E = (x, y, size, fill, txt, extra) => `<text x="${x}" y="${y}" font-family='${EN}' font-weight="700" font-size="${size}" fill="${fill}" letter-spacing=".6" ${extra || ''}>${escX(txt)}</text>`;
+    let body = '';
+    if (lay === 'stack') {
+      const ls = lines(title, 4.2); const size = Math.min(30, 86 / Math.max(...ls.map(glyphW), 1));
+      body = `<rect width="100" height="100" fill="url(#${id}g)"/>` + ls.map((l, i) => T(7, 10 + size * .92 * (i + 1), size, ink, l, `opacity="${1 - i * .12}"`)).join('') +
+        `<rect x="7" y="${12 + size * .92 * ls.length + 3}" width="18" height="2.4" fill="${acc}"/>` + E(93, 93, 3.6, ink, tag, 'text-anchor="end"');
+    } else if (lay === 'orb') {
+      const cx = 38 + r() * 24, cy = 34 + r() * 14;
+      body = `<rect width="100" height="100" fill="${bg}"/><circle cx="${cx}" cy="${cy}" r="30" fill="url(#${id}o)"/><circle cx="${cx}" cy="${cy}" r="${36 + r() * 6}" fill="none" stroke="${ink}" stroke-width=".4" opacity=".45"/>` +
+        E(7, 11, 3.4, ink, tag) + T(7, 90, Math.min(11, 80 / Math.max(glyphW(title), 1)), ink, title);
+    } else if (lay === 'block') {
+      const ch = Array.from(title.replace(/\s/g, ''))[0] || '?';
+      body = `<rect width="100" height="100" fill="${bg}"/><rect width="100" height="64" fill="${mid}"/>` + T(50, 56, 58, ink, ch, 'text-anchor="middle" opacity=".92"') +
+        `<rect x="7" y="70" width="4" height="22" fill="${acc}"/>` + T(15, 81, Math.min(9, 70 / Math.max(glyphW(title), 1)), mid === bg ? ink : mid, title) + E(15, 90, 3.2, mid, tag);
+    } else if (lay === 'sun') {
+      body = `<rect width="100" height="100" fill="${bg}"/><clipPath id="${id}c"><rect y="0" width="100" height="78"/></clipPath><circle cx="50" cy="78" r="34" fill="${mid}" clip-path="url(#${id}c)"/>` +
+        [58, 64, 69, 73, 76].map((y, i) => `<rect x="10" y="${y}" width="80" height="${1 + i * .5}" fill="${bg}"/>`).join('') + `<rect x="0" y="78" width="100" height="22" fill="${ink}" opacity=".08"/>` +
+        T(50, 22, Math.min(13, 80 / Math.max(glyphW(title), 1)), ink, title, 'text-anchor="middle"') + E(50, 30, 3.2, ink, tag, 'text-anchor="middle" opacity=".7"') + `<circle cx="50" cy="90" r="2.2" fill="${acc}"/>`;
+    } else if (lay === 'grid') {
+      body = `<rect width="100" height="100" fill="${bg === '#160f2e' || bg === '#1d2340' || bg === '#2a0d14' ? bg : ink}"/>` + Array.from({ length: 9 }, (_, i) => `<path d="M${i * 12.5} 0V100M0 ${i * 12.5}H100" stroke="${mid}" stroke-width=".25" opacity=".5"/>`).join('') +
+        `<rect x="${25 + Math.floor(r() * 4) * 12.5}" y="${25 + Math.floor(r() * 3) * 12.5}" width="12.5" height="12.5" fill="${acc}"/><rect x="12.5" y="62.5" width="75" height="25" fill="${mid}" opacity=".9"/>` +
+        T(15.5, 79, Math.min(10, 66 / Math.max(glyphW(title), 1)), '#fff', title) + E(15.5, 10, 3.4, mid, tag);
+    } else {
+      body = `<rect width="100" height="100" fill="${bg}"/><rect x="8" y="8" width="84" height="84" fill="none" stroke="${ink}" stroke-width=".5"/><rect x="10" y="10" width="80" height="80" fill="none" stroke="${ink}" stroke-width=".2"/>` +
+        `<circle cx="50" cy="40" r="13" fill="none" stroke="${mid}" stroke-width="1.6"/><circle cx="50" cy="40" r="4" fill="${acc}"/>` + T(50, 70, Math.min(10, 64 / Math.max(glyphW(title), 1)), ink, title, 'text-anchor="middle"') + E(50, 80, 3, ink, tag, 'text-anchor="middle" opacity=".7"');
+    }
+    const grain = opt.grain ? `<filter id="${id}n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .45 0"/></filter>` : '';
+    return `<svg class="${opt.cls || 'id-cover'}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${escX(s.title)} 커버">
+      <defs><linearGradient id="${id}g" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${mid}"/></linearGradient>
+      <radialGradient id="${id}o"><stop offset="0" stop-color="${acc}"/><stop offset=".55" stop-color="${mid}"/><stop offset="1" stop-color="${mid}" stop-opacity="0"/></radialGradient>${grain}</defs>
+      ${body}${opt.grain ? `<rect width="100" height="100" filter="url(#${id}n)" opacity=".55"/>` : ''}
+      ${s.ours ? `<circle cx="92" cy="8" r="2.6" fill="#e8344e" stroke="#fff" stroke-width=".8"/>` : ''}
     </svg>`;
   }
 

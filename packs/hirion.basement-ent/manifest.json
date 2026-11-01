@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "hirion.basement-ent",
   "name": "반지하 엔터테인먼트 · 레몬뮤직",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "runner": "idol",
   "workName": "반지하 엔터테인먼트",
   "summary": "레몬차트 TOP100 · 곡 상세·가이드 데모·라이벌 실곡 · 곡 기획서 작성기 · 월말 결산 쇼 · 화이트보드 회사 · 멤버 카드",
@@ -24,7 +24,7 @@
     "store/shot4.webp",
     "store/shot5.webp"
   ],
-  "minEngine": "0.14.0",
+  "minEngine": "0.14.1",
   "mode": "hybrid",
   "identity": "이 작품의 플레이 화면은 반지하 사무실의 화이트보드와, 낡은 폰 속 반짝이는 음악 앱처럼 보인다."
 }

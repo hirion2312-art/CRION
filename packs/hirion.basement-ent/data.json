@@ -83,13 +83,19 @@
    "songs": [
     {
      "title": "Mirror",
-     "file": ""
+     "file": "",
+     "genre": "발라드",
+     "theme": "이별"
     },
     {
      "title": "Glass Heart",
-     "file": ""
+     "file": "",
+     "genre": "발라드",
+     "theme": "이별"
     }
-   ]
+   ],
+   "genre": "발라드",
+   "theme": "이별"
   },
   {
    "group": "VELA",
@@ -101,13 +107,19 @@
    "songs": [
     {
      "title": "Starlight",
-     "file": ""
+     "file": "",
+     "genre": "시티팝",
+     "theme": "우정"
     },
     {
      "title": "Polaris",
-     "file": ""
+     "file": "",
+     "genre": "시티팝",
+     "theme": "우정"
     }
-   ]
+   ],
+   "genre": "시티팝",
+   "theme": "우정"
   },
   {
    "group": "달무리",
@@ -119,13 +131,19 @@
    "songs": [
     {
      "title": "물고기자리",
-     "file": ""
+     "file": "",
+     "genre": "어쿠스틱",
+     "theme": "이별"
     },
     {
      "title": "새벽 세 시의 편지",
-     "file": ""
+     "file": "",
+     "genre": "어쿠스틱",
+     "theme": "이별"
     }
-   ]
+   ],
+   "genre": "어쿠스틱",
+   "theme": "이별"
   },
   {
    "group": "CHUCHU",
@@ -137,13 +155,19 @@
    "songs": [
     {
      "title": "츄츄 트레인",
-     "file": ""
+     "file": "",
+     "genre": "댄스",
+     "theme": "첫사랑"
     },
     {
      "title": "Love Me Pudding",
-     "file": ""
+     "file": "",
+     "genre": "댄스",
+     "theme": "첫사랑"
     }
-   ]
+   ],
+   "genre": "댄스",
+   "theme": "첫사랑"
   },
   {
    "group": "BLACKOUT",
@@ -155,13 +179,19 @@
    "songs": [
     {
      "title": "Static",
-     "file": ""
+     "file": "",
+     "genre": "일렉트로닉",
+     "theme": "밤"
     },
     {
      "title": "VOLT",
-     "file": ""
+     "file": "",
+     "genre": "일렉트로닉",
+     "theme": "밤"
     }
-   ]
+   ],
+   "genre": "일렉트로닉",
+   "theme": "밤"
   },
   {
    "group": "ORBIT",
@@ -173,14 +203,20 @@
    "songs": [
     {
      "title": "Gravity",
-     "file": ""
+     "file": "",
+     "genre": "록",
+     "theme": "청춘"
     },
     {
      "title": "Eclipse",
-     "file": ""
+     "file": "",
+     "genre": "록",
+     "theme": "청춘"
     }
    ],
-   "male": true
+   "male": true,
+   "genre": "록",
+   "theme": "청춘"
   },
   {
    "group": "PRISM7",
@@ -192,14 +228,20 @@
    "songs": [
     {
      "title": "Sunny Side",
-     "file": ""
+     "file": "",
+     "genre": "시티팝",
+     "theme": "여름"
     },
     {
      "title": "7 Colors",
-     "file": ""
+     "file": "",
+     "genre": "시티팝",
+     "theme": "여름"
     }
    ],
-   "male": true
+   "male": true,
+   "genre": "시티팝",
+   "theme": "여름"
   },
   {
    "group": "류재하",
@@ -211,15 +253,21 @@
    "songs": [
     {
      "title": "낡은 기타",
-     "file": ""
+     "file": "",
+     "genre": "어쿠스틱",
+     "theme": "위로"
     },
     {
      "title": "잔향",
-     "file": ""
+     "file": "",
+     "genre": "어쿠스틱",
+     "theme": "위로"
     }
    ],
    "male": true,
-   "solo": true
+   "solo": true,
+   "genre": "어쿠스틱",
+   "theme": "위로"
   }
  ],
  "staff": [

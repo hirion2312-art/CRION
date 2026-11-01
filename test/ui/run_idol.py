@@ -18,6 +18,9 @@ for p in T.INDEX['devPacks']: p['workUrl'] = 'https://crack.wrtn.ai/detail/idol'
 D = json.load(open(ROOT + 'packs/' + PK + '/data.json', encoding='utf-8'))
 COL = {m['name']: m['color'] for m in D['members']}; COL.update({r['rep']: r['color'] for r in D['rivals']})
 FONT = '/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc'
+GF = '/tmp/claude-0/-home-claude/ff52d3e7-9b37-509e-8c52-2fa5470c16a0/scratchpad/gfonts/ofl/'
+GAS = os.environ.get('GASOEK_TTF', GF + 'gasoekone/GasoekOne-Regular.ttf')
+UNB = os.environ.get('UNBOUNDED_TTF', GF + 'unbounded/Unbounded[wght].ttf')
 PEN = os.environ.get('NANUMPEN_TTF', '/tmp/claude-0/-home-claude/ff52d3e7-9b37-509e-8c52-2fa5470c16a0/scratchpad/gfonts/ofl/nanumpenscript/NanumPenScript-Regular.ttf')
 CACHE = {}
 def hexrgb(c): return tuple(int(c[i:i + 2], 16) for i in (1, 3, 5))
@@ -63,9 +66,12 @@ async def run(b, name, vp, mobile):
     await page.route('https://img.test/idol/**', lambda r: r.fulfill(body=fake(unquote(r.request.url).split('/idol/')[-1].replace('.jpg', '')), content_type='image/jpeg'))
     if os.path.isfile(PEN):
         async def gcss(route):
+            if 'Gasoek' in route.request.url: return await route.fulfill(body="@font-face{font-family:'Gasoek One';src:url(https://fonts.gstatic.com/gasoek.ttf) format('truetype')}@font-face{font-family:'Unbounded';font-weight:200 900;src:url(https://fonts.gstatic.com/unbounded.ttf) format('truetype')}", content_type='text/css')
             if 'Nanum+Pen' in route.request.url: return await route.fulfill(body="@font-face{font-family:'Nanum Pen Script';src:url(https://fonts.gstatic.com/nanumpen.ttf) format('truetype')}", content_type='text/css')
             await route.fulfill(body='', content_type='text/css')
         await page.route('https://fonts.googleapis.com/**', gcss)
+        await page.route('https://fonts.gstatic.com/gasoek.ttf', lambda r: r.fulfill(path=GAS, content_type='font/ttf'))
+        await page.route('https://fonts.gstatic.com/unbounded.ttf', lambda r: r.fulfill(path=UNB, content_type='font/ttf'))
         await page.route('https://fonts.gstatic.com/nanumpen.ttf', lambda r: r.fulfill(path=PEN, content_type='font/ttf'))
     await page.goto(T.BASE); await page.evaluate("localStorage.setItem('crion.tut4','1')"); await page.reload(); await page.wait_for_timeout(1500)
     await page.evaluate("window.__crion.S.dev.repo = { loadWorks: async () => ({ data: { works: [], hidden: [] } }), lastDeploy: async () => null }")

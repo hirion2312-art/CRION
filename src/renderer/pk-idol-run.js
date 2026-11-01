@@ -197,16 +197,16 @@
     function renderHud() {
       const st = st0();
       const act = st.act || { n: 0, of: 4 };
-      $('#id-hud').innerHTML = `<div class="id-hrow">
-          <div class="id-when"><small>${st.year || 1}년차</small><b>${st.month || 3}<i>월</i></b></div>
-          <div class="id-acts" title="이달 행동 ${act.n}/${act.of}">${Array.from({ length: act.of || 4 }, (_, i) => `<i class="${i < act.n ? 'on' : ''}"></i>`).join('')}</div>
+      $('#id-hud').innerHTML = `<div class="id-hbar">
+          <div class="id-when"><small>${st.year || 1}년차</small><b>${String(st.month || 3).padStart(2, '0')}<i>월</i></b></div>
+          <div class="id-acts" title="이달 행동 ${act.n}/${act.of}"><small>행동 ${act.n}/${act.of || 4}</small><span>${Array.from({ length: act.of || 4 }, (_, i) => `<i class="${i < act.n ? 'on' : ''}"></i>`).join('')}</span></div>
           <div class="id-money"><small>자금</small><b>${esc(st.money != null ? U.fmtWon(st.money) : (st.moneyText || '–'))}</b></div>
           <button data-id="more" class="id-more" aria-label="메뉴">${ic('more')}</button>
         </div>
         <div class="id-hrow2">
-          ${st.trend ? `<span class="id-trend">${ic('fire')}${esc(st.trend.genre)}${st.trend.theme ? ' · ' + esc(st.trend.theme) : ''}</span>` : ''}
-          ${st.debt != null ? `<span class="id-debt ${st.payIn === 0 ? 'due' : ''}">부채 ${esc(U.fmtWon(st.debt))}${st.payIn != null ? ` · 상환 ${st.payIn === 0 ? '이번 달' : 'D-' + st.payIn + '달'}` : ''}</span>` : ''}
-          ${st.rumor ? `<span class="id-rumor lv${st.rumor.n}" title="루머 ${st.rumor.n}/${st.rumor.of}">${Array.from({ length: st.rumor.of }, (_, i) => `<i class="${i < st.rumor.n ? 'on' : ''}"></i>`).join('')}<em>루머</em></span>` : ''}
+          ${st.trend ? `<span class="id-trend">${ic('fire')}유행 ${esc(st.trend.genre)}${st.trend.theme ? ', ' + esc(st.trend.theme) : ''}</span>` : ''}
+          ${st.debt != null ? `<span class="id-debt ${st.payIn === 0 ? 'due' : ''}">부채 ${esc(U.fmtWon(st.debt))}${st.payIn != null ? ` <em>${st.payIn === 0 ? '이번 달 상환' : st.payIn + '달 뒤 상환'}</em>` : ''}</span>` : ''}
+          ${st.rumor ? `<span class="id-rumor lv${st.rumor.n}" title="루머 ${st.rumor.n}/${st.rumor.of}">루머 ${Array.from({ length: st.rumor.of }, (_, i) => `<i class="${i < st.rumor.n ? 'on' : ''}"></i>`).join('')}</span>` : ''}
         </div>`;
     }
 
@@ -221,8 +221,9 @@
     // ---------- 곡 · 커버 ----------
     const songs = () => Object.values(M.songs || {});
     const ourSongs = () => songs().filter(s => s.ours);
-    const songOf = (title) => M.songs[title] || { title, artist: '', filler: true };
-    const cover = (s, cls) => U.coverSvg(Object.assign({}, s), data, { cls: 'id-cover ' + (cls || '') });
+    const rivalSong = (title) => { for (const r of RIV) { const x = (r.songs || []).find(y => y.title === title); if (x) return Object.assign({ artist: r.group, genre: r.genre, theme: r.theme }, x); } return null; };
+    const songOf = (title) => { const s = M.songs[title], rs = rivalSong(title); if (s) return rs ? Object.assign({}, rs, s, { genre: s.genre || rs.genre, theme: s.theme || rs.theme, artist: s.artist || rs.artist }) : s; return rs || { title, artist: '', filler: true }; };
+    const cover = (s, cls, grain) => U.coverSvg(Object.assign({}, s), data, { cls: 'id-cover ' + (cls || ''), grain: grain || /lg|md|bg/.test(cls || '') });
     const fileOf = (s) => { const rv = RO[s.artist]; const f = rv && (rv.songs || []).find(x => x.title === s.title); return f && f.file ? asset('assets/music/' + f.file) : s.ours ? asset('assets/music/ours/' + s.title + '.mp3') : ''; };
     const canPlay = (s) => !!(s && (s.ours || fileOf(s)));
     const latestKey = () => M.chartOrder.length ? M.chartOrder[M.chartOrder.length - 1] : U.monthKey(st0());
@@ -237,10 +238,10 @@
       const ours = list.filter(x => x.ours);
       const real = !!(M.charts[k] || []).length;
       return `<div class="lm-charthead">
-          <div><b>레몬차트 <i>TOP100</i></b><small>${esc(U.monthLabel(k))} 집계${real ? '' : ' · 아직 결산 전'}</small></div>
+          <div><b>TOP 100</b><small>레몬차트, ${esc(U.monthLabel(k))} 집계${real ? '' : ' (결산 전)'}</small></div>
           <div class="lm-month"><button data-id="ck" data-k="${esc(keys[ki - 1] || '')}" ${ki > 0 ? '' : 'disabled'} aria-label="이전 달">${ic('back')}</button><button data-id="ck" data-k="${esc(keys[ki + 1] || '')}" ${ki < keys.length - 1 ? '' : 'disabled'} aria-label="다음 달">${ic('chev')}</button></div>
         </div>
-        ${ours.length ? `<button class="lm-findme" data-id="findme">${ic('search')}<span>${esc(GROUP)} · ${ours.map(x => x.rank + '위').join(', ')}</span><b>내 곡으로</b></button>` : `<div class="lm-notyet"><b>${esc(GROUP)}의 곡은 아직 차트에 없어요</b><span>곡을 발매하고 월말 결산을 받으면 여기 올라와요.</span></div>`}
+        ${ours.length ? `<button class="lm-findme" data-id="findme"><span class="lm-fm-cv">${cover(songOf(ours[0].title), 'xs')}</span><span><small>${esc(GROUP)}가 차트에 있어요</small><b>${ours.map(x => '「' + esc(x.title) + '」 ' + x.rank + '위').join(', ')}</b></span>${ic('chev')}</button>` : `<div class="lm-notyet"><b>${esc(GROUP)}의 곡은 아직 차트에 없어요</b><span>곡을 발매하고 월말 결산을 받으면 여기 올라와요.</span></div>`}
         <ol class="lm-list">${list.map(x => {
           const s = x.filler ? { title: x.title, artist: x.artist, genre: x.genre } : songOf(x.title);
           const rv = RO[x.artist];
@@ -316,7 +317,7 @@
     function musicHtml() {
       const sub = R.song ? songHtml(R.song) : R.mtab === 'new' ? newHtml() : R.mtab === 'artist' ? artistsHtml() : chartHtml();
       return `<div class="lm">
-        <header class="lm-top">${lemonLogo()}<b>레몬<i>뮤직</i></b><button class="lm-theme" data-id="lmtheme" aria-label="밝기">${M.prefs.theme === 'dark' ? '☾' : '☀'}</button></header>
+        <header class="lm-top">${lemonLogo()}<b class="lm-word">lemon</b><span class="lm-sub">레몬뮤직</span><button class="lm-theme" data-id="lmtheme" aria-label="${M.prefs.theme === 'dark' ? '밝게' : '어둡게'}">${M.prefs.theme === 'dark' ? '☀' : '☾'}</button></header>
         ${R.song ? '' : `<nav class="lm-tabs">${[['chart', '차트'], ['new', '최신'], ['artist', '아티스트']].map(([k, n]) => `<button class="${R.mtab === k ? 'on' : ''}" data-id="mtab" data-k="${k}">${n}</button>`).join('')}</nav>`}
         <div class="lm-body">${sub}</div></div>`;
     }
@@ -338,27 +339,34 @@
       const members = (M.joined.length ? M.joined : ['윤서하']).filter(n => MO[n]);
       const prev = Object.assign(draftPlan(d), { ours: true, title: d.title.trim() || '제목 미정' });
       const months = Array.from({ length: 4 }, (_, i) => (((st.month || 3) - 1 + i + 1) % 12) + 1);
-      const seg = (key, opts, cur) => `<div class="st-seg">${opts.map(v => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-id="st-set" data-f="${key}" data-v="${esc(v)}">${esc(v)}${key === 'genre' && v === trend.genre ? ` <i class="hot">${ic('fire')}</i>` : key === 'theme' && v === trend.theme ? ` <i class="hot">${ic('fire')}</i>` : ''}</button>`).join('')}</div>`;
+      const ready = d.title.trim() && left === 0 && d.chorus.some(x => x.trim());
+      const seg = (key, opts, cur) => `<div class="st-seg">${opts.map(v => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-id="st-set" data-f="${key}" data-v="${esc(v)}">${esc(v)}${(key === 'genre' && v === trend.genre) || (key === 'theme' && v === trend.theme) ? `<i class="hot" title="이달 유행">${ic('fire')}</i>` : ''}</button>`).join('')}</div>`;
+      const grade = (data.grades || []).find(g => g.k === d.comp) || {};
       return `<div class="st">
-        <header class="st-head"><div><small>REMINA STUDIO</small><h3>곡 기획서</h3></div><div class="st-prev"><div class="st-cv">${cover(prev, 'md')}</div><button class="st-demo" data-id="st-demo">${ic(R.play && R.play.draft && R.play.on ? 'pause' : 'play')}<span>데모</span></button></div></header>
-        <label class="st-field"><span>곡명</span><input id="st-title" maxlength="24" value="${esc(d.title)}" placeholder="제목을 직접 적거나 아래 추천"></label>
-        <div class="st-chips">${names.map(n => `<button data-id="st-set" data-f="title" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
-        <div class="st-row"><span>장르</span>${seg('genre', Object.keys(data.genres || {}), d.genre)}</div>
-        <div class="st-row"><span>테마</span>${seg('theme', Object.keys(data.themes || {}), d.theme)}</div>
-        <div class="st-alloc"><div class="st-ah"><b>배분</b><em class="${left === 0 ? 'ok' : left < 0 ? 'bad' : ''}">${left === 0 ? '10점 다 썼어요' : left > 0 ? `남은 점수 ${left}` : `${-left}점 넘쳤어요`}</em></div>
-          ${ALLOC.map(k => { const v = d.alloc[k] || 0; return `<div class="st-dial ${v === 0 ? 'zero' : ''}"><span>${k}</span><button data-id="st-al" data-k="${k}" data-d="-1" ${v <= 0 ? 'disabled' : ''} aria-label="${k} 빼기">−</button><u>${Array.from({ length: 6 }, (_, i) => `<i class="${i < v ? 'on' : ''}"></i>`).join('')}</u><b>${v}</b><button data-id="st-al" data-k="${k}" data-d="1" ${left <= 0 || v >= 6 ? 'disabled' : ''} aria-label="${k} 더하기">+</button></div>`; }).join('')}
-          ${ALLOC.some(k => !d.alloc[k]) ? `<p class="st-warn">0점인 항목(${ALLOC.filter(k => !d.alloc[k]).join('·')})은 평가에서 약점으로 돌아와요.</p>` : ''}</div>
-        <div class="st-row"><span>작사</span>${seg('lyricMode', ['직접', '공동', '외주'], d.lyricMode)}</div>
-        ${d.lyricMode === '외주' ? `<div class="st-row sub"><span></span>${seg('lyricGrade', (data.grades || []).map(g => g.k), d.lyricGrade)}</div>` : ''}
-        <div class="st-chorus"><span>후렴 <small>1~4줄 · 짧고 반복될수록 귀에 붙어요</small></span>${d.chorus.map((l, i) => `<input data-ch="${i}" maxlength="30" value="${esc(l)}" placeholder="${i === 0 ? '후렴 첫 줄' : i + 1 + '번째 줄 (선택)'}">`).join('')}</div>
-        <div class="st-row"><span>작곡</span>${seg('comp', (data.grades || []).map(g => g.k), d.comp)}</div>
-        <p class="st-gnote">${esc(((data.grades || []).find(g => g.k === d.comp) || {}).t || '')} — ${esc(((data.grades || []).find(g => g.k === d.comp) || {}).d || '')}</p>
-        <div class="st-row"><span>센터</span><div class="st-seg">${members.map(n => `<button class="${d.center === n ? 'on' : ''}" data-id="st-set" data-f="center" data-v="${esc(n)}" style="--c:${colorOf(n)}"><i class="dot"></i>${esc(short(n))}</button>`).join('')}</div></div>
-        <div class="st-row"><span>채널</span>${seg('channel', ['유튜브', '음원', '실물'], d.channel)}</div>
-        <div class="st-row"><span>발매</span><div class="st-seg">${months.map(m => `<button class="${d.month === m ? 'on' : ''}" data-id="st-set" data-f="month" data-v="${m}">${m}월</button>`).join('')}</div></div>
-        <p class="st-note">${d.channel === '유튜브' ? '유튜브는 무료지만 차트엔 간접으로만 반영돼요.' : d.channel === '실물' ? '실물은 제작비가 크고 코어팬 화력이 중요해요.' : '음원은 유통 비용이 들고, 차트에 정식으로 올라가요.'}</p>
-        <div class="st-btns"><button class="id-btn" data-id="st-reset">새로 쓰기</button><button class="id-btn red" data-id="st-fill" ${d.title.trim() && left === 0 && d.chorus.some(x => x.trim()) ? '' : 'disabled'}>입력칸에 넣기</button></div>
-        <p class="st-note">곡명 · 배분 10점 · 후렴 한 줄 이상이면 넣을 수 있어요. 보내기는 무대에서 직접.</p>
+        <header class="st-head">
+          <div class="st-ht"><h3>곡 기획서</h3><p>${esc(GROUP)}의 다음 싱글. 다 채우면 입력칸에 넣어 크랙에 보내요.</p></div>
+          <div class="st-prev"><div class="st-case"><div class="st-cv">${cover(prev, 'md', true)}</div></div><button class="st-demo ${R.play && R.play.draft && R.play.on ? 'on' : ''}" data-id="st-demo">${ic(R.play && R.play.draft && R.play.on ? 'pause' : 'play')}<span>데모</span></button></div>
+        </header>
+        <section class="st-sec"><label class="st-title"><span>곡명</span><input id="st-title" maxlength="24" value="${esc(d.title)}" placeholder="제목을 적어요"></label>
+          <div class="st-sugg">${names.map(n => `<button data-id="st-set" data-f="title" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div></section>
+        <section class="st-sec"><h4>장르</h4>${seg('genre', Object.keys(data.genres || {}), d.genre)}<h4>테마</h4>${seg('theme', Object.keys(data.themes || {}), d.theme)}</section>
+        <section class="st-console">
+          <header><h4>믹스 배분</h4><em class="${left === 0 ? 'ok' : left < 0 ? 'bad' : ''}">${left === 0 ? '10점을 다 나눴어요' : left > 0 ? `${left}점 남음` : `${-left}점 넘침`}</em></header>
+          <div class="st-strips">${ALLOC.map(k => { const v = d.alloc[k] || 0; return `<div class="st-strip ${v === 0 ? 'zero' : ''}">
+            <button data-id="st-al" data-k="${k}" data-d="1" ${left <= 0 || v >= 6 ? 'disabled' : ''} aria-label="${k} 올리기">+</button>
+            <u>${[5, 4, 3, 2, 1, 0].map(i => `<i class="${i < v ? 'on' : ''}" style="--i:${i}"></i>`).join('')}</u>
+            <b>${v}</b><span>${k}</span>
+            <button data-id="st-al" data-k="${k}" data-d="-1" ${v <= 0 ? 'disabled' : ''} aria-label="${k} 내리기">−</button></div>`; }).join('')}</div>
+          ${ALLOC.some(k => !d.alloc[k]) ? `<p class="st-warn">${ALLOC.filter(k => !d.alloc[k]).join(', ')}이(가) 0점이에요. 평가에서 약점으로 돌아와요.</p>` : ''}
+        </section>
+        <section class="st-sec st-sheet"><h4>후렴 <small>짧고 반복될수록 귀에 붙어요</small></h4>${d.chorus.map((l, i) => `<input data-ch="${i}" maxlength="30" value="${esc(l)}" placeholder="${i === 0 ? '후렴 첫 줄' : '선택'}">`).join('')}</section>
+        <section class="st-sec"><h4>작사</h4>${seg('lyricMode', ['직접', '공동', '외주'], d.lyricMode)}${d.lyricMode === '외주' ? `<div class="st-sub">${seg('lyricGrade', (data.grades || []).map(g => g.k), d.lyricGrade)}</div>` : `<p class="st-note">${d.lyricMode === '공동' ? '서하가 같이 다듬어요. 품질은 안정적, 개성은 조금 희석돼요.' : '비용 없이 직접 써요. 어떻게 쓰느냐에 따라 평가가 크게 갈려요.'}</p>`}</section>
+        <section class="st-sec"><h4>작곡 외주 등급</h4>${seg('comp', (data.grades || []).map(g => g.k), d.comp)}<p class="st-note"><b>${esc(grade.t || '')}</b> ${esc(grade.d || '')}</p></section>
+        <section class="st-sec"><h4>센터</h4><div class="st-seg">${members.map(n => `<button class="${d.center === n ? 'on' : ''}" data-id="st-set" data-f="center" data-v="${esc(n)}" style="--c:${colorOf(n)}"><i class="dot"></i>${esc(short(n))}</button>`).join('')}</div></section>
+        <section class="st-sec st-two"><div><h4>채널</h4>${seg('channel', ['유튜브', '음원', '실물'], d.channel)}</div><div><h4>발매</h4><div class="st-seg">${months.map(m => `<button class="${d.month === m ? 'on' : ''}" data-id="st-set" data-f="month" data-v="${m}">${m}월</button>`).join('')}</div></div></section>
+        <p class="st-note">${d.channel === '유튜브' ? '유튜브는 무료예요. 차트엔 조회수가 간접으로만 반영돼요.' : d.channel === '실물' ? '실물은 제작비가 크고, 코어팬의 화력이 중요해요.' : '음원은 유통 비용이 들고, 차트에 정식으로 올라가요.'}</p>
+        <div class="st-btns"><button class="id-btn ghost" data-id="st-reset">새로 쓰기</button><button class="id-btn primary" data-id="st-fill" ${ready ? '' : 'disabled'}>입력칸에 넣기</button></div>
+        ${ready ? '' : '<p class="st-note center">곡명, 배분 10점, 후렴 한 줄이 있으면 넣을 수 있어요.</p>'}
       </div>`;
     }
 
@@ -369,23 +377,28 @@
       const gi = Math.max(0, lad.indexOf(st.grade || lad[0]));
       const act = st.act || { n: 0, of: 4 };
       const cal = data.calendar || {};
-      return `<div class="wb">
-        <header class="wb-h"><h3>${esc(data.company || '반지하 엔터테인먼트')}</h3><span>${st.year || 1}년차 ${st.month || 3}월</span></header>
-        <section class="wb-money"><div><small>자금</small><b>${esc(st.money != null ? U.fmtWon(st.money) : '–')}</b></div><div class="debt"><small>부채</small><b>${esc(st.debt != null ? U.fmtWon(st.debt) : '–')}</b>${st.payIn != null ? `<span>상환 ${st.payIn === 0 ? '이번 달' : 'D-' + st.payIn + '달'}</span><u><s style="width:${clamp(100 - st.payIn * 33, 5, 100)}%"></s></u>` : ''}</div></section>
-        <section class="wb-acts"><h4>이번 달 행동 <small>${act.n}/${act.of}</small></h4>
-          <div class="wb-slots">${Array.from({ length: act.of || 4 }, (_, i) => `<span class="${i < act.n ? 'used' : ''}">${i < act.n ? '✓' : i + 1}</span>`).join('')}</div>
-          <div class="wb-actbtns">${(data.acts || []).map(a => `<button data-id="fill" data-v="${esc(a.v)}"><i>${a.i}</i>${esc(a.k)}</button>`).join('')}<button class="end" data-id="fill" data-v="이번 달을 마무리하고 월말로 넘어간다.">월말로</button></div></section>
-        <section class="wb-grade"><h4>회사 등급</h4><ol>${lad.map((g, i) => `<li class="${i < gi ? 'past' : i === gi ? 'now' : ''}"><i></i><span>${esc(g)}</span></li>`).join('')}</ol></section>
-        <section class="wb-grid">
-          <div><small>숙소</small><b>${esc(st.house || '반지하')}</b></div>
-          <div><small>루머</small><b class="rm lv${st.rumor ? st.rumor.n : 0}">${st.rumor ? st.rumor.n + '/' + st.rumor.of : '0/3'}</b></div>
-          <div><small>코어 · 라이트</small><b>${esc(st.core || '0')} · ${esc(st.light || '0')}</b></div>
-          <div><small>구독 · 최고</small><b>${esc(st.subs || '0')} · ${st.best ? st.best + '위' : '–'}</b></div>
+      const mo = st.month || 3;
+      return `<div class="of">
+        <header class="of-h"><h3>${esc(data.company || '반지하 엔터테인먼트')}</h3><span>${st.year || 1}년차 ${mo}월</span></header>
+        <section class="of-money">
+          <div class="of-cash"><small>자금</small><b>${esc(st.money != null ? U.fmtWon(st.money) : '–')}</b></div>
+          <div class="of-debt"><small>남은 부채</small><b>${esc(st.debt != null ? U.fmtWon(st.debt) : '–')}</b>${st.payIn != null ? `<span class="${st.payIn === 0 ? 'due' : ''}">${st.payIn === 0 ? '이번 달 상환' : st.payIn + '달 뒤 상환'}</span><u><s style="width:${clamp(100 - st.payIn * 33, 6, 100)}%"></s></u>` : ''}</div>
         </section>
-        <section class="wb-cal"><h4>올해 달력</h4><div>${Array.from({ length: 12 }, (_, i) => i + 1).map(m => `<span class="${m === (st.month || 3) ? 'now' : m < (st.month || 3) ? 'past' : ''} ${cal[m] ? 'ev' : ''}" title="${esc(cal[m] || '')}"><b>${m}</b>${cal[m] ? `<small>${esc(cal[m].split(/[·,]/)[0].trim())}</small>` : ''}</span>`).join('')}</div></section>
-        <section class="wb-notes"><h4>약속</h4>${(M.promises || []).length ? `<div class="wb-posts">${M.promises.map((p, i) => `<p style="--r:${(i % 2 ? 1.5 : -2)}deg">${esc(p)}</p>`).join('')}</div>` : '<p class="wb-empty">지킬 약속이 생기면 포스트잇으로 붙어요.</p>'}</section>
-        <section class="wb-rec"><h4>라이벌 전적</h4>${Object.keys(st.rivals || {}).length ? `<ul>${Object.entries(st.rivals).map(([n, r]) => `<li style="--c:${colorOf(n) || '#888'}"><b>${esc(n)}</b><span>${r.w}승 ${r.l}패</span></li>`).join('')}</ul>` : '<p class="wb-empty">같은 달에 붙으면 전적이 적혀요.</p>'}</section>
-        <section class="wb-receipts"><h4>결산 영수증 <small>${(M.settles || []).length}</small></h4>${(M.settles || []).length ? `<div>${M.settles.slice().reverse().map((s, i) => `<button data-id="replay" data-k="${M.settles.length - 1 - i}"><b>${s.month || '?'}월</b><span>${esc(s.songs[0] ? '「' + s.songs[0].title + '」 ' + (s.songs[0].grade || '') : '발매 없음')}</span></button>`).join('')}</div>` : '<p class="wb-empty">월말 결산이 오면 영수증이 쌓여요.</p>'}</section>
+        <section class="of-sec"><h4>이달 할 일 <em>${act.n}/${act.of}칸 사용</em></h4>
+          <div class="of-slots">${Array.from({ length: act.of || 4 }, (_, i) => `<span class="${i < act.n ? 'used' : ''}">${i < act.n ? ic('play') : i + 1}</span>`).join('')}</div>
+          <div class="of-acts">${(data.acts || []).map(a => `<button data-id="fill" data-v="${esc(a.v)}"><i>${a.i}</i><span>${esc(a.k)}</span></button>`).join('')}</div>
+          <button class="of-end" data-id="fill" data-v="이번 달을 마무리하고 월말로 넘어간다.">이번 달 마무리하기</button></section>
+        <section class="of-sec"><h4>회사 등급</h4><div class="of-ladder">${lad.map((g, i) => `<div class="${i < gi ? 'past' : i === gi ? 'now' : ''}"><i style="--h:${28 + i * 18}%"></i><span>${esc(g)}</span></div>`).join('')}</div></section>
+        <section class="of-stats">
+          <div><small>숙소</small><b>${esc(st.house || '반지하')}</b></div>
+          <div class="${st.rumor && st.rumor.n >= 2 ? 'warn' : ''}"><small>루머</small><b>${st.rumor ? st.rumor.n : 0}<i>/${st.rumor ? st.rumor.of : 3}</i></b></div>
+          <div><small>코어팬</small><b>${esc(st.core || '0')}</b></div><div><small>라이트팬</small><b>${esc(st.light || '0')}</b></div>
+          <div><small>구독</small><b>${esc(st.subs || '0')}</b></div><div><small>최고 순위</small><b>${st.best ? st.best + '<i>위</i>' : '–'}</b></div>
+        </section>
+        <section class="of-sec"><h4>올해 달력</h4><div class="of-cal">${Array.from({ length: 12 }, (_, i) => i + 1).map(m => `<span class="${m === mo ? 'now' : m < mo ? 'past' : ''}"><b>${m}</b><small>${esc(cal[m] ? cal[m].split(/[·,]/)[0].trim() : '')}</small></span>`).join('')}</div></section>
+        <section class="of-sec"><h4>지킬 약속</h4>${(M.promises || []).length ? `<div class="of-tickets">${M.promises.map(p => `<p>${esc(p)}</p>`).join('')}</div>` : '<p class="of-empty">멤버와 약속하면 여기 붙어요. 어기면 신뢰가 깎여요.</p>'}</section>
+        <section class="of-sec"><h4>라이벌 전적</h4>${Object.keys(st.rivals || {}).length ? `<ul class="of-rec">${Object.entries(st.rivals).map(([n, r]) => `<li style="--c:${colorOf(n) || '#888'}"><b>${esc(n)}</b><span><em>${r.w}</em>승 <em>${r.l}</em>패</span></li>`).join('')}</ul>` : '<p class="of-empty">같은 달에 맞붙으면 전적이 쌓여요.</p>'}</section>
+        <section class="of-sec"><h4>결산 영수증</h4>${(M.settles || []).length ? `<div class="of-rcpts">${M.settles.slice().reverse().map((x, i) => `<button data-id="replay" data-k="${M.settles.length - 1 - i}"><b>${x.month || '?'}월</b><span>${esc(x.songs[0] ? '「' + x.songs[0].title + '」 ' + (x.songs[0].grade || '') : '발매 없음')}</span><small>다시 보기</small></button>`).join('')}</div>` : '<p class="of-empty">월말 결산이 오면 영수증이 쌓여요.</p>'}</section>
       </div>`;
     }
     // ---------- 멤버 ----------
@@ -393,15 +406,14 @@
       const st = st0();
       const joined = (M.joined.length ? M.joined : ['윤서하']).filter(n => MO[n]);
       const rest = MEM.filter(m => !joined.includes(m.name));
-      return `<div class="tm"><header class="tm-h"><h3>${esc(GROUP)}</h3><span>${joined.length} / ${MEM.length}명</span></header>
-        <div class="tm-cards">${joined.map(n => { const m = MO[n], s = (st.members || []).find(x => x.who === n) || {}; return `<article class="tm-card" style="--c:${m.color}">
-          <div class="tm-img">${avatar(n)}</div>
-          <div class="tm-body"><div class="tm-name"><b>${esc(n)}</b><small>${m.age}</small>${s.rank ? `<em>${esc(s.rank)}</em>` : ''}</div>
-            <p class="tm-pos">${esc(s.pos || m.pos)}</p>
-            ${s.cond ? `<p class="tm-cond"><i style="--cc:${condColor(s.cond)}"></i>${esc(s.cond)}</p>` : ''}
-            <p class="tm-line">${esc(m.line)}</p>
-            <div class="tm-btns"><button data-id="fill" data-v="${esc(short(n))}와 면담한다.">면담</button><button data-id="center" data-k="${esc(n)}">센터로 기획</button></div></div></article>`; }).join('')}</div>
-        ${rest.length ? `<h4 class="tm-h4">아직 만나지 않은 사람 <small>만나기 전엔 소문만</small></h4><div class="tm-rumors">${rest.map(m => `<div class="tm-rumor"><i>?</i><div><p>${esc(m.rumor)}</p><small>${ic('pin')}${esc(m.where)}</small></div></div>`).join('')}</div>` : ''}</div>`;
+      const card = (n) => { const m = MO[n], s = (st.members || []).find(x => x.who === n) || {}; return `<article class="pc" style="--c:${m.color}">
+          <div class="pc-holo"><div class="pc-in"><div class="pc-img">${avatar(n)}</div>${s.rank ? `<em class="pc-rank">${esc(s.rank)}</em>` : ''}<div class="pc-cap"><b>${esc(n)}</b><small>${esc(s.pos || m.pos)}</small></div></div></div>
+          <div class="pc-meta">${s.cond ? `<span class="pc-cond" style="--cc:${condColor(s.cond)}"><i></i>${esc(s.cond)}</span>` : `<span class="pc-cond"><i></i>${m.age}세</span>`}<span class="pc-btns"><button data-id="fill" data-v="${esc(short(n))}와 면담한다.">면담</button><button data-id="center" data-k="${esc(n)}">센터</button></span></div>
+          <p class="pc-line">${esc(m.line)}</p></article>`; };
+      const back = (m) => `<article class="pc back"><div class="pc-holo"><div class="pc-in"><div class="pc-img"><span class="pc-q">${esc(data.groupEn || 'REMINA')}</span></div><div class="pc-cap"><small>아직 만나지 않았어요</small></div></div></div>
+          <p class="pc-line">“${esc(m.rumor)}”</p><small class="pc-where">${ic('pin')}${esc(m.where)}</small></article>`;
+      return `<div class="tm"><header class="tm-h"><h3>${esc(GROUP)}</h3><span>${joined.length}명 / 최대 ${MEM.length}명</span></header>
+        <div class="tm-grid">${joined.map(card).join('')}${rest.map(back).join('')}</div></div>`;
     }
 
     function renderPanel() {
@@ -579,10 +591,10 @@
       if (f[0] === 'settle') { openShow(f[1], runFx); return; }
       const box = $('#id-fx');
       let html = '';
-      if (f[0] === 'release') { const s = songOf(f[1]); html = `<div class="fx-rel"><small>NEW RELEASE</small><div class="fx-cv">${cover(s, 'lg')}</div><b>${esc(s.title)}</b><span>${esc(GROUP)}</span><button class="id-btn red" data-id="fx-next">레몬뮤직에 올라갔어요</button></div>`; }
-      else if (f[0] === 'chartin') { html = `<div class="fx-chart"><small>레몬차트</small><b>${f[1].rank}<i>위</i></b><span>${f[1].title ? '「' + esc(f[1].title) + '」 ' : ''}차트 진입!</span><button class="id-btn red" data-id="fx-next">확인</button></div>`; }
-      else if (f[0] === 'first') { const s = f[1].title ? songOf(f[1].title) : ourSongs().slice(-1)[0] || { title: '' }; const ch = (s.chorus || []).slice(0, 4); html = `<div class="fx-first"><div class="fx-conf">${Array.from({ length: 28 }, (_, i) => `<i style="--i:${i};--x:${(i * 37) % 100}%;--c:${['#ffd23f', '#e5384f', '#2fbf71', '#4fb3f0', '#a98bf0'][i % 5]}"></i>`).join('')}</div><small>레몬차트</small><b>1<i>위</i></b><div class="fx-cv">${cover(s, 'lg')}</div><span>「${esc(s.title)}」</span><div class="fx-ch">${ch.map((l, i) => `<p style="--d:${i * 0.9 + 0.8}s">${esc(l)}</p>`).join('')}</div><button class="id-btn red" data-id="fx-next">무대로</button></div>`; }
-      else if (f[0] === 'join') { const m = MO[f[1]] || { name: f[1], color: '#e5384f', pos: '' }; html = `<div class="fx-join" style="--c:${m.color}"><small>NEW MEMBER</small><div class="fx-card"><div class="fx-cimg">${avatar(f[1])}</div><b>${esc(f[1])}</b><span>${esc(m.pos || '')}</span><p>${esc(m.line || '')}</p></div><button class="id-btn red" data-id="fx-next">${esc(GROUP)}에 합류</button></div>`; }
+      if (f[0] === 'release') { const s = songOf(f[1]); html = `<div class="fx-rel"><small>새 싱글 발매</small><div class="fx-sleeve"><div class="fx-cv">${cover(s, 'lg', true)}</div><i class="fx-case"></i></div><b>${esc(s.title)}</b><span>${esc(GROUP)}</span><button class="id-btn primary" data-id="fx-next">레몬뮤직에서 보기</button></div>`; }
+      else if (f[0] === 'chartin') { html = `<div class="fx-chart"><small>레몬차트</small><b>${f[1].rank}<i>위</i></b><span>${f[1].title ? '「' + esc(f[1].title) + '」 ' : ''}차트 진입!</span><button class="id-btn primary" data-id="fx-next">확인</button></div>`; }
+      else if (f[0] === 'first') { const s = f[1].title ? songOf(f[1].title) : ourSongs().slice(-1)[0] || { title: '' }; const ch = (s.chorus || []).slice(0, 4); html = `<div class="fx-first"><div class="fx-conf">${Array.from({ length: 28 }, (_, i) => `<i style="--i:${i};--x:${(i * 37) % 100}%;--c:${['#ffd23f', '#e5384f', '#2fbf71', '#4fb3f0', '#a98bf0'][i % 5]}"></i>`).join('')}</div><small>레몬차트</small><b>1<i>위</i></b><div class="fx-cv">${cover(s, 'lg', true)}</div><span>「${esc(s.title)}」</span><div class="fx-ch">${ch.map((l, i) => `<p style="--d:${i * 0.9 + 0.8}s">${esc(l)}</p>`).join('')}</div><button class="id-btn primary" data-id="fx-next">무대로</button></div>`; }
+      else if (f[0] === 'join') { const m = MO[f[1]] || { name: f[1], color: '#e5384f', pos: '' }; html = `<div class="fx-join" style="--c:${m.color}"><small>새 멤버 합류</small><article class="pc big"><div class="pc-holo"><div class="pc-in"><div class="pc-img">${avatar(f[1])}</div><div class="pc-cap"><b>${esc(f[1])}</b><small>${esc(m.pos || '')}</small></div></div></div></article><p class="fx-line">${esc(m.line || '')}</p><button class="id-btn primary" data-id="fx-next">${esc(GROUP)}에 합류</button></div>`; }
       box.innerHTML = html; box.hidden = false;
     }
     function startBeats() { R.i = R.beats.length ? 0 : -1; showBeat(R.i); if (K && !R.coached && R.beats.length) { R.coached = true; setTimeout(() => { if (!R.modal && !K.isOpen() && $('#id-title').hidden && $('#id-show').hidden) K.coach(); }, 900); } }
@@ -609,7 +621,7 @@
           ${S.reactions.length ? `<div class="sh-card"><small>반응</small>${S.reactions.map(r => `<p>“${esc(r)}”</p>`).join('')}</div>` : ''}
           ${S.cond ? `<div class="sh-card"><small>컨디션</small><p>${esc(S.cond)}</p></div>` : ''}
           ${S.next ? `<div class="sh-card next"><small>다음 달 예고</small><p>${esc(S.next)}</p></div>` : ''}
-          <button class="id-btn red" data-id="show-close">다음 달로</button></div></section>
+          <button class="id-btn primary" data-id="show-close">다음 달로</button></div></section>
         <button class="sh-skip" data-id="show-close">건너뛰기</button>
       </div>`;
       box.hidden = false;
@@ -800,21 +812,18 @@
       const cont = list.find(x => x.url);
       const hero = asset('assets/title.webp') || IMG('윤서하_통상');
       box.innerHTML = `<div class="tt ${hero ? '' : 'nohero'}">
-        <div class="tt-wall"></div><div class="tt-window"><i></i><i></i></div>
-        <div class="tt-board">
-          <span class="tt-mag m1"></span><span class="tt-mag m2"></span><span class="tt-mag m3"></span>
-          <small>${esc(data.groupEn || 'REMINA')} · 다시, 무대 위로</small>
-          <h1>반지하<br>엔터테인먼트</h1>
-          <p class="tt-todo"><s>빚 3,000만</s> → 갚기<br>첫 곡 → 차트인<br>레미나 → 1위</p>
-          <div class="tt-chart">${lemonLogo()}<span>레몬차트</span><b>?위</b></div>
-        </div>
-        ${hero ? `<div class="tt-hero"><img src="${esc(hero)}" alt=""></div>` : ''}
+        <div class="tt-word" aria-hidden="true">${esc(data.groupEn || 'REMINA')}</div>
+        <div class="tt-top"><span>${esc(data.company || '반지하 엔터테인먼트')}</span><i></i></div>
+        <h1 class="tt-h">다시,<br>무대 위로</h1>
+        <p class="tt-sub">아버지가 남긴 건 빚뿐인 기획사와,<br>끝까지 떠나지 않은 리더 한 명.</p>
+        <div class="tt-card"><i class="tt-tape"></i><div class="pc-holo"><div class="pc-in"><div class="pc-img">${hero ? `<img src="${esc(hero)}" alt="">` : `<span class="pc-q big">서하</span>`}</div><div class="pc-cap"><b>윤서하</b><small>레미나 리더</small></div></div></div></div>
         <div class="tt-menu">
-          <button class="tt-go" data-id="t-new"><b>회사 물려받기</b><small>새 대화로 처음부터</small></button>
+          <button class="tt-go" data-id="t-new">회사 물려받기</button>
           ${cont ? `<button class="tt-cont" data-id="t-cont" data-k="${esc(cont.id)}"><b>이어하기</b><small>${esc(sumText(cont))}</small></button>` : ''}
-          <div class="tt-links">${list.length ? `<button class="${R.showSaves ? 'on' : ''}" data-id="t-saves">세이브 ${list.length}</button>` : ''}<button data-id="t-set">설정</button><span>크랙 AI가 진행해요</span></div>
+          <div class="tt-links">${list.length ? `<button class="${R.showSaves ? 'on' : ''}" data-id="t-saves">세이브 ${list.length}개</button>` : ''}<button data-id="t-set">설정</button></div>
+          <p class="tt-note">크랙 AI가 진행하는 아이돌 경영 이야기</p>
         </div>
-        ${list.length ? `<div class="tt-drawer ${R.showSaves ? 'on' : ''}"><header><b>세이브</b><button class="id-x" data-id="t-saves" aria-label="닫기">${ic('x')}</button></header>${list.map(sv => `<div class="tt-save"><div><b>${esc(sumText(sv))}</b><span>${sv.url ? '마지막 ' + ago(sv.last || sv.created) : '대화 연결 전'}${sv.sum && sv.sum.songs ? ' · 발매 ' + sv.sum.songs + '곡' : ''}</span></div>${sv.url ? `<button class="id-fb primary" data-id="t-cont" data-k="${esc(sv.id)}">이어하기</button>` : ''}<button class="id-fb ${R.delAsk === sv.id ? 'danger' : ''}" data-id="t-del" data-k="${esc(sv.id)}">${R.delAsk === sv.id ? '한 번 더' : '지우기'}</button></div>`).join('')}</div>` : ''}
+        ${list.length ? `<div class="tt-drawer ${R.showSaves ? 'on' : ''}"><header><b>세이브</b><button class="id-x" data-id="t-saves" aria-label="닫기">${ic('x')}</button></header>${list.map(sv => `<div class="tt-save"><div><b>${esc(sumText(sv))}</b><span>${sv.url ? '마지막 ' + ago(sv.last || sv.created) : '대화 연결 전'}${sv.sum && sv.sum.songs ? ', 발매 ' + sv.sum.songs + '곡' : ''}</span></div>${sv.url ? `<button class="id-fb primary" data-id="t-cont" data-k="${esc(sv.id)}">이어하기</button>` : ''}<button class="id-fb ${R.delAsk === sv.id ? 'danger' : ''}" data-id="t-del" data-k="${esc(sv.id)}">${R.delAsk === sv.id ? '한 번 더' : '지우기'}</button></div>`).join('')}</div>` : ''}
       </div>`;
       box.hidden = false;
     }
